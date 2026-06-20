@@ -5,6 +5,7 @@ import { useTheme } from '@/lib/design/ThemeContext'
 import { Btn, Card, Mono, TopBar, fmtBaht } from '@/components/ui'
 import { useErpStore } from '@/lib/store/useErpStore'
 import type { ExpenseCategory, ExpenseChannel } from '@/lib/store/erpWorkflow'
+import { exportXlsx } from '@/lib/utils/exportUtil'
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -35,6 +36,12 @@ export default function PLPage() {
   const [channel, setChannel] = useState<ExpenseChannel | 'ทั้งหมด'>('ทั้งหมด')
   const [showPicker, setShowPicker] = useState(false)
   const [pickerYear, setPickerYear] = useState(2026)
+  const [toast, setToast] = useState('')
+
+  function showToast(msg: string) {
+    setToast(msg)
+    setTimeout(() => setToast(''), 3000)
+  }
 
   const prevMonth = prevMonthOf(month)
   const nowKey = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` })()
@@ -127,6 +134,15 @@ export default function PLPage() {
     )
   }
 
+  async function handleExport() {
+    try {
+      await exportXlsx(`pl?month=${month}&channel=${channel}`, `pl-report-export-${month}.xlsx`)
+      showToast('Export สำเร็จ')
+    } catch (err: any) {
+      showToast('Export ล้มเหลว: ' + err.message)
+    }
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: c.canvas }}>
       <TopBar
@@ -134,8 +150,10 @@ export default function PLPage() {
         breadcrumb={['Chawy', 'Finance', 'P&L Report']}
         title="Profit & Loss"
         subtitle={`งบกำไรขาดทุน · ${fmtMonth(month)} เทียบกับ ${fmtMonth(prevMonth)}`}
-        right={
+         right={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {toast && <span style={{ fontSize: 12, color: c.pos, fontWeight: 600 }}>{toast}</span>}
+            <Btn t={t} variant="ghost" onClick={handleExport}>Export XLSX</Btn>
             <Btn t={t} variant="ghost">Export PDF</Btn>
             <div style={{ position: 'relative' }}>
               <Btn t={t} variant="ghost" onClick={() => { setShowPicker(v => !v); setPickerYear(parseInt(month.split('-')[0])) }}>

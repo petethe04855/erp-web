@@ -6,6 +6,7 @@ import { Btn, Card, Mono, SectionLabel, StatusPill, TopBar, fmtBaht } from '@/co
 import SlidePanel from '@/components/SlidePanel'
 import { useErpStore } from '@/lib/store/useErpStore'
 import type { ExpenseCategory, ExpenseChannel } from '@/lib/store/erpWorkflow'
+import { exportXlsx } from '@/lib/utils/exportUtil'
 
 const CATEGORIES: ExpenseCategory[] = ['ค่าโฆษณา', 'ค่าธรรมเนียมแพลตฟอร์ม', 'COGS/วัตถุดิบ', 'SG&A', 'ค่าขนส่ง', 'ค่าแรง', 'อื่นๆ']
 const CHANNELS: ExpenseChannel[] = ['TikTok', 'Shopee', 'LINE', 'Manual', 'ทั่วไป']
@@ -71,6 +72,15 @@ export default function ExpensesPage() {
     showToast(`บันทึกค่าใช้จ่าย ${fmtBaht(amount)} แล้ว`)
   }
 
+  async function handleExport() {
+    try {
+      await exportXlsx('expenses', `expenses-export-${new Date().toISOString().slice(0, 10)}.xlsx`)
+      showToast('Export สำเร็จ')
+    } catch (err: any) {
+      showToast('Export ล้มเหลว: ' + err.message)
+    }
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: c.canvas }}>
       <TopBar
@@ -81,7 +91,7 @@ export default function ExpensesPage() {
         right={
           <>
             {toast && <span style={{ fontSize: 12, color: c.pos, fontWeight: 600 }}>{toast}</span>}
-            <Btn t={t} variant="ghost">Export</Btn>
+            <Btn t={t} variant="ghost" onClick={handleExport}>Export</Btn>
             <Btn t={t} variant="primary" onClick={() => setOpen(true)}>+ Record Expense</Btn>
           </>
         }

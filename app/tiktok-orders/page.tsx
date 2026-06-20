@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useErpStore } from '@/lib/store/useErpStore'
 import { useTheme } from '@/lib/design/ThemeContext'
+import { exportXlsx } from '@/lib/utils/exportUtil'
 import { Btn, Mono, PremiumTable, PremiumTd, PremiumTh, SectionLabel, StatStrip, StatusPill, TopBar, fmtBaht, fmtNum } from '@/components/ui'
 
 type SettlementRecord = {
@@ -61,6 +62,15 @@ export default function TikTokOrdersPage() {
     }
   }
 
+  async function handleExport() {
+    try {
+      await exportXlsx('tiktok-orders', `tiktok-orders-export-${new Date().toISOString().slice(0, 10)}.xlsx`)
+      setSyncMsg('Export สำเร็จ')
+    } catch (err: any) {
+      setSyncMsg('Export ล้มเหลว: ' + err.message)
+    }
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: c.canvas }}>
       <TopBar
@@ -71,7 +81,7 @@ export default function TikTokOrdersPage() {
         right={
           <>
             {syncMsg && <span style={{ fontSize: 12, fontWeight: 600, color: syncMsg.startsWith('Sync สำเร็จ') ? c.pos : c.neg }}>{syncMsg}</span>}
-            <Btn t={t} variant="ghost">Export</Btn>
+            <Btn t={t} variant="ghost" onClick={handleExport}>Export</Btn>
             <Btn t={t} variant="primary" onClick={handleSyncSettlement}>{syncing ? 'Syncing...' : 'Sync Settlement'}</Btn>
           </>
         }

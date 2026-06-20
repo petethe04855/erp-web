@@ -5,6 +5,7 @@ import { useTheme } from '@/lib/design/ThemeContext'
 import { Btn, Card, Mono, TopBar, fmtBaht } from '@/components/ui'
 import { useErpStore } from '@/lib/store/useErpStore'
 import type { ExpenseCategory, ExpenseChannel, MonthBudget } from '@/lib/store/erpWorkflow'
+import { exportXlsx } from '@/lib/utils/exportUtil'
 
 const CATEGORIES: ExpenseCategory[] = ['ค่าโฆษณา', 'ค่าธรรมเนียมแพลตฟอร์ม', 'COGS/วัตถุดิบ', 'SG&A', 'ค่าขนส่ง', 'ค่าแรง', 'อื่นๆ']
 const CHANNELS: ExpenseChannel[] = ['TikTok', 'Shopee', 'LINE', 'Manual', 'ทั่วไป']
@@ -42,6 +43,12 @@ export default function BudgetPage() {
   const [editValue, setEditValue] = useState('')
   const [addOpen, setAddOpen] = useState(false)
   const [newBudget, setNewBudget] = useState({ category: 'ค่าโฆษณา' as ExpenseCategory, channel: 'TikTok' as ExpenseChannel, amount: '' })
+  const [toast, setToast] = useState('')
+
+  function showToast(msg: string) {
+    setToast(msg)
+    setTimeout(() => setToast(''), 3000)
+  }
 
   const [year, month] = selectedMonth.split('-').map(Number)
   const monthBudgets = budgets.filter(b => b.year === year && b.month === month)
@@ -76,6 +83,15 @@ export default function BudgetPage() {
     setAddOpen(false)
   }
 
+  async function handleExport() {
+    try {
+      await exportXlsx(`budget?month=${selectedMonth}`, `budget-export-${selectedMonth}.xlsx`)
+      showToast('Export สำเร็จ')
+    } catch (err: any) {
+      showToast('Export ล้มเหลว: ' + err.message)
+    }
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: c.canvas }}>
       <TopBar
@@ -83,7 +99,13 @@ export default function BudgetPage() {
         breadcrumb={['Chawy', 'Finance', 'Budget']}
         title="Budget"
         subtitle={`งบประมาณ · ${MONTH_LABEL[selectedMonth]}`}
-        right={<Btn t={t} variant="primary" onClick={() => setAddOpen(true)}>Adjust Budget</Btn>}
+        right={
+          <>
+            {toast && <span style={{ fontSize: 12, color: c.pos, fontWeight: 600 }}>{toast}</span>}
+            <Btn t={t} variant="ghost" onClick={handleExport}>Export XLSX</Btn>
+            <Btn t={t} variant="primary" onClick={() => setAddOpen(true)}>Adjust Budget</Btn>
+          </>
+        }
       />
 
       <div style={{ padding: '24px 32px 48px' }}>

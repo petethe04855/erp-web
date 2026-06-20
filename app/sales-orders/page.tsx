@@ -5,6 +5,7 @@ import { useTheme } from '@/lib/design/ThemeContext'
 import { Btn, Card, Mono, StatusPill, TopBar, fmtBaht, fmtNum } from '@/components/ui'
 import { useErpStore } from '@/lib/store/useErpStore'
 import type { SalesOrderStatus } from '@/lib/store/erpWorkflow'
+import { exportXlsx } from '@/lib/utils/exportUtil'
 
 // Import Sub-Components
 import SalesOrderStats from './components/SalesOrderStats'
@@ -89,8 +90,21 @@ export default function SalesOrdersPage() {
   }
 
   function handleCreateInvoice(soId: string) {
-    const inv = createInvoiceFromSO(soId)
-    showToast(inv ? `สร้าง ${inv.id} แล้ว` : 'สร้าง Invoice ไม่ได้')
+    try {
+      const inv = createInvoiceFromSO(soId)
+      showToast(inv ? `สร้าง ${inv.id} แล้ว` : 'สร้าง Invoice ไม่ได้')
+    } catch (err: any) {
+      showToast(err.message || 'เกิดข้อผิดพลาดในการสร้าง Invoice')
+    }
+  }
+
+  async function handleExport() {
+    try {
+      await exportXlsx('sales-orders', `sales-orders-export-${new Date().toISOString().slice(0, 10)}.xlsx`)
+      showToast('Export สำเร็จ')
+    } catch (err: any) {
+      showToast('Export ล้มเหลว: ' + err.message)
+    }
   }
 
   return (
@@ -103,7 +117,7 @@ export default function SalesOrdersPage() {
         right={
           <>
             {toast && <span style={{ fontSize: 12, color: c.pos, fontWeight: 600 }}>{toast}</span>}
-            <Btn t={t} variant="ghost">Export CSV</Btn>
+            <Btn t={t} variant="ghost" onClick={handleExport}>Export CSV</Btn>
             <Btn t={t} variant="primary" onClick={() => setOpen(true)}>+ New Order</Btn>
           </>
         }

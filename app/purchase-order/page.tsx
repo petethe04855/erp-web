@@ -4,6 +4,7 @@ import { formatBaht } from '@/lib/mockData'
 import SlidePanel from '@/components/SlidePanel'
 import { useErpStore } from '@/lib/store/useErpStore'
 import type { PurchaseOrderStatus } from '@/lib/store/erpWorkflow'
+import { exportXlsx } from '@/lib/utils/exportUtil'
 import { useTheme } from '@/lib/design/ThemeContext'
 import { Btn, Field, Mono, PremiumTable, PremiumTd, PremiumTh, SelectField, StatStrip, StatusPill, TopBar } from '@/components/ui'
 
@@ -67,6 +68,15 @@ export default function PurchaseOrderPage() {
     if (updated) showToast(`${poId} → ${status}`)
   }
 
+  async function handleExport() {
+    try {
+      await exportXlsx('purchase-orders', `purchase-orders-export-${new Date().toISOString().slice(0, 10)}.xlsx`)
+      showToast('Export สำเร็จ')
+    } catch (err: any) {
+      showToast('Export ล้มเหลว: ' + err.message)
+    }
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: c.canvas }}>
       <TopBar
@@ -77,7 +87,7 @@ export default function PurchaseOrderPage() {
         right={
           <>
             {toast && <span style={{ fontSize: 12, fontWeight: 600, color: toast.includes('กรุณา') ? c.neg : c.pos }}>{toast}</span>}
-            <Btn t={t} variant="ghost">Export</Btn>
+            <Btn t={t} variant="ghost" onClick={handleExport}>Export</Btn>
             <Btn t={t} variant="primary" onClick={() => { setForm(BLANK); setOpen(true) }}>+ New PO</Btn>
           </>
         }

@@ -85,7 +85,9 @@ const nextId = (prefix: string, ids: string[]) => {
 }
 
 interface CustomErpStore extends ErpWorkflowStore {
+	users: AppUser[]
 	fetchInitialState: () => Promise<void>
+	createUser: (input: { id: string; name: string; role: any; password?: string }) => Promise<AppUser>
 }
 
 export const useErpStore = create<CustomErpStore>((set, get) => {
@@ -115,6 +117,7 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 	liveSessions: [],
 	contentSchedule: [],
 	manualOrders: [],
+	users: [],
 	settings: DEFAULT_SETTINGS,
 
 	// GET /api/init
@@ -147,6 +150,7 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 				liveSessions: data.liveSessions || [],
 				contentSchedule: data.contentSchedule || [],
 				manualOrders: data.manualOrders || [],
+				users: data.users || [],
 				settings: data.settings || DEFAULT_SETTINGS,
 			})
 		} catch (e) {
@@ -156,6 +160,21 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 
 	setCurrentUser: (user: AppUser) => {
 		set({ currentUser: user })
+	},
+
+	createUser: async (input: { id: string; name: string; role: any; password?: string }) => {
+		const res = await fetch(`${getApiUrl()}/api/users`, {
+			method: 'POST',
+			headers: getHeaders(),
+			body: JSON.stringify(input),
+		})
+		if (!res.ok) {
+			const err = await res.json()
+			throw new Error(err.error || 'Failed to create user')
+		}
+		const newUser = await res.json()
+		set(s => ({ users: [...s.users, newUser] }))
+		return newUser
 	},
 
 	// ── Settings ──

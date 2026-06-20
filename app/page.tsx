@@ -3,6 +3,31 @@ import Link from 'next/link'
 import { useErpStore } from '@/lib/store/useErpStore'
 import { useTheme } from '@/lib/design/ThemeContext'
 import { TopBar, PageBody, Card, SectionLabel, Btn, Mono, Dot, MetricTile, fmtBaht, fmtBahtK, fmtNum } from '@/components/ui'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+} from 'chart.js'
+import { Bar, Chart } from 'react-chartjs-2'
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+)
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -41,27 +66,7 @@ function CashFlowChart({ t, data, height = 280 }: {
   height?: number
 }) {
   const c = t.color
-  const w = 900, padL = 56, padR = 16, padT = 24, padB = 30
-  const innerW = w - padL - padR, innerH = height - padT - padB
-  const allVals = data.flatMap(d => [d.rev, d.exp]).filter(v => v > 0)
-  const maxVal = allVals.length > 0 ? Math.max(...allVals) * 1.12 : 100000
-
-  const niceStep = (() => {
-    const target = maxVal / 4
-    const pow = Math.pow(10, Math.floor(Math.log10(Math.max(target, 1))))
-    const n = target / pow
-    const m = n >= 5 ? 5 : n >= 2 ? 2 : 1
-    return m * pow
-  })()
-  const yMax = Math.ceil(maxVal / niceStep) * niceStep
-  const ticks: number[] = []
-  for (let v = 0; v <= yMax; v += niceStep) ticks.push(v)
-
-  const fmtK = (v: number) => v >= 1_000_000 ? `${(v/1_000_000).toFixed(1)}M` : v >= 1000 ? `${Math.round(v/1000)}K` : v
-
-  const slot = innerW / data.length
-  const barW = Math.min((slot - 4) / 2, 8)
-  const yOf = (v: number) => padT + (1 - v / yMax) * innerH
+  const labels = data.map(d => `Day ${d.d}`)
 
   const ma = data.map((_, i) => {
     const lo = Math.max(0, i - 3), hi = Math.min(data.length - 1, i + 3)
@@ -69,63 +74,105 @@ function CashFlowChart({ t, data, height = 280 }: {
     for (let k = lo; k <= hi; k++) { s += data[k].rev - data[k].exp; n++ }
     return s / n
   })
-  const xCenter = (i: number) => padL + slot * (i + 0.5)
-  const maPath = ma.map((v, i) => `${i ? 'L' : 'M'}${xCenter(i).toFixed(1)},${yOf(v).toFixed(1)}`).join(' ')
-  const peakIdx = data.reduce((best, d, i) => d.rev > data[best].rev ? i : best, 0)
+
+  const chartData = {
+    labels,
+    datasets: [
+      {
+        type: 'line' as const,
+        label: 'ค่าเฉลี่ยกำไร 7 วัน',
+        borderColor: c.ink2,
+        borderWidth: 1.5,
+        fill: false,
+        data: ma,
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+      },
+      {
+        type: 'bar' as const,
+        label: 'รายรับ',
+        backgroundColor: c.accent,
+        data: data.map(d => d.rev),
+        borderRadius: 2,
+      },
+      {
+        type: 'bar' as const,
+        label: 'รายจ่าย',
+        backgroundColor: c.expense,
+        data: data.map(d => d.exp),
+        borderRadius: 2,
+      },
+    ],
+  }
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        mode: 'index' as const,
+        intersect: false,
+        backgroundColor: c.surface,
+        titleColor: c.ink,
+        bodyColor: c.ink2,
+        borderColor: c.border,
+        borderWidth: 1,
+        titleFont: { family: t.font.sans, size: 12, weight: 'bold' as const },
+        bodyFont: { family: t.font.sans, size: 12 },
+        callbacks: {
+          label: (context: any) => {
+            let label = context.dataset.label || ''
+            if (label) {
+              label += ': '
+            }
+            if (context.parsed.y !== null) {
+              label += new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(context.parsed.y)
+            }
+            return label
+          }
+        }
+      },
+    },
+    scales: {
+      x: {
+        grid: {
+          display: false,
+        },
+        ticks: {
+          color: c.ink3,
+          font: { family: t.font.mono, size: 10 },
+          maxTicksLimit: 5,
+        },
+      },
+      y: {
+        grid: {
+          color: c.border,
+          lineWidth: 0.6,
+        },
+        border: {
+          dash: [2, 5],
+        },
+        ticks: {
+          color: c.ink3,
+          font: { family: t.font.mono, size: 10 },
+          callback: (value: any) => {
+            if (value >= 1_000_000) return `฿${(value / 1_000_000).toFixed(1)}M`
+            if (value >= 1000) return `฿${Math.round(value / 1000)}K`
+            return `฿${value}`
+          },
+        },
+      },
+    },
+  }
 
   return (
-    <svg viewBox={`0 0 ${w} ${height}`} width="100%" height={height} preserveAspectRatio="none" style={{ display: 'block', overflow: 'visible' }}>
-      <defs>
-        <linearGradient id="revBarGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={c.accent} stopOpacity={1} />
-          <stop offset="100%" stopColor={c.accent} stopOpacity={0.5} />
-        </linearGradient>
-        <linearGradient id="expBarGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={c.expense} stopOpacity={1} />
-          <stop offset="100%" stopColor={c.expense} stopOpacity={0.5} />
-        </linearGradient>
-      </defs>
-      {ticks.map((v, i) => {
-        const y = yOf(v)
-        return (
-          <g key={i}>
-            <line x1={padL} x2={padL + innerW} y1={y} y2={y} stroke={c.border} strokeWidth={0.6} strokeDasharray={v === 0 ? 'none' : '2 5'} />
-            <text x={padL - 10} y={y + 3.5} fontSize={10} fill={c.ink3} fontFamily={t.font.mono} textAnchor="end">฿{fmtK(v)}</text>
-          </g>
-        )
-      })}
-      {data.map((d, i) => {
-        const cx = xCenter(i)
-        const yRev = yOf(d.rev), yExp = yOf(d.exp), yZero = yOf(0)
-        return (
-          <g key={i}>
-            {d.rev > 0 && <rect x={cx - barW - 1} y={yRev} width={barW} height={yZero - yRev} fill="url(#revBarGrad)" rx={1} />}
-            {d.exp > 0 && <rect x={cx + 1} y={yExp} width={barW} height={yZero - yExp} fill="url(#expBarGrad)" rx={1} opacity={0.85} />}
-          </g>
-        )
-      })}
-      <path d={maPath} stroke={c.ink2} strokeWidth={1.25} fill="none" strokeLinecap="round" strokeLinejoin="round" opacity={0.45} />
-      {data[peakIdx]?.rev > 0 && (() => {
-        const cx = xCenter(peakIdx)
-        const cy = yOf(data[peakIdx].rev)
-        const lx = Math.min(cx + 10, padL + innerW - 90)
-        const ly = Math.max(cy - 28, padT + 4)
-        return (
-          <g>
-            <line x1={cx} x2={lx} y1={cy - 6} y2={ly + 14} stroke={c.ink3} strokeWidth={0.6} strokeDasharray="2 3" opacity={0.6} />
-            <rect x={lx} y={ly} width={86} height={22} fill={c.surface} stroke={c.border} strokeWidth={1} rx={4} />
-            <text x={lx + 8} y={ly + 14} fontSize={10} fontFamily={t.font.mono} fill={c.ink} fontWeight={600}>
-              Peak {fmtBahtK(data[peakIdx].rev)}
-            </text>
-          </g>
-        )
-      })()}
-      {[0, Math.floor(data.length/4), Math.floor(data.length/2), Math.floor(data.length*3/4), data.length-1].map(i => (
-        <text key={i} x={xCenter(i)} y={height - 10} fontSize={10} fill={c.ink3} fontFamily={t.font.mono} textAnchor="middle">
-          Day {data[i]?.d}
-        </text>
-      ))}
-    </svg>
+    <div style={{ height, position: 'relative', width: '100%' }}>
+      <Chart type="bar" data={chartData} options={options} />
+    </div>
   )
 }
 
@@ -177,22 +224,92 @@ function AlertRow({ t, sev, title, meta, age, divider }: {
 
 function PnlBars({ t, data }: { t: ReturnType<typeof useTheme>['tokens']; data: { month: string; rev: number; net: number }[] }) {
   const c = t.color
-  const max = Math.max(...data.map(d => d.rev), 1)
+  const labels = data.map(d => d.month)
+  const chartData = {
+    labels,
+    datasets: [
+      {
+        label: 'Revenue',
+        backgroundColor: c.subtle,
+        borderColor: c.border,
+        borderWidth: 1,
+        borderRadius: 2,
+        data: data.map(d => d.rev),
+      },
+      {
+        label: 'Net profit',
+        backgroundColor: c.accent,
+        borderRadius: 2,
+        data: data.map(d => d.net),
+      },
+    ],
+  }
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        mode: 'index' as const,
+        intersect: false,
+        backgroundColor: c.surface,
+        titleColor: c.ink,
+        bodyColor: c.ink2,
+        borderColor: c.border,
+        borderWidth: 1,
+        titleFont: { family: t.font.sans, size: 11, weight: 'bold' as const },
+        bodyFont: { family: t.font.sans, size: 11 },
+        callbacks: {
+          label: (context: any) => {
+            let label = context.dataset.label || ''
+            if (label) {
+              label += ': '
+            }
+            if (context.parsed.y !== null) {
+              label += new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(context.parsed.y)
+            }
+            return label
+          }
+        }
+      },
+    },
+    scales: {
+      x: {
+        grid: {
+          display: false,
+        },
+        ticks: {
+          color: c.ink3,
+          font: { family: t.font.sans, size: 11 },
+        },
+      },
+      y: {
+        grid: {
+          color: c.border,
+          lineWidth: 0.6,
+        },
+        border: {
+          dash: [2, 5],
+        },
+        ticks: {
+          color: c.ink3,
+          font: { family: t.font.mono, size: 10 },
+          callback: (value: any) => {
+            if (value >= 1_000_000) return `฿${(value / 1_000_000).toFixed(1)}M`
+            if (value >= 1000) return `฿${Math.round(value / 1000)}K`
+            return `฿${value}`
+          },
+        },
+      },
+    },
+  }
+
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, height: 140, padding: '10px 0 0' }}>
-      {data.map(d => {
-        const revH = (d.rev / max) * 110
-        const netH = (d.net / max) * 110
-        return (
-          <div key={d.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-            <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', height: 110, width: '100%', justifyContent: 'center' }}>
-              <div style={{ width: '38%', height: revH, background: c.subtle, border: `1px solid ${c.border}`, borderRadius: 2 }} />
-              <div style={{ width: '38%', height: Math.max(netH, 2), background: c.accent, borderRadius: 2 }} />
-            </div>
-            <Mono t={t} size={10} color={c.ink3}>{d.month}</Mono>
-          </div>
-        )
-      })}
+    <div style={{ height: 140, position: 'relative', marginTop: 10 }}>
+      <Bar data={chartData} options={options} />
     </div>
   )
 }
@@ -282,6 +399,31 @@ export default function DashboardPage() {
   const nowDate = new Date()
   const dateStr = `${MONTH_SHORT[nowDate.getMonth()]} ${nowDate.getDate()}, ${nowDate.getFullYear()}`
 
+  function handleExport() {
+    const csvContent = [
+      ['Date', 'Day', 'Revenue (THB)', 'Expenses (THB)', 'Net Profit (THB)'],
+      ...series30.map((item, i) => [
+        last30Days[i],
+        item.d,
+        item.rev,
+        item.exp,
+        item.rev - item.exp
+      ])
+    ]
+      .map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+      .join('\n')
+
+    const blob = new Blob([`\ufeff${csvContent}`], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', `dashboard-cashflow-export-${today}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   return (
     <div>
       <TopBar
@@ -291,7 +433,7 @@ export default function DashboardPage() {
         subtitle={`${dateStr} · ภาพรวมระบบ Chawy ERP`}
         right={
           <>
-            <Btn t={t} variant="ghost">Export</Btn>
+            <Btn t={t} variant="ghost" onClick={handleExport}>Export</Btn>
             <Link href="/sales-orders">
               <Btn t={t} variant="primary">+ New Order</Btn>
             </Link>

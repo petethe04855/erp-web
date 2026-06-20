@@ -2,10 +2,17 @@
 
 import React, { useMemo, useState } from 'react'
 import { useTheme } from '@/lib/design/ThemeContext'
-import { Btn, Card, Dot, Mono, SectionLabel, StatusPill, TopBar, fmtBaht, fmtNum } from '@/components/ui'
+import { Btn, Card, Dot, Mono, SectionLabel, StatusPill, TopBar, fmtNum } from '@/components/ui'
 import SlidePanel from '@/components/SlidePanel'
 import { useErpStore } from '@/lib/store/useErpStore'
 import type { Invoice } from '@/lib/store/erpWorkflow'
+import { exportXlsx } from '@/lib/utils/exportUtil'
+
+function fmtBaht(n: number, dec = 0): string {
+  const sign = n < 0 ? '−' : ''
+  const v = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec })
+  return `${sign}${v}`
+}
 
 const today = new Date().toISOString().split('T')[0]
 const due14 = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]
@@ -38,6 +45,7 @@ export default function InvoicePage() {
   const products = useErpStore(state => state.products)
   const createInvoice = useErpStore(state => state.createInvoice)
   const recordPayment = useErpStore(state => state.recordPayment)
+  const settings = useErpStore(state => state.settings)
 
   const processedList = useMemo(() => invoices.map(enrichStatus), [invoices])
   const [selectedId, setSelectedId] = useState(processedList.find(i => i.status !== 'Paid')?.id ?? processedList[0]?.id ?? '')
@@ -193,32 +201,44 @@ export default function InvoicePage() {
     }
   }
 
+  async function handleExport() {
+    try {
+      await exportXlsx('invoices', `invoices-export-${new Date().toISOString().slice(0, 10)}.xlsx`)
+      showToast('Export สำเร็จ')
+    } catch (err: any) {
+      showToast('Export ล้มเหลว: ' + err.message)
+    }
+  }
+
   const actionRight = (
-    <>
+    <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       {toast && <span style={{ fontSize: 12, color: c.pos, fontWeight: 600 }}>{toast}</span>}
-      <Btn t={t} variant="ghost">Print</Btn>
-      <Btn t={t} variant="ghost">Download PDF</Btn>
+      <Btn t={t} variant="ghost" onClick={handleExport}>Export CSV</Btn>
+      <Btn t={t} variant="ghost" onClick={() => window.print()}>Print</Btn>
+      <Btn t={t} variant="ghost" onClick={() => window.print()}>Download PDF</Btn>
       <Btn t={t} variant="ghost">Send to customer</Btn>
       <Btn t={t} variant="primary" onClick={openPayment}>Record payment</Btn>
-    </>
+    </div>
   )
 
   return (
     <div style={{ minHeight: '100vh', background: c.canvas }}>
-      <TopBar
-        t={t}
-        breadcrumb={['Chawy', 'Sales', 'Invoices', selected.id]}
-        title={selected.id}
-        subtitle={
-          <span>
-            Reference <Mono t={t} size={13} color={c.accent}>{selected.soRef}</Mono>
-            {' · '}{selected.customer}
-          </span>
-        }
-        right={actionRight}
-      />
+      <div className="no-print">
+        <TopBar
+          t={t}
+          breadcrumb={['Chawy', 'Sales', 'Invoices', selected.id]}
+          title={selected.id}
+          subtitle={
+            <span>
+              Reference <Mono t={t} size={13} color={c.accent}>{selected.soRef}</Mono>
+              {' · '}{selected.customer}
+            </span>
+          }
+          right={actionRight}
+        />
+      </div>
 
-      <div style={{
+      <div className="invoice-page-grid" style={{
         padding: '24px 32px 48px',
         display: 'grid',
         gridTemplateColumns: 'minmax(0, 1fr) 320px',
@@ -226,9 +246,11 @@ export default function InvoicePage() {
         alignItems: 'flex-start',
       }}>
         <div>
-          <Card t={t} pad={false}>
+          <div className="invoice-card">
+            <Card t={t} pad={false}>
             <div style={{ padding: '28px 32px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: c.ink, marginBottom: 4 }}>{settings.company.name}</div>
                 <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.10em', textTransform: 'uppercase', color: c.ink3 }}>Invoice</div>
                 <Mono t={t} size={24} weight={600} style={{ display: 'block', marginTop: 6 }}>{selected.id}</Mono>
               </div>
@@ -280,8 +302,8 @@ export default function InvoicePage() {
                     { label: 'SKU', w: 130 },
                     { label: 'Description', w: 'auto' },
                     { label: 'Qty', w: 80, right: true },
-                    { label: 'Unit price', w: 110, right: true },
-                    { label: 'Amount', w: 130, right: true },
+                    { label: 'Unit price (THB)', w: 120, right: true },
+                    { label: 'Amount (THB)', w: 130, right: true },
                   ].map(h => (
                     <th key={h.label} style={{
                       textAlign: h.right ? 'right' : 'left',
@@ -311,36 +333,20 @@ export default function InvoicePage() {
                       <Mono t={t} size={12} color={c.ink2}>{fmtNum(line.qty)}</Mono>
                     </td>
                     <td style={{ padding: '14px 32px', borderBottom: `1px solid ${c.border}`, textAlign: 'right' }}>
-                      <Mono t={t} size={12} color={c.ink2}>{fmtBaht(line.price)}</Mono>
+                      <Mono t={t} size={12} color={c.ink2}>{fmtNum(line.price)}</Mono>
                     </td>
                     <td style={{ padding: '14px 32px', borderBottom: `1px solid ${c.border}`, textAlign: 'right' }}>
-                      <Mono t={t} size={13} weight={500}>{fmtBaht(line.amount)}</Mono>
+                      <Mono t={t} size={13} weight={500}>{fmtNum(line.amount)}</Mono>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
 
-            <div style={{ padding: '20px 32px 28px', display: 'flex', justifyContent: 'flex-end' }}>
-              <div style={{ width: 320, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {[
-                  { label: 'Subtotal', val: selected.amount },
-                  { label: 'Paid', val: -selected.paid },
-                ].map(row => (
-                  <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                    <span style={{ color: c.ink3 }}>{row.label}</span>
-                    <Mono t={t} size={13} weight={500} color={c.ink2}>{fmtBaht(row.val)}</Mono>
-                  </div>
-                ))}
-                <div style={{ borderTop: `1px solid ${c.border}`, paddingTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.10em', textTransform: 'uppercase', color: c.ink3 }}>Total due</span>
-                  <Mono t={t} size={22} weight={600}>{fmtBaht(outstanding)}</Mono>
-                </div>
-              </div>
-            </div>
           </Card>
+          </div>
 
-          <div style={{ marginTop: 24 }}>
+          <div className="no-print" style={{ marginTop: 24 }}>
             <SectionLabel t={t}>Activity</SectionLabel>
             <Card t={t}>
               {(selected.auditTrail.length ? selected.auditTrail : [{ action: 'Created', by: 'System', at: selected.issueDate, note: 'สร้างใบแจ้งหนี้' }]).map((event, i, arr) => (
@@ -366,7 +372,7 @@ export default function InvoicePage() {
             </Card>
           </div>
 
-          <div style={{ marginTop: 24 }}>
+          <div className="no-print" style={{ marginTop: 24 }}>
             <SectionLabel t={t} action={<Btn t={t} variant="ghost" onClick={() => setCreateOpen(true)}>Create invoice</Btn>}>Invoice ledger</SectionLabel>
             <Card t={t} pad={false} style={{ overflow: 'hidden' }}>
               {processedList.slice(0, 6).map(inv => {
@@ -397,7 +403,7 @@ export default function InvoicePage() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 120 }}>
+        <div className="no-print" style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 120 }}>
           <Card t={t}>
             <SectionLabel t={t}>Payment</SectionLabel>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

@@ -178,7 +178,7 @@ export default function Sidebar() {
         aria-label="Open navigation"
         onClick={() => setDrawerOpen(true)}
       >☰</button>
-      {drawerOpen && <div className="app-scrim" onClick={() => setDrawerOpen(false)} />}
+      {drawerOpen && <div  onClick={() => setDrawerOpen(false)} />}
       <aside className={`app-sidebar${drawerOpen ? ' is-open' : ''}`} style={{
       position: 'fixed', top: 0, left: 0, bottom: 0, width: 252,
       background: c.canvas,

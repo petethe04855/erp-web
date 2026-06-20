@@ -1,6 +1,7 @@
 'use client'
 import { useMemo, useState } from 'react'
 import { useErpStore } from '@/lib/store/useErpStore'
+import { exportXlsx } from '@/lib/utils/exportUtil'
 
 import SlidePanel from '@/components/SlidePanel'
 import type { ReturnReason, ReturnCondition } from '@/lib/store/erpWorkflow'
@@ -47,6 +48,15 @@ export default function ReturnsPage() {
     showToast(`รับคืน ${result.id} แล้ว${result.condition === 'ดี' ? ' · เพิ่มกลับเข้าสต๊อก' : ''}`)
   }
 
+  async function handleExport() {
+    try {
+      await exportXlsx('returns', `returns-export-${new Date().toISOString().slice(0, 10)}.xlsx`)
+      showToast('Export สำเร็จ')
+    } catch (err: any) {
+      showToast('Export ล้มเหลว: ' + err.message)
+    }
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: c.canvas }}>
       <TopBar
@@ -57,7 +67,7 @@ export default function ReturnsPage() {
         right={
           <>
             {toast && <span style={{ fontSize: 12, fontWeight: 600, color: c.pos }}>{toast}</span>}
-            <Btn t={t} variant="ghost">Export</Btn>
+            <Btn t={t} variant="ghost" onClick={handleExport}>Export</Btn>
             <Btn t={t} variant="primary" onClick={() => setOpen(true)}>+ New Return</Btn>
           </>
         }
