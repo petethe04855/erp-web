@@ -199,6 +199,7 @@ a:focus-visible {
 }
 
 @media print {
+  /* Hide everything that shouldn't print */
   .no-print,
   .no-print * {
     display: none !important;
@@ -212,20 +213,64 @@ a:focus-visible {
     padding-left: 0 !important;
     margin: 0 !important;
   }
+
+  /* Page setup */
+  @page {
+    size: A4;
+    margin: 16mm 12mm;
+  }
   body, html {
     background: #fff !important;
     color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
+
+  /* Invoice page grid — single column, no side panels */
   .invoice-page-grid {
     display: block !important;
     padding: 0 !important;
     margin: 0 !important;
   }
+
+  /* Invoice card — clean white with border */
   .invoice-card {
     border: none !important;
     box-shadow: none !important;
     padding: 0 !important;
     margin: 0 !important;
     width: 100% !important;
+  }
+  .invoice-card > div {
+    border: none !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+
+  /* Show company details on print */
+  .print-company-detail {
+    display: block !important;
+  }
+
+  /* Remove empty space — kill min-height and excess padding/gaps */
+  .erp-page,
+  .app-main,
+  .app-main > * {
+    min-height: 0 !important;
+    height: auto !important;
+  }
+  /* Outer wrapper div of invoice page uses inline minHeight:'100vh' */
+  .app-main > div[style] {
+    min-height: 0 !important;
+    height: auto !important;
+    padding-bottom: 0 !important;
+  }
+
+  /* Ensure table prints cleanly */
+  table {
+    page-break-inside: auto;
+  }
+  tr {
+    page-break-inside: avoid;
   }
 }

@@ -60,6 +60,8 @@ export default function InvoicePage() {
   const salesOrder = selected ? salesOrders.find(so => so.id === selected.soRef) : null
   const eligibleSOs = salesOrders.filter(so => so.status === 'Completed' && !invoices.some(inv => inv.soRef === so.id))
 
+  const vatRate = settings.company.vatRate || 7
+
   const lines = useMemo(() => {
     if (!selected) return []
     if (salesOrder?.lines.length) {
@@ -85,6 +87,10 @@ export default function InvoicePage() {
       amount: selected.amount,
     }]
   }, [products, salesOrder, selected])
+
+  const subtotal = lines.reduce((s, l) => s + l.amount, 0)
+  const vat = Math.round(subtotal * vatRate / 100)
+  const totalDue = subtotal + vat
 
   if (!selected) {
     return (
@@ -210,12 +216,52 @@ export default function InvoicePage() {
     }
   }
 
+  async function handleDownloadPdf() {
+    if (!selected) return
+    try {
+      showToast('กำลังเตรียมไฟล์ PDF...')
+      const html2pdf = (await import('html2pdf.js')).default
+
+      // Temporarily show print company details programmatically
+      const companyDetails = document.querySelectorAll('.print-company-detail') as NodeListOf<HTMLElement>
+      companyDetails.forEach(el => {
+        el.style.setProperty('display', 'block', 'important')
+      })
+
+      const element = document.querySelector('.invoice-card') as HTMLElement
+      if (!element) {
+        showToast('ไม่พบข้อมูล Invoice Card')
+        return
+      }
+
+      const opt = {
+        margin:       10,
+        filename:     `${selected.id}.pdf`,
+        image:        { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
+      }
+
+      await html2pdf().set(opt).from(element).save()
+      showToast('ดาวน์โหลด PDF สำเร็จ')
+    } catch (err: any) {
+      console.error(err)
+      showToast('ดาวน์โหลด PDF ล้มเหลว')
+    } finally {
+      // Restore company details display to default (hidden on screen)
+      const companyDetails = document.querySelectorAll('.print-company-detail') as NodeListOf<HTMLElement>
+      companyDetails.forEach(el => {
+        el.style.removeProperty('display')
+      })
+    }
+  }
+
   const actionRight = (
     <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       {toast && <span style={{ fontSize: 12, color: c.pos, fontWeight: 600 }}>{toast}</span>}
       <Btn t={t} variant="ghost" onClick={handleExport}>Export CSV</Btn>
       <Btn t={t} variant="ghost" onClick={() => window.print()}>Print</Btn>
-      <Btn t={t} variant="ghost" onClick={() => window.print()}>Download PDF</Btn>
+      <Btn t={t} variant="ghost" onClick={handleDownloadPdf}>Download PDF</Btn>
       <Btn t={t} variant="ghost">Send to customer</Btn>
       <Btn t={t} variant="primary" onClick={openPayment}>Record payment</Btn>
     </div>
@@ -251,7 +297,17 @@ export default function InvoicePage() {
             <div style={{ padding: '28px 32px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: c.ink, marginBottom: 4 }}>{settings.company.name}</div>
-                <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.10em', textTransform: 'uppercase', color: c.ink3 }}>Invoice</div>
+                <div className="print-company-detail" style={{ display: 'none' }}>
+                  <div style={{ fontSize: 12, color: c.ink2, lineHeight: 1.6, marginBottom: 4 }}>{settings.company.address}</div>
+                  <div style={{ display: 'flex', gap: 16, fontSize: 11, color: c.ink3 }}>
+                    <span>Tax ID <Mono t={t} size={11} color={c.ink2}>{settings.company.taxId}</Mono></span>
+                    <span>·</span>
+                    <span>{settings.company.phone}</span>
+                    <span>·</span>
+                    <span>{settings.company.email}</span>
+                  </div>
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.10em', textTransform: 'uppercase', color: c.ink3, marginTop: 8 }}>Invoice</div>
                 <Mono t={t} size={24} weight={600} style={{ display: 'block', marginTop: 6 }}>{selected.id}</Mono>
               </div>
               <div style={{ textAlign: 'right' }}>
@@ -342,6 +398,25 @@ export default function InvoicePage() {
                 ))}
               </tbody>
             </table>
+
+            {/* ── Totals ── */}
+            <div style={{ padding: '20px 32px 28px', display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{ width: 320, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {[
+                  { label: 'Subtotal',   val: subtotal,  color: c.ink2, weight: 500 },
+                  { label: `VAT (${vatRate}%)`, val: vat, color: c.ink2, weight: 500 },
+                ].map(r => (
+                  <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ color: c.ink3 }}>{r.label}</span>
+                    <Mono t={t} size={13} weight={r.weight} color={r.color}>{fmtBaht(r.val)}</Mono>
+                  </div>
+                ))}
+                <div style={{ borderTop: `1px solid ${c.border}`, paddingTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.10em', textTransform: 'uppercase', color: c.ink3 }}>Total due</span>
+                  <Mono t={t} size={22} weight={600}>{fmtBaht(totalDue)}</Mono>
+                </div>
+              </div>
+            </div>
 
           </Card>
           </div>
