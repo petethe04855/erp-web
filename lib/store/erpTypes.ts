@@ -213,9 +213,9 @@ export const ROLE_BADGE_STYLE: Record<UserRole, { bg: string; color: string }> =
 // Nav hrefs each role may access ('*' = all)
 export const ROLE_NAV: Record<UserRole, string[] | '*'> = {
   owner:      '*',
-  sales:      ['/', '/sales-orders', '/quotation', '/invoice', '/manual-order', '/tiktok-orders', '/live-sessions', '/sampling'],
-  warehouse:  ['/', '/sku', '/bom', '/stock', '/goods-receive', '/goods-issue', '/purchase-req', '/purchase-order', '/stock-transfer', '/stock-check', '/sampling'],
-  accountant: ['/', '/invoice', '/sales-orders', '/purchase-order', '/expenses', '/pl', '/budget'],
+  sales:      ['/', '/dashboard', '/sales-orders', '/quotation', '/invoice', '/manual-order', '/tiktok-orders', '/live-sessions', '/sampling'],
+  warehouse:  ['/', '/dashboard', '/sku', '/bom', '/stock', '/goods-receive', '/goods-issue', '/purchase-req', '/purchase-order', '/stock-transfer', '/stock-check', '/sampling'],
+  accountant: ['/', '/dashboard', '/invoice', '/sales-orders', '/purchase-order', '/expenses', '/pl', '/budget'],
 }
 
 // ── Input types ────────────────────────────────────────────────────────────

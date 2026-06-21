@@ -14,6 +14,7 @@ type NavEntry = NavSection | NavItem
 
 const MODULE_KEY: Record<string, keyof ModuleSettings | null> = {
   '/':                  null,
+  '/dashboard':         null,
   '/quotation':         'quotation',
   '/sales-orders':      'salesOrders',
   '/invoice':           'invoice',
@@ -42,7 +43,7 @@ const MODULE_KEY: Record<string, keyof ModuleSettings | null> = {
 
 const NAV_STATIC: NavEntry[] = [
   { section: 'Overview' },
-  { label: 'Dashboard',             subTH: 'ภาพรวม',               href: '/'                 },
+  { label: 'Dashboard',             subTH: 'ภาพรวม',               href: '/dashboard'        },
   { section: 'Sales' },
   { label: 'Quotation',             subTH: 'ใบเสนอราคา',           href: '/quotation'         },
   { label: 'Sales Orders',          subTH: 'ออร์เดอร์ขาย',         href: '/sales-orders'      },
