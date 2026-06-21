@@ -5,6 +5,32 @@ import { useRouter, usePathname } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import TweaksPanel from '@/components/TweaksPanel'
 import { useErpStore } from '@/lib/store/useErpStore'
+import type { ErpResource } from '@/lib/store/useErpStore'
+
+const ROUTE_RESOURCES: Record<string, ErpResource[]> = {
+	'/': ['salesOrders', 'expenses', 'invoices', 'products', 'purchaseRequests', 'purchaseOrders', 'stockLots'],
+	'/quotation': ['quotations', 'products'],
+	'/sales-orders': ['salesOrders', 'invoices', 'products'],
+	'/invoice': ['invoices', 'salesOrders', 'products', 'settings'],
+	'/returns': ['salesOrders', 'stockReturns', 'products'],
+	'/purchase-req': ['purchaseRequests', 'products'],
+	'/purchase-order': ['purchaseOrders', 'products'],
+	'/sku': ['products', 'bundleComponents'],
+	'/stock': ['products', 'stockLots'],
+	'/goods-receive': ['goodsReceives', 'purchaseOrders'],
+	'/goods-issue': ['products', 'goodsIssues'],
+	'/stock-transfer': ['products', 'stockTransfers'],
+	'/stock-check': ['products', 'stockAdjustments'],
+	'/expenses': ['expenses'],
+	'/pl': ['salesOrders', 'expenses', 'tiktokOrders'],
+	'/budget': ['budgets', 'expenses'],
+	'/tiktok-orders': ['tiktokOrders', 'liveSessions'],
+	'/live-sessions': ['liveSessions', 'contentSchedule', 'settings'],
+	'/manual-order': ['manualOrders', 'products'],
+	'/sampling': ['samplingCampaigns', 'products'],
+	'/users': ['users'],
+	'/settings': ['settings', 'products'],
+}
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname()
@@ -13,7 +39,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 	const [loading, setLoading] = useState(true)
 	const currentUser = useErpStore(s => s.currentUser)
 	const setCurrentUser = useErpStore(s => s.setCurrentUser)
-	const fetchInitialState = useErpStore(s => s.fetchInitialState)
+	const loadResources = useErpStore(s => s.loadResources)
 
 	useEffect(() => {
 		const token = localStorage.getItem('chawy_token')
@@ -44,8 +70,6 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 							role: payload.role || 'sales'
 						})
 					}
-					// Fetch actual database records
-					fetchInitialState()
 					setAuthenticated(true)
 				}
 			} catch (e) {
@@ -55,6 +79,17 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 			setLoading(false)
 		}
 	}, [pathname, router, currentUser.id, setCurrentUser])
+
+	useEffect(() => {
+		if (!authenticated || pathname === '/login') return
+		const pageResources = ROUTE_RESOURCES[pathname] ?? []
+		// Settings powers module visibility in the sidebar, but other badge data
+		// is loaded only by the pages that need it.
+		const resources = pageResources.includes('settings')
+			? pageResources
+			: ['settings' as const, ...pageResources]
+		loadResources(resources)
+	}, [authenticated, pathname, loadResources])
 
 	if (pathname === '/login') {
 		return <>{children}</>

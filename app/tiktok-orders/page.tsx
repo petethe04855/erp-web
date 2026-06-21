@@ -45,7 +45,10 @@ export default function TikTokOrdersPage() {
     setSyncing(true)
     setSyncMsg(null)
     try {
-      const res = await fetch(`/api/tiktok/settlement?access_token=${encodeURIComponent(token)}`)
+      const authToken = localStorage.getItem('chawy_token')
+      const res = await fetch(`/api/tiktok/settlement?access_token=${encodeURIComponent(token)}`, {
+        headers: { Authorization: authToken ? `Bearer ${authToken}` : '' },
+      })
       const json = await res.json() as { settlements?: SettlementRecord[]; error?: string }
       if (!res.ok) throw new Error(json.error ?? 'API error')
       const records = json.settlements ?? []

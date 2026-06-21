@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useErpStore } from '@/lib/store/useErpStore'
+import { readApiResponse } from '@/lib/apiResponse'
 
 export default function LoginPage() {
 	const [username, setUsername] = useState('')
@@ -28,11 +29,7 @@ export default function LoginPage() {
 				body: JSON.stringify({ username, password }),
 			})
 
-			const data = await res.json()
-
-			if (!res.ok) {
-				throw new Error(data.error || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง')
-			}
+			const data = await readApiResponse<{ token: string; user: Parameters<typeof setCurrentUser>[0] }>(res)
 
 			// Store JWT Token in LocalStorage
 			localStorage.setItem('chawy_token', data.token)

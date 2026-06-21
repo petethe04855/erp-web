@@ -12,6 +12,7 @@ import {
 	type SamplingRecipient,
 } from '@/lib/store/erpWorkflow'
 import type { AppUser, ErpSettings } from '@/lib/store/erpTypes'
+import { readApiResponse } from '@/lib/apiResponse'
 
 const DEFAULT_SETTINGS: ErpSettings = {
 	company: {
@@ -84,9 +85,40 @@ const nextId = (prefix: string, ids: string[]) => {
 	return `${prefix}${String(max + 1).padStart(4, '0')}`
 }
 
+export const ERP_RESOURCE_ENDPOINTS = {
+	quotations: '/api/quotations',
+	salesOrders: '/api/sales-orders',
+	invoices: '/api/invoices',
+	purchaseRequests: '/api/purchase-requests',
+	purchaseOrders: '/api/purchase-orders',
+	goodsReceives: '/api/goods-receives',
+	stockMovements: '/api/stock-movements',
+	products: '/api/products',
+	stockLots: '/api/stock-lots',
+	samplingCampaigns: '/api/sampling-campaigns',
+	goodsIssues: '/api/goods-issues',
+	stockReturns: '/api/stock-returns',
+	stockAdjustments: '/api/stock-adjustments',
+	stockTransfers: '/api/stock-transfers',
+	expenses: '/api/expenses',
+	budgets: '/api/budgets',
+	bundleComponents: '/api/bundle-components',
+	tiktokOrders: '/api/tiktok-orders',
+	liveSessions: '/api/live-sessions',
+	contentSchedule: '/api/content-schedule',
+	manualOrders: '/api/manual-orders',
+	users: '/api/users',
+	settings: '/api/settings',
+} as const
+
+export type ErpResource = keyof typeof ERP_RESOURCE_ENDPOINTS
+const loadedResources = new Set<ErpResource>()
+const loadingResources = new Map<ErpResource, Promise<void>>()
+
 interface CustomErpStore extends ErpWorkflowStore {
 	users: AppUser[]
 	fetchInitialState: () => Promise<void>
+	loadResources: (resources: ErpResource[], force?: boolean) => Promise<void>
 	createUser: (input: { id: string; name: string; role: any; password?: string }) => Promise<AppUser>
 	updateUser: (id: string, input: { name?: string; role?: any; password?: string }) => Promise<AppUser>
 	updateUserStatus: (id: string, isActive: boolean) => Promise<AppUser>
@@ -122,42 +154,33 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 	users: [],
 	settings: DEFAULT_SETTINGS,
 
-	// GET /api/init
+	loadResources: async (resources, force = false) => {
+		await Promise.all(resources.map(async resource => {
+			if (!force && loadedResources.has(resource)) return
+			const existing = loadingResources.get(resource)
+			if (existing) return existing
+
+			const request = (async () => {
+				try {
+					const response = await fetch(`${getApiUrl()}${ERP_RESOURCE_ENDPOINTS[resource]}`, { headers: getHeaders() })
+					const data = await readApiResponse<unknown>(response)
+					set({ [resource]: data } as Partial<CustomErpStore>)
+					loadedResources.add(resource)
+				} catch (error) {
+					console.error(`Failed to load ERP resource ${ERP_RESOURCE_ENDPOINTS[resource]}`, error)
+				} finally {
+					loadingResources.delete(resource)
+				}
+			})()
+			loadingResources.set(resource, request)
+			return request
+		}))
+	},
+
+	// Refresh only resources that the user has already visited.
 	fetchInitialState: async () => {
-		try {
-			const res = await fetch(`${getApiUrl()}/api/init`, {
-				headers: getHeaders(),
-			})
-			if (!res.ok) return
-			const data = await res.json()
-			set({
-				quotations: data.quotations || [],
-				salesOrders: data.salesOrders || [],
-				invoices: data.invoices || [],
-				purchaseRequests: data.purchaseRequests || [],
-				purchaseOrders: data.purchaseOrders || [],
-				goodsReceives: data.goodsReceives || [],
-				stockMovements: data.stockMovements || [],
-				products: data.products || [],
-				stockLots: data.stockLots || [],
-				samplingCampaigns: data.samplingCampaigns || [],
-				goodsIssues: data.goodsIssues || [],
-				stockReturns: data.stockReturns || [],
-				stockAdjustments: data.stockAdjustments || [],
-				stockTransfers: data.stockTransfers || [],
-				expenses: data.expenses || [],
-				budgets: data.budgets || [],
-				bundleComponents: data.bundleComponents || [],
-				tiktokOrders: data.tiktokOrders || [],
-				liveSessions: data.liveSessions || [],
-				contentSchedule: data.contentSchedule || [],
-				manualOrders: data.manualOrders || [],
-				users: data.users || [],
-				settings: data.settings || DEFAULT_SETTINGS,
-			})
-		} catch (e) {
-			console.error('Failed to load initial ERP state', e)
-		}
+		const resources = [...loadedResources]
+		if (resources.length > 0) await get().loadResources(resources, true)
 	},
 
 	setCurrentUser: (user: AppUser) => {
@@ -170,11 +193,7 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 			headers: getHeaders(),
 			body: JSON.stringify(input),
 		})
-		if (!res.ok) {
-			const err = await res.json()
-			throw new Error(err.error || 'Failed to create user')
-		}
-		const newUser = await res.json()
+		const newUser = await readApiResponse<AppUser>(res)
 		set(s => ({ users: [...s.users, newUser] }))
 		return newUser
 	},
@@ -185,11 +204,7 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 			headers: getHeaders(),
 			body: JSON.stringify(input),
 		})
-		if (!res.ok) {
-			const err = await res.json()
-			throw new Error(err.error || 'Failed to update user')
-		}
-		const updatedUser = await res.json()
+		const updatedUser = await readApiResponse<AppUser>(res)
 		set(s => ({
 			users: s.users.map(u => u.id === id ? updatedUser : u),
 			currentUser: s.currentUser.id === id ? updatedUser : s.currentUser,
@@ -203,11 +218,7 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 			headers: getHeaders(),
 			body: JSON.stringify({ isActive }),
 		})
-		if (!res.ok) {
-			const err = await res.json()
-			throw new Error(err.error || 'Failed to update user status')
-		}
-		const updatedUser = await res.json()
+		const updatedUser = await readApiResponse<AppUser>(res)
 		set(s => ({ users: s.users.map(u => u.id === id ? updatedUser : u) }))
 		return updatedUser
 	},
@@ -243,7 +254,7 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 			method: 'POST',
 			headers: getHeaders(),
 			body: JSON.stringify(newProduct),
-		}).then(res => res.json()).then(data => {
+		}).then(res => readApiResponse<Product>(res)).then(data => {
 			set(s => ({ products: [...s.products, data] }))
 		})
 

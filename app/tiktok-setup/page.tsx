@@ -31,7 +31,10 @@ export default function TikTokSetupPage() {
     setTesting(true)
     setTestResult(null)
     try {
-      const res = await fetch(`/api/tiktok/settlement?access_token=${encodeURIComponent(stored)}`)
+      const authToken = localStorage.getItem('chawy_token')
+      const res = await fetch(`/api/tiktok/settlement?access_token=${encodeURIComponent(stored)}`, {
+        headers: { Authorization: authToken ? `Bearer ${authToken}` : '' },
+      })
       const json = await res.json() as { settlements?: unknown[]; error?: string }
       if (res.ok) {
         setTestResult(`เชื่อมต่อสำเร็จ — พบ ${json.settlements?.length ?? 0} รายการ settlement`)
