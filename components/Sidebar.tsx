@@ -88,7 +88,7 @@ function filterNav(entries: NavEntry[], modules: ModuleSettings, allowedHrefs: s
     if ('section' in entry) {
       pendingSection = entry
     } else {
-      const allowed = allowedHrefs === '*' || allowedHrefs.includes(entry.href)
+      const allowed = allowedHrefs === '*' || (Array.isArray(allowedHrefs) && allowedHrefs.includes(entry.href))
       const visible = isModuleVisible(entry.href, modules)
       if (allowed && visible) {
         if (pendingSection) { result.push(pendingSection); pendingSection = null }
@@ -168,7 +168,7 @@ export default function Sidebar() {
     return item
   })
 
-  const allowedHrefs = ROLE_NAV[currentUser.role]
+  const allowedHrefs = currentUser?.role ? (ROLE_NAV[currentUser.role] || []) : []
   const NAV = filterNav(NAV_WITH_BADGES, modules, allowedHrefs)
   const groups = groupNav(NAV)
 

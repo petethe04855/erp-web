@@ -39,7 +39,7 @@ export default function LoginPage() {
 			setCurrentUser(data.user)
 
 			// Redirect to Dashboard
-			router.push('/')
+			window.location.href = '/'
 		} catch (err: any) {
 			setError(err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์')
 		} finally {
