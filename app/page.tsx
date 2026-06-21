@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import { useState } from 'react'
 import { useErpStore } from '@/lib/store/useErpStore'
 import { useTheme } from '@/lib/design/ThemeContext'
 import { TopBar, PageBody, Card, SectionLabel, Btn, Mono, Dot, MetricTile, fmtBaht, fmtBahtK, fmtNum } from '@/components/ui'
@@ -35,20 +36,18 @@ function daysUntil(dateStr: string): number {
   return Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400000)
 }
 
-function getLast6MonthKeys(): string[] {
-  const now = new Date()
+function getLast6MonthKeys(year: number, month: number): string[] {
   return Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
+    const d = new Date(year, month - 1 - (5 - i), 1)
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
   })
 }
 
-function getLast30Days(): string[] {
-  const now = new Date()
-  return Array.from({ length: 30 }, (_, i) => {
-    const d = new Date(now)
-    d.setDate(d.getDate() - (29 - i))
-    return d.toISOString().slice(0, 10)
+function getMonthDays(year: number, month: number): string[] {
+  const days = new Date(year, month, 0).getDate()
+  return Array.from({ length: days }, (_, i) => {
+    const day = String(i + 1).padStart(2, '0')
+    return `${year}-${String(month).padStart(2, '0')}-${day}`
   })
 }
 
@@ -328,20 +327,23 @@ export default function DashboardPage() {
   const purchaseOrders = useErpStore(s => s.purchaseOrders)
   const stockLots      = useErpStore(s => s.stockLots)
 
-  const today        = new Date().toISOString().slice(0, 10)
-  const currentMonth = today.slice(0, 7)
+  const now = new Date()
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear())
+  const periodKey = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`
+  const periodLabel = new Intl.DateTimeFormat('th-TH', { month: 'long', year: 'numeric' })
+    .format(new Date(selectedYear, selectedMonth - 1, 1))
 
   // KPIs
-  const todayOrders   = salesOrders.filter(o => o.date === today && o.status !== 'Cancelled')
-  const todayRevenue  = todayOrders.reduce((s, o) => s + o.amount, 0)
-  const monthlyRevenue = salesOrders.filter(o => o.date.startsWith(currentMonth) && o.status !== 'Cancelled').reduce((s, o) => s + o.amount, 0)
-  const monthlyExpenses = expenses.filter(e => e.date.startsWith(currentMonth)).reduce((s, e) => s + e.amount, 0)
+  const periodOrders = salesOrders.filter(o => o.date.startsWith(periodKey) && o.status !== 'Cancelled')
+  const monthlyRevenue = periodOrders.reduce((s, o) => s + o.amount, 0)
+  const monthlyExpenses = expenses.filter(e => e.date.startsWith(periodKey)).reduce((s, e) => s + e.amount, 0)
   const monthlyProfit  = monthlyRevenue - monthlyExpenses
   const marginPct      = monthlyRevenue > 0 ? (monthlyProfit / monthlyRevenue) * 100 : 0
 
-  // 30-day series
-  const last30Days = getLast30Days()
-  const series30 = last30Days.map((date, i) => ({
+  // Selected-month daily series
+  const periodDays = getMonthDays(selectedYear, selectedMonth)
+  const series30 = periodDays.map((date, i) => ({
     d: i + 1,
     rev: salesOrders.filter(o => o.date === date && o.status !== 'Cancelled').reduce((s, o) => s + o.amount, 0),
     exp: expenses.filter(e => e.date === date).reduce((s, e) => s + e.amount, 0),
@@ -351,14 +353,14 @@ export default function DashboardPage() {
   const totalNet30 = totalRev30 - totalExp30
 
   // Weekly breakdown
-  const weeks = Array.from({ length: 5 }, (_, w) => {
-    const slice = series30.slice(w * 6, w * 6 + 6)
+  const weeks = Array.from({ length: Math.ceil(series30.length / 7) }, (_, w) => {
+    const slice = series30.slice(w * 7, w * 7 + 7)
     return { label: `Week ${w + 1}`, rev: slice.reduce((s,d)=>s+d.rev,0), exp: slice.reduce((s,d)=>s+d.exp,0) }
   })
 
   // Channels from salesOrders
   const channelTotals: Record<string, number> = {}
-  salesOrders.filter(o => o.status !== 'Cancelled').forEach(o => {
+  periodOrders.forEach(o => {
     const ch = o.channel || 'Other'
     channelTotals[ch] = (channelTotals[ch] ?? 0) + o.amount
   })
@@ -385,7 +387,7 @@ export default function DashboardPage() {
   ].slice(0, 6)
 
   // 6-month P&L
-  const last6 = getLast6MonthKeys()
+  const last6 = getLast6MonthKeys(selectedYear, selectedMonth)
   const pnl6 = last6.map(month => {
     const rev = salesOrders.filter(o => o.date.startsWith(month) && o.status !== 'Cancelled').reduce((s, o) => s + o.amount, 0)
     const exp = expenses.filter(e => e.date.startsWith(month)).reduce((s, e) => s + e.amount, 0)
@@ -403,7 +405,7 @@ export default function DashboardPage() {
     const csvContent = [
       ['Date', 'Day', 'Revenue (THB)', 'Expenses (THB)', 'Net Profit (THB)'],
       ...series30.map((item, i) => [
-        last30Days[i],
+        periodDays[i],
         item.d,
         item.rev,
         item.exp,
@@ -417,7 +419,7 @@ export default function DashboardPage() {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.setAttribute('href', url)
-    link.setAttribute('download', `dashboard-cashflow-export-${today}.csv`)
+    link.setAttribute('download', `dashboard-cashflow-${periodKey}.csv`)
     link.style.visibility = 'hidden'
     document.body.appendChild(link)
     link.click()
@@ -443,11 +445,41 @@ export default function DashboardPage() {
 
       <PageBody t={t} maxWidth="none" style={{ paddingBottom: 48 }}>
 
+        <Card t={t} style={{ marginBottom: 16, padding: '14px 18px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: c.ink }}>ค้นหาข้อมูลตามช่วงเวลา</div>
+              <div style={{ fontSize: 11, color: c.ink3, marginTop: 3 }}>กำลังแสดงข้อมูลเดือน {periodLabel}</div>
+            </div>
+            <label style={{ display: 'grid', gap: 5, fontSize: 11, color: c.ink3 }}>
+              เดือน
+              <select value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))} style={{ minWidth: 140, padding: '8px 10px', border: `1px solid ${c.border}`, borderRadius: t.radius, background: c.surface, color: c.ink }}>
+                {Array.from({ length: 12 }, (_, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {new Intl.DateTimeFormat('th-TH', { month: 'long' }).format(new Date(2026, i, 1))}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label style={{ display: 'grid', gap: 5, fontSize: 11, color: c.ink3 }}>
+              ปี
+              <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))} style={{ minWidth: 110, padding: '8px 10px', border: `1px solid ${c.border}`, borderRadius: t.radius, background: c.surface, color: c.ink }}>
+                {Array.from({ length: 7 }, (_, i) => now.getFullYear() - 5 + i).map(year => (
+                  <option key={year} value={year}>{year + 543}</option>
+                ))}
+              </select>
+            </label>
+            <Btn t={t} variant="ghost" onClick={() => { setSelectedMonth(now.getMonth() + 1); setSelectedYear(now.getFullYear()) }}>
+              เดือนปัจจุบัน
+            </Btn>
+          </div>
+        </Card>
+
         {/* KPI Tiles */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
-          <MetricTile t={t} primary label="Revenue · Today"  value={fmtBaht(todayRevenue)}  sub={`${todayOrders.length} orders`} />
-          <MetricTile t={t} label="Revenue · MTD"   value={fmtBaht(monthlyRevenue)}  delta={null} sub={currentMonth} />
-          <MetricTile t={t} label="Net Profit · MTD" value={fmtBaht(monthlyProfit)}  sub={`${marginPct.toFixed(1)}% margin`} />
+          <MetricTile t={t} primary label="Orders · Selected Month" value={fmtNum(periodOrders.length)} sub={periodLabel} />
+          <MetricTile t={t} label="Revenue · Selected Month" value={fmtBaht(monthlyRevenue)} delta={null} sub={periodKey} />
+          <MetricTile t={t} label="Net Profit · Selected Month" value={fmtBaht(monthlyProfit)} sub={`${marginPct.toFixed(1)}% margin`} />
           <MetricTile t={t} label="Low / Out of Stock" value={fmtNum(products.filter(p=>p.stock<=p.reorder&&!p.isBundle).length)} sub={`${products.filter(p=>p.stock===0&&!p.isBundle).length} out of stock`} />
         </div>
 
@@ -456,16 +488,16 @@ export default function DashboardPage() {
           {/* Header */}
           <div style={{ padding: '22px 24px 18px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', borderBottom: `1px solid ${c.border}` }}>
             <div>
-              <SectionLabel t={t} style={{ marginBottom: 4 }}>Cash Flow · 30 Days</SectionLabel>
-              <div style={{ fontSize: 13, color: c.ink3, fontFamily: t.font.sans }}>Daily revenue vs expenses · last 30 days</div>
+              <SectionLabel t={t} style={{ marginBottom: 4 }}>Cash Flow · {periodLabel}</SectionLabel>
+              <div style={{ fontSize: 13, color: c.ink3, fontFamily: t.font.sans }}>รายรับและรายจ่ายรายวันของเดือนที่เลือก</div>
             </div>
           </div>
 
           {/* Stat tiles */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderBottom: `1px solid ${c.border}` }}>
             {[
-              { label: 'Revenue · 30D',  value: fmtBaht(totalRev30), swatch: c.accent,  sub: '30 days' },
-              { label: 'Expenses · 30D', value: fmtBaht(totalExp30), swatch: c.expense, sub: totalRev30 > 0 ? `${(totalExp30/totalRev30*100).toFixed(1)}% of revenue` : '—' },
+              { label: 'Revenue · Period',  value: fmtBaht(totalRev30), swatch: c.accent,  sub: `${periodDays.length} days` },
+              { label: 'Expenses · Period', value: fmtBaht(totalExp30), swatch: c.expense, sub: totalRev30 > 0 ? `${(totalExp30/totalRev30*100).toFixed(1)}% of revenue` : '—' },
               { label: 'Net Cash Flow',  value: fmtBaht(totalNet30), swatch: null,       sub: totalRev30 > 0 ? `${(totalNet30/totalRev30*100).toFixed(1)}% margin` : '—' },
             ].map((s, i) => (
               <div key={s.label} style={{ padding: '20px 24px 22px', borderRight: i < 2 ? `1px solid ${c.border}` : 'none' }}>
@@ -499,9 +531,9 @@ export default function DashboardPage() {
           </div>
 
           {/* Weekly breakdown */}
-          <div style={{ borderTop: `1px solid ${c.border}`, padding: '14px 24px', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 0 }}>
+          <div style={{ borderTop: `1px solid ${c.border}`, padding: '14px 24px', display: 'grid', gridTemplateColumns: `repeat(${weeks.length}, 1fr)`, gap: 0 }}>
             {weeks.map((w, i) => (
-              <div key={w.label} style={{ paddingRight: 16, borderRight: i < 4 ? `1px solid ${c.border}` : 'none', paddingLeft: i === 0 ? 0 : 16 }}>
+              <div key={w.label} style={{ paddingRight: 16, borderRight: i < weeks.length - 1 ? `1px solid ${c.border}` : 'none', paddingLeft: i === 0 ? 0 : 16 }}>
                 <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: c.ink3, fontFamily: t.font.sans }}>{w.label}</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 8 }}>
                   <Mono t={t} size={14} weight={600}>{fmtBahtK(w.rev - w.exp)}</Mono>
@@ -518,7 +550,7 @@ export default function DashboardPage() {
             <Card t={t}>
               <SectionLabel t={t} action={
                 <Link href="/sales-orders" style={{ fontSize: 11, color: c.accent, textDecoration: 'none', fontFamily: t.font.sans, fontWeight: 500 }}>View all →</Link>
-              }>Revenue by Channel · MTD</SectionLabel>
+              }>Revenue by Channel · {periodLabel}</SectionLabel>
               {channels.map(ch => (
                 <ChannelBar key={ch.name} t={t} name={ch.name} rev={ch.rev} delta={ch.delta} max={maxChan} />
               ))}
@@ -538,7 +570,7 @@ export default function DashboardPage() {
         <Card t={t}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 12 }}>
             <div>
-              <SectionLabel t={t} style={{ marginBottom: 6 }}>Profit & Loss · 6 Months</SectionLabel>
+              <SectionLabel t={t} style={{ marginBottom: 6 }}>Profit & Loss · 6 Months ending {periodLabel}</SectionLabel>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 18 }}>
                 <span style={{ fontSize: 11, color: c.ink3, fontFamily: t.font.sans }}>Net margin</span>
                 <Mono t={t} size={20} weight={600} style={{ marginLeft: 10 }}>{latestMargin.toFixed(1)}%</Mono>

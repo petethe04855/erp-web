@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useErpStore } from '@/lib/store/useErpStore'
-import { APP_USERS, ROLE_LABELS, type UserRole } from '@/lib/store/erpTypes'
+import { ROLE_LABELS, type AppUser, type UserRole } from '@/lib/store/erpTypes'
 import { useTheme } from '@/lib/design/ThemeContext'
 import { Btn, Dot, Mono, PremiumTable, PremiumTd, PremiumTh, TopBar } from '@/components/ui'
 import SlidePanel from '@/components/SlidePanel'
@@ -16,20 +16,23 @@ export default function UsersPage() {
   const storeUsers = useErpStore(s => s.users)
   const createUser = useErpStore(s => s.createUser)
   const updateUser = useErpStore(s => s.updateUser)
+  const updateUserStatus = useErpStore(s => s.updateUserStatus)
 
   const [createOpen, setCreateOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [form, setForm] = useState(BLANK)
   const [editForm, setEditForm] = useState(BLANK)
   const [toast, setToast] = useState('')
+  const [busyUserId, setBusyUserId] = useState('')
 
   function showToast(msg: string) {
     setToast(msg)
     setTimeout(() => setToast(''), 3000)
   }
 
-  const displayUsers = storeUsers.length ? storeUsers : APP_USERS
-  const active = displayUsers.length
+  const displayUsers = storeUsers
+  const active = displayUsers.filter(user => user.isActive !== false).length
+  const canManageUsers = currentUser.role === 'owner'
 
   async function handleSubmit() {
     if (!form.id || !form.name || !form.password) {
@@ -57,7 +60,7 @@ export default function UsersPage() {
     }
   }
 
-  function handleEditClick(user: any) {
+  function handleEditClick(user: AppUser) {
     setEditForm({
       id: user.id,
       name: user.name,
@@ -65,6 +68,36 @@ export default function UsersPage() {
       password: '',
     })
     setEditOpen(true)
+  }
+
+  async function handleStatusChange(user: AppUser) {
+    const nextActive = user.isActive === false
+    setBusyUserId(user.id)
+    try {
+      await updateUserStatus(user.id, nextActive)
+      showToast(`${nextActive ? 'เปิด' : 'ปิด'}การใช้งาน ${user.name} สำเร็จ`)
+    } catch (err: any) {
+      showToast(err.message || 'เปลี่ยนสถานะผู้ใช้ไม่สำเร็จ')
+    } finally {
+      setBusyUserId('')
+    }
+  }
+
+  function formatLastActive(user: AppUser) {
+    if (user.id === currentUser.id) return 'ขณะนี้'
+    if (!user.lastLoginAt) return 'ยังไม่เคยเข้าสู่ระบบ'
+    return new Intl.DateTimeFormat('th-TH', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date(user.lastLoginAt))
+  }
+
+  if (!canManageUsers) {
+    return (
+      <div style={{ minHeight: '100vh', background: c.canvas }}>
+        <TopBar t={t} breadcrumb={['Chawy', 'System', 'Users']} title="ไม่มีสิทธิ์เข้าถึง" subtitle="เฉพาะเจ้าของระบบเท่านั้นที่จัดการผู้ใช้ได้" />
+      </div>
+    )
   }
 
   async function handleEditSubmit() {
@@ -109,12 +142,13 @@ export default function UsersPage() {
           <tbody>
             {displayUsers.map((user, i) => {
               const last = i === displayUsers.length - 1
-              const isActive = user.id === currentUser.id
+              const isCurrentUser = user.id === currentUser.id
+              const isEnabled = user.isActive !== false
               return (
-                <tr key={user.id} style={{ background: isActive ? c.subtle : 'transparent' }}>
+                <tr key={user.id} style={{ background: isCurrentUser ? c.subtle : 'transparent', opacity: isEnabled ? 1 : 0.62 }}>
                   <PremiumTd t={t} last={last}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: isActive ? c.ink : c.subtle, border: `1px solid ${c.border}`, color: isActive ? c.canvas : c.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: isCurrentUser ? c.ink : c.subtle, border: `1px solid ${c.border}`, color: isCurrentUser ? c.canvas : c.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
                         {user.name.trim().charAt(0)}
                       </div>
                       <div>
@@ -132,15 +166,18 @@ export default function UsersPage() {
                       {user.role === 'owner' ? 'All modules' : `${ROLE_LABELS[user.role]} access`}
                     </span>
                   </PremiumTd>
-                  <PremiumTd t={t} last={last}><span style={{ fontSize: 12, color: c.ink2 }}>{isActive ? 'Now' : 'Today'}</span></PremiumTd>
+                  <PremiumTd t={t} last={last}><span style={{ fontSize: 12, color: c.ink2 }}>{formatLastActive(user)}</span></PremiumTd>
                   <PremiumTd t={t} last={last}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: c.pos }}>
-                      <Dot color={c.pos} /> Active
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: isEnabled ? c.pos : c.neg }}>
+                      <Dot color={isEnabled ? c.pos : c.neg} /> {isEnabled ? 'Active' : 'Inactive'}
                     </span>
                   </PremiumTd>
                   <PremiumTd t={t} last={last} right>
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                       <Btn t={t} variant="ghost" onClick={() => handleEditClick(user)}>แก้ไข</Btn>
+                      <Btn t={t} variant="ghost" onClick={() => handleStatusChange(user)} disabled={isCurrentUser || busyUserId === user.id}>
+                        {busyUserId === user.id ? 'กำลังบันทึก...' : isEnabled ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}
+                      </Btn>
                     </div>
                   </PremiumTd>
                 </tr>

@@ -181,6 +181,8 @@ export type AppUser = {        // Gap 7
   id: string
   name: string
   role: UserRole
+  isActive?: boolean
+  lastLoginAt?: string | null
 }
 
 export const APP_USERS: AppUser[] = [

@@ -89,6 +89,7 @@ interface CustomErpStore extends ErpWorkflowStore {
 	fetchInitialState: () => Promise<void>
 	createUser: (input: { id: string; name: string; role: any; password?: string }) => Promise<AppUser>
 	updateUser: (id: string, input: { name?: string; role?: any; password?: string }) => Promise<AppUser>
+	updateUserStatus: (id: string, isActive: boolean) => Promise<AppUser>
 }
 
 export const useErpStore = create<CustomErpStore>((set, get) => {
@@ -193,6 +194,21 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 			users: s.users.map(u => u.id === id ? updatedUser : u),
 			currentUser: s.currentUser.id === id ? updatedUser : s.currentUser,
 		}))
+		return updatedUser
+	},
+
+	updateUserStatus: async (id, isActive) => {
+		const res = await fetch(`${getApiUrl()}/api/users/${id}/status`, {
+			method: 'PUT',
+			headers: getHeaders(),
+			body: JSON.stringify({ isActive }),
+		})
+		if (!res.ok) {
+			const err = await res.json()
+			throw new Error(err.error || 'Failed to update user status')
+		}
+		const updatedUser = await res.json()
+		set(s => ({ users: s.users.map(u => u.id === id ? updatedUser : u) }))
 		return updatedUser
 	},
 
