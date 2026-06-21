@@ -190,11 +190,7 @@ export default function LoginPage() {
 					</button>
 				</form>
 
-				<div style={{ marginTop: 24, textAlign: 'center', borderTop: '1px solid #F3F4F6', paddingTop: 18 }}>
-					<span style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'monospace' }}>
-						Default: admin / admin123
-					</span>
-				</div>
+				
 			</div>
 		</div>
 	)
