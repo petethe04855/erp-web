@@ -9,14 +9,17 @@ import { exportXlsx } from '@/lib/utils/exportUtil'
 
 const CATEGORIES: ExpenseCategory[] = ['ค่าโฆษณา', 'ค่าธรรมเนียมแพลตฟอร์ม', 'COGS/วัตถุดิบ', 'SG&A', 'ค่าขนส่ง', 'ค่าแรง', 'อื่นๆ']
 const CHANNELS: ExpenseChannel[] = ['TikTok', 'Shopee', 'LINE', 'Manual', 'ทั่วไป']
-const MONTH_LABEL: Record<string, string> = {
-  '2026-05': 'May 2026',
-  '2026-04': 'Apr 2026',
-  '2026-03': 'Mar 2026',
-  '2026-02': 'Feb 2026',
-  '2026-01': 'Jan 2026',
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+function fmtMonth(key: string) {
+  const [y, m] = key.split('-')
+  return `${MONTH_NAMES[parseInt(m) - 1]} ${y}`
 }
-const MONTHS = Object.keys(MONTH_LABEL)
+
+const MONTHS = (() => {
+  const year = new Date().getFullYear()
+  return Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`)
+})()
 
 function inputStyle(t: ReturnType<typeof useTheme>['tokens']): React.CSSProperties {
   return {
@@ -38,7 +41,10 @@ export default function BudgetPage() {
   const budgets = useErpStore(s => s.budgets)
   const expenses = useErpStore(s => s.expenses)
   const upsertBudget = useErpStore(s => s.upsertBudget)
-  const [selectedMonth, setSelectedMonth] = useState('2026-05')
+  const nowKey = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` })()
+  const [selectedMonth, setSelectedMonth] = useState(nowKey)
+  const [showPicker, setShowPicker] = useState(false)
+  const [pickerYear, setPickerYear] = useState(() => new Date().getFullYear())
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
   const [addOpen, setAddOpen] = useState(false)
@@ -78,7 +84,14 @@ export default function BudgetPage() {
   function addBudget() {
     const amount = parseFloat(newBudget.amount)
     if (!amount || amount <= 0) return
-    upsertBudget({ year, month, category: newBudget.category, channel: newBudget.channel, budgetAmount: amount })
+    const now = new Date()
+    upsertBudget({
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+      category: newBudget.category,
+      channel: newBudget.channel,
+      budgetAmount: amount
+    })
     setNewBudget({ category: 'ค่าโฆษณา', channel: 'TikTok', amount: '' })
     setAddOpen(false)
   }
@@ -98,32 +111,50 @@ export default function BudgetPage() {
         t={t}
         breadcrumb={['Chawy', 'Finance', 'Budget']}
         title="Budget"
-        subtitle={`งบประมาณ · ${MONTH_LABEL[selectedMonth]}`}
+        subtitle={`งบประมาณ · ${fmtMonth(selectedMonth)}`}
         right={
-          <>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {toast && <span style={{ fontSize: 12, color: c.pos, fontWeight: 600 }}>{toast}</span>}
             <Btn t={t} variant="ghost" onClick={handleExport}>Export XLSX</Btn>
             <Btn t={t} variant="primary" onClick={() => setAddOpen(true)}>Adjust Budget</Btn>
-          </>
+            <div style={{ position: 'relative' }}>
+              <Btn t={t} variant="ghost" onClick={() => { setShowPicker(v => !v); setPickerYear(parseInt(selectedMonth.split('-')[0])) }}>
+                {fmtMonth(selectedMonth)} ▾
+              </Btn>
+              {showPicker && (
+                <>
+                  <div onClick={() => setShowPicker(false)} style={{ position: 'fixed', inset: 0, zIndex: 100 }} />
+                  <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, background: c.surface, border: `1px solid ${c.border}`, borderRadius: t.radius, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 101, padding: 16, width: 240 }}>
+                    {/* Year navigation */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                      <button onClick={() => setPickerYear(y => y - 1)} style={{ width: 28, height: 28, border: `1px solid ${c.border}`, borderRadius: 6, background: c.canvas, color: c.ink2, cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: c.ink }}>{pickerYear}</span>
+                      <button onClick={() => setPickerYear(y => y + 1)} disabled={pickerYear >= parseInt(nowKey.split('-')[0])} style={{ width: 28, height: 28, border: `1px solid ${c.border}`, borderRadius: 6, background: c.canvas, color: pickerYear >= parseInt(nowKey.split('-')[0]) ? c.ink4 : c.ink2, cursor: pickerYear >= parseInt(nowKey.split('-')[0]) ? 'default' : 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>
+                    </div>
+                    {/* Month grid 4×3 */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                      {MONTH_NAMES.map((name, i) => {
+                        const key = `${pickerYear}-${String(i + 1).padStart(2, '0')}`
+                        const isCurrent = key === selectedMonth
+                        const isFuture = key > nowKey
+                        return (
+                          <button key={key} disabled={isFuture} onClick={() => { setSelectedMonth(key); setShowPicker(false) }} style={{
+                            padding: '7px 0', border: 'none', borderRadius: 6, fontSize: 12, cursor: isFuture ? 'default' : 'pointer', fontFamily: t.font.sans, fontWeight: isCurrent ? 700 : 400,
+                            background: isCurrent ? c.accent : isFuture ? 'transparent' : c.canvas,
+                            color: isCurrent ? '#fff' : isFuture ? c.ink4 : c.ink2,
+                          }}>{name}</button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         }
       />
 
       <div style={{ padding: '24px 32px 48px' }}>
-        <div style={{ display: 'flex', gap: 0, border: `1px solid ${c.border}`, borderRadius: t.radius, overflow: 'hidden', background: c.surface, width: 'fit-content', marginBottom: 24 }}>
-          {MONTHS.map((item, i) => (
-            <button key={item} onClick={() => setSelectedMonth(item)} style={{
-              padding: '7px 14px',
-              border: 'none',
-              borderLeft: i === 0 ? 'none' : `1px solid ${c.border}`,
-              background: selectedMonth === item ? c.subtle : 'transparent',
-              color: selectedMonth === item ? c.ink : c.ink3,
-              cursor: 'pointer',
-              fontFamily: t.font.sans,
-              fontSize: 12,
-              fontWeight: selectedMonth === item ? 600 : 500,
-            }}>{MONTH_LABEL[item]}</button>
-          ))}
-        </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
           {[

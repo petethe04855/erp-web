@@ -122,6 +122,7 @@ interface CustomErpStore extends ErpWorkflowStore {
 	createUser: (input: { id: string; name: string; role: any; password?: string }) => Promise<AppUser>
 	updateUser: (id: string, input: { name?: string; role?: any; password?: string }) => Promise<AppUser>
 	updateUserStatus: (id: string, isActive: boolean) => Promise<AppUser>
+	updateExpense: (id: string, input: Partial<any>) => Promise<void>
 }
 
 export const useErpStore = create<CustomErpStore>((set, get) => {
@@ -285,18 +286,34 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 	},
 
 	setBundleComponents: (input) => {
-		fetch(`${getApiUrl()}/api/bundle-components`, {
-			method: 'POST',
-			headers: getHeaders(),
-			body: JSON.stringify(input),
-		}).then(res => {
-			if (res.ok) get().fetchInitialState()
-		})
+		const previous = get().bundleComponents
 		const mapped = input.components.map(c => ({
 			bundleSku: input.bundleSku,
 			componentSku: c.componentSku,
 			qty: c.qty,
+			unit: c.unit,
+			componentType: c.componentType,
+			unitCostOverride: c.unitCostOverride,
 		})) as BundleComponent[]
+
+		set(s => ({
+			bundleComponents: [
+				...s.bundleComponents.filter(component => component.bundleSku !== input.bundleSku),
+				...mapped,
+			],
+		}))
+
+		fetch(`${getApiUrl()}/api/bundle-components`, {
+			method: 'POST',
+			headers: getHeaders(),
+			body: JSON.stringify(input),
+		}).then(async res => {
+			await readApiResponse<BundleComponent[]>(res)
+			await get().loadResources(['bundleComponents', 'products'], true)
+		}).catch(error => {
+			console.error('Failed to save BOM', error)
+			set({ bundleComponents: previous })
+		})
 		return mapped
 	},
 
@@ -305,10 +322,14 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 		if (comps.length === 0) return 0
 		let virtualQty = Infinity
 		for (const comp of comps) {
+			if (comp.componentType === 'expense') continue
 			const prod = get().products.find(p => p.sku === comp.componentSku)
 			if (!prod) return 0
 			const available = Math.max(0, prod.stock - prod.reservedQty)
-			virtualQty = Math.min(virtualQty, Math.floor(available / comp.qty))
+			let required = comp.qty
+			if (comp.unit === 'g' && prod.baseUnit === 'kg') required /= 1000
+			if (comp.unit === 'kg' && prod.baseUnit === 'g') required *= 1000
+			virtualQty = Math.min(virtualQty, Math.floor(available / required))
 		}
 		return virtualQty === Infinity ? 0 : virtualQty
 	},
@@ -642,6 +663,17 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 			if (res.ok) get().fetchInitialState()
 		})
 		return expense
+	},
+
+	updateExpense: async (id, input) => {
+		const res = await fetch(`${getApiUrl()}/api/expenses/${id}`, {
+			method: 'PUT',
+			headers: getHeaders(),
+			body: JSON.stringify(input),
+		})
+		if (res.ok) {
+			get().fetchInitialState()
+		}
 	},
 
 	upsertBudget: (input) => {

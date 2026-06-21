@@ -124,13 +124,17 @@ export type Product = {
   isBundle: boolean            // true = virtual product (no physical stock)
   isActive: boolean
   note: string
+  baseUnit?: 'piece' | 'g' | 'kg'
 }
 
 // BOM: defines which components (and quantities) make up a bundle SKU
 export type BundleComponent = {
   bundleSku: string          // the bundle/set product
   componentSku: string       // individual component
-  qty: number                // how many of this component per 1 bundle unit
+  qty: number
+  unit?: 'piece' | 'g' | 'kg' | 'baht'
+  componentType?: 'material' | 'packaging' | 'expense'
+  unitCostOverride?: number
 }
 
 export type StockLot = {       // Gap 1: lot-level tracking for FEFO
@@ -210,7 +214,7 @@ export const ROLE_BADGE_STYLE: Record<UserRole, { bg: string; color: string }> =
 export const ROLE_NAV: Record<UserRole, string[] | '*'> = {
   owner:      '*',
   sales:      ['/', '/sales-orders', '/quotation', '/invoice', '/manual-order', '/tiktok-orders', '/live-sessions', '/sampling'],
-  warehouse:  ['/', '/sku', '/stock', '/goods-receive', '/goods-issue', '/purchase-req', '/purchase-order', '/stock-transfer', '/stock-check', '/sampling'],
+  warehouse:  ['/', '/sku', '/bom', '/stock', '/goods-receive', '/goods-issue', '/purchase-req', '/purchase-order', '/stock-transfer', '/stock-check', '/sampling'],
   accountant: ['/', '/invoice', '/sales-orders', '/purchase-order', '/expenses', '/pl', '/budget'],
 }
 
@@ -448,13 +452,20 @@ export type CreateProductInput = {
   reorder?: number
   isBundle?: boolean
   note?: string
+  baseUnit?: 'piece' | 'g' | 'kg'
 }
 
 export type UpdateProductInput = Partial<Omit<Product, 'sku' | 'reservedQty' | 'stock'>> & { sku: string }
 
 export type SetBundleComponentsInput = {
   bundleSku: string
-  components: Array<{ componentSku: string; qty: number }>
+  components: Array<{
+    componentSku: string
+    qty: number
+    unit?: 'piece' | 'g' | 'kg' | 'baht'
+    componentType?: 'material' | 'packaging' | 'expense'
+    unitCostOverride?: number
+  }>
 }
 
 // ── TikTok Orders ──────────────────────────────────────────────────────────

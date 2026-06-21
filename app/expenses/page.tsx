@@ -46,6 +46,7 @@ export default function ExpensesPage() {
   const c = t.color
   const expenses = useErpStore(s => s.expenses)
   const createExpense = useErpStore(s => s.createExpense)
+  const updateExpense = useErpStore(s => s.updateExpense)
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(BLANK)
   const [toast, setToast] = useState('')
@@ -162,7 +163,34 @@ export default function ExpensesPage() {
                   <td style={{ padding: '13px 22px', borderBottom: i < expenses.length - 1 ? `1px solid ${c.border}` : 'none' }}><span style={{ fontSize: 12, color: c.ink2 }}>{expense.category}</span></td>
                   <td style={{ padding: '13px 22px', borderBottom: i < expenses.length - 1 ? `1px solid ${c.border}` : 'none' }}><span style={{ fontSize: 12, color: c.ink3 }}>{expense.channel}</span></td>
                   <td style={{ padding: '13px 22px', borderBottom: i < expenses.length - 1 ? `1px solid ${c.border}` : 'none', textAlign: 'right' }}><Mono t={t} size={13} weight={600}>{fmtBaht(expense.amount)}</Mono></td>
-                  <td style={{ padding: '13px 22px', borderBottom: i < expenses.length - 1 ? `1px solid ${c.border}` : 'none' }}><StatusPill t={t} status={expense.invoiceRef ? 'paid' : 'pending'} /></td>
+                  <td style={{ padding: '13px 22px', borderBottom: i < expenses.length - 1 ? `1px solid ${c.border}` : 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <StatusPill t={t} status={expense.invoiceRef ? 'paid' : 'pending'} />
+                      <button
+                        onClick={async () => {
+                          const nextInvoiceRef = expense.invoiceRef ? '' : 'PAID'
+                          await updateExpense(expense.id, { invoiceRef: nextInvoiceRef })
+                          showToast(`เปลี่ยนสถานะเป็น ${nextInvoiceRef ? 'Paid' : 'Pending'} แล้ว`)
+                        }}
+                        style={{
+                          background: 'none',
+                          border: `1px solid ${c.border}`,
+                          color: c.accent,
+                          fontSize: 11,
+                          fontWeight: 500,
+                          cursor: 'pointer',
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                          fontFamily: t.font.sans,
+                          transition: 'background 120ms',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = c.subtle}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        {expense.invoiceRef ? 'Mark Pending' : 'Mark Paid'}
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>

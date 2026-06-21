@@ -16,6 +16,7 @@ const ROUTE_RESOURCES: Record<string, ErpResource[]> = {
 	'/purchase-req': ['purchaseRequests', 'products'],
 	'/purchase-order': ['purchaseOrders', 'products'],
 	'/sku': ['products', 'bundleComponents'],
+	'/bom': ['products', 'bundleComponents'],
 	'/stock': ['products', 'stockLots'],
 	'/goods-receive': ['goodsReceives', 'purchaseOrders'],
 	'/goods-issue': ['products', 'goodsIssues'],

@@ -10,7 +10,6 @@ interface SkuViewModalProps {
   calcBundleVirtualStock: (sku: string) => number
   onClose: () => void
   onEdit: () => void
-  onOpenBom: () => void
 }
 
 export default function SkuViewModal({
@@ -20,7 +19,6 @@ export default function SkuViewModal({
   calcBundleVirtualStock,
   onClose,
   onEdit,
-  onOpenBom
 }: SkuViewModalProps) {
   const formatBaht = (n: number) => '฿' + n.toLocaleString('th-TH')
   const comps = bundleComponents.filter(c => c.bundleSku === selected.sku)
@@ -84,7 +82,11 @@ export default function SkuViewModal({
                   return (
                     <div key={c.componentSku} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4, color: '#374151' }}>
                       <span>• {c.componentSku} ({cp?.name ?? '?'})</span>
-                      <span style={{ fontWeight: 600 }}>× {c.qty} ชิ้น</span>
+                      <span style={{ fontWeight: 600 }}>
+                        × {c.qty} {c.unit ?? 'piece'} · ฿{(c.componentType === 'expense'
+                          ? c.qty * (c.unitCostOverride ?? 0)
+                          : c.qty * (cp?.cost ?? 0)).toLocaleString('th-TH', { maximumFractionDigits: 2 })}
+                      </span>
                     </div>
                   )
                 })}
@@ -100,11 +102,6 @@ export default function SkuViewModal({
           <button onClick={onEdit} style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid var(--erp-border)', background: 'var(--erp-surface)', color: '#374151', fontSize: 13, cursor: 'pointer' }}>
             แก้ไข
           </button>
-          {selected.isBundle && (
-            <button onClick={onOpenBom} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: '#059669', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-              🧩 แก้ไข BOM
-            </button>
-          )}
         </div>
       </div>
     </div>

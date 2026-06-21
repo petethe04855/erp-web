@@ -80,6 +80,15 @@ export default function SkuFormModal({
               style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid var(--erp-border)', fontSize: 13, boxSizing: 'border-box' }} />
           </div>
           <div>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>หน่วยสต็อกหลัก</label>
+            <select value={form.baseUnit ?? 'piece'} onChange={e => setForm(f => ({ ...f, baseUnit: e.target.value as 'piece' | 'g' | 'kg' }))}
+              style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid var(--erp-border)', fontSize: 13, boxSizing: 'border-box' }}>
+              <option value="piece">ชิ้น</option>
+              <option value="g">กรัม</option>
+              <option value="kg">กิโลกรัม</option>
+            </select>
+          </div>
+          <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>ต้นทุน (Cost) ฿ *</label>
             <input type="number" min={1} value={form.cost === 0 ? '' : form.cost} onChange={e => setForm(f => ({ ...f, cost: e.target.value === '' ? 0 : +e.target.value }))}
               style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid var(--erp-border)', fontSize: 13, boxSizing: 'border-box' }} />

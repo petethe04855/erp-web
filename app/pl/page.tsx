@@ -32,10 +32,11 @@ export default function PLPage() {
   const salesOrders = useErpStore(s => s.salesOrders)
   const expenses = useErpStore(s => s.expenses)
   const tiktokOrders = useErpStore(s => s.tiktokOrders)
-  const [month, setMonth] = useState('2026-05')
+  const nowKey = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` })()
+  const [month, setMonth] = useState(nowKey)
   const [channel, setChannel] = useState<ExpenseChannel | 'ทั้งหมด'>('ทั้งหมด')
   const [showPicker, setShowPicker] = useState(false)
-  const [pickerYear, setPickerYear] = useState(2026)
+  const [pickerYear, setPickerYear] = useState(() => new Date().getFullYear())
   const [toast, setToast] = useState('')
 
   function showToast(msg: string) {
@@ -44,7 +45,6 @@ export default function PLPage() {
   }
 
   const prevMonth = prevMonthOf(month)
-  const nowKey = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` })()
 
   function revenueFor(targetMonth: string) {
     return salesOrders
