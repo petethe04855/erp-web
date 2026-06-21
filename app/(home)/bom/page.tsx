@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useErpStore } from '@/lib/store/useErpStore'
 import { useTheme } from '@/lib/design/ThemeContext'
 import { Btn, Card, Mono, PremiumTable, PremiumTd, PremiumTh, TopBar } from '@/components/ui'
-import BomEditorModal from '@/app/sku/components/BomEditorModal'
+import BomEditorModal from '@/app/(home)/sku/components/BomEditorModal'
 
 type BomRow = {
   componentSku: string
