@@ -120,6 +120,7 @@ export type ErpWorkflowActions = {
   setCurrentUser: (user: AppUser) => void  // Gap 7
   createGoodsIssue: (input: CreateGoodsIssueInput) => GoodsIssue | null
   createStockReturn: (input: CreateStockReturnInput) => StockReturn
+  updateStockReturnStatus: (id: string, status: 'Completed' | 'Cancelled') => StockReturn | null
   createStockAdjustment: (input: CreateStockAdjustmentInput) => StockAdjustment
   createStockTransfer: (input: CreateStockTransferInput) => StockTransfer | null
   createExpense: (input: CreateExpenseInput) => Expense
@@ -502,6 +503,8 @@ export const initialWorkflowState: ErpWorkflowState = {
       date: '2026-05-18',
       returnedBy: 'จอย',
       refunded: false,
+      channel: 'TikTok',
+      status: 'Completed',
     },
     {
       id: 'RET-2026-0002',
@@ -515,6 +518,8 @@ export const initialWorkflowState: ErpWorkflowState = {
       date: '2026-05-20',
       returnedBy: 'แพร',
       refunded: false,
+      channel: 'LINE',
+      status: 'Completed',
     },
   ],
   stockAdjustments: [],
@@ -1064,24 +1069,63 @@ export function createErpWorkflowState(
       const skuName = product?.name ?? input.sku
       const by = get().currentUser.name
       const id = nextId('RET-2026-', get().stockReturns.map(r => r.id))
+
+      let channel = input.channel || 'Manual'
+      if (input.soRef) {
+        const so = get().salesOrders.find(o => o.id === input.soRef)
+        if (so) channel = so.channel
+      }
+
       const ret: StockReturn = {
         id, soRef: input.soRef, sku: input.sku, skuName,
         qty: input.qty, condition: input.condition as ReturnCondition,
         reason: input.reason as ReturnReason,
         note: input.note, date: todayIso(), returnedBy: by, refunded: false,
-      }
-      const movement: StockMovement = {
-        id: `SM-${Date.now()}`, sku: input.sku, type: 'IN' as StockMovementType,
-        qty: input.qty, refDoc: id, date: todayIso(), note: `รับคืน: ${input.reason}`, changedBy: by,
+        channel, status: 'Pending',
       }
       set(s => ({
         stockReturns: [ret, ...s.stockReturns],
-        stockMovements: [movement, ...s.stockMovements],
-        products: input.condition === 'ดี'
-          ? s.products.map(p => p.sku === input.sku ? { ...p, stock: p.stock + input.qty } : p)
-          : s.products,
       }))
       return ret
+    },
+
+    updateStockReturnStatus(id, status) {
+      const by = get().currentUser.name
+      const ret = get().stockReturns.find(r => r.id === id)
+      if (!ret || ret.status !== 'Pending') return null
+
+      const updated: StockReturn = { ...ret, status }
+      const newMovements: StockMovement[] = []
+
+      let updatedProducts = get().products
+
+      if (status === 'Completed') {
+        if (ret.condition === 'ดี') {
+          updatedProducts = get().products.map(p =>
+            p.sku === ret.sku ? { ...p, stock: p.stock + ret.qty } : p
+          )
+          newMovements.push({
+            id: `SM-${Date.now()}-${ret.sku}`,
+            sku: ret.sku,
+            type: 'IN',
+            qty: ret.qty,
+            refDoc: id,
+            date: todayIso(),
+            note: `รับคืน: ${ret.reason} - สภาพดี`,
+            changedBy: by,
+          })
+        } else if (ret.condition === 'เสียหาย') {
+          // Do not add stock or create movements for damaged return
+        }
+      }
+
+      set(s => ({
+        stockReturns: s.stockReturns.map(r => r.id === id ? updated : r),
+        stockMovements: [...newMovements, ...s.stockMovements],
+        products: updatedProducts,
+      }))
+
+      return updated
     },
 
     // ── Stock Adjustment (physical count) ──────────────────────

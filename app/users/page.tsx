@@ -13,12 +13,14 @@ export default function UsersPage() {
   const { tokens: t } = useTheme()
   const c = t.color
   const currentUser = useErpStore(s => s.currentUser)
-  const setCurrentUser = useErpStore(s => s.setCurrentUser)
   const storeUsers = useErpStore(s => s.users)
   const createUser = useErpStore(s => s.createUser)
+  const updateUser = useErpStore(s => s.updateUser)
 
   const [createOpen, setCreateOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
   const [form, setForm] = useState(BLANK)
+  const [editForm, setEditForm] = useState(BLANK)
   const [toast, setToast] = useState('')
 
   function showToast(msg: string) {
@@ -55,6 +57,34 @@ export default function UsersPage() {
     }
   }
 
+  function handleEditClick(user: any) {
+    setEditForm({
+      id: user.id,
+      name: user.name,
+      role: user.role,
+      password: '',
+    })
+    setEditOpen(true)
+  }
+
+  async function handleEditSubmit() {
+    if (!editForm.name) {
+      showToast('กรุณากรอกชื่อผู้ใช้')
+      return
+    }
+    try {
+      await updateUser(editForm.id, {
+        name: editForm.name,
+        role: editForm.role,
+        password: editForm.password || undefined,
+      })
+      showToast(`แก้ไขผู้ใช้ ${editForm.name} สำเร็จ`)
+      setEditOpen(false)
+    } catch (err: any) {
+      showToast(err.message || 'แก้ไขผู้ใช้ไม่สำเร็จ')
+    }
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: c.canvas }}>
       <TopBar
@@ -73,7 +103,7 @@ export default function UsersPage() {
         <PremiumTable t={t} minWidth={900}>
           <thead>
             <tr>
-              {['User', 'Role', 'Access', 'Last active', 'Status', ''].map(h => <PremiumTh key={h} t={t}>{h}</PremiumTh>)}
+              {['User', 'Role', 'Access', 'Last active', 'Status', 'Actions'].map(h => <PremiumTh key={h} t={t}>{h}</PremiumTh>)}
             </tr>
           </thead>
           <tbody>
@@ -81,7 +111,7 @@ export default function UsersPage() {
               const last = i === displayUsers.length - 1
               const isActive = user.id === currentUser.id
               return (
-                <tr key={user.id} onClick={() => setCurrentUser(user)} style={{ cursor: 'pointer', background: isActive ? c.subtle : 'transparent' }}>
+                <tr key={user.id} style={{ background: isActive ? c.subtle : 'transparent' }}>
                   <PremiumTd t={t} last={last}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{ width: 32, height: 32, borderRadius: '50%', background: isActive ? c.ink : c.subtle, border: `1px solid ${c.border}`, color: isActive ? c.canvas : c.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
@@ -108,7 +138,11 @@ export default function UsersPage() {
                       <Dot color={c.pos} /> Active
                     </span>
                   </PremiumTd>
-                  <PremiumTd t={t} last={last} right><span style={{ fontSize: 13, color: c.ink3 }}>›</span></PremiumTd>
+                  <PremiumTd t={t} last={last} right>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                      <Btn t={t} variant="ghost" onClick={() => handleEditClick(user)}>แก้ไข</Btn>
+                    </div>
+                  </PremiumTd>
                 </tr>
               )
             })}
@@ -144,6 +178,38 @@ export default function UsersPage() {
           <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
             รหัสผ่าน (Password) *
             <input type="password" placeholder="••••••••" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} style={panelInput(c.surface, c.border, c.ink)} />
+          </label>
+        </div>
+      </SlidePanel>
+
+      <SlidePanel open={editOpen} onClose={() => setEditOpen(false)} title="แก้ไขข้อมูลผู้ใช้" subtitle="อัปเดตรายละเอียดของผู้ใช้งานในระบบ"
+        footer={
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button onClick={() => setEditOpen(false)} style={{ padding: '9px 20px', border: `1px solid ${c.border}`, borderRadius: 7, background: c.surface, cursor: 'pointer', fontSize: 13, color: c.ink2 }}>ยกเลิก</button>
+            <button onClick={handleEditSubmit} style={{ padding: '9px 20px', border: 'none', borderRadius: 7, background: c.accent, color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>บันทึกการเปลี่ยนแปลง</button>
+          </div>
+        }
+      >
+        <div style={{ display: 'grid', gap: 16 }}>
+          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink3 }}>
+            รหัสผู้ใช้ (ไม่สามารถแก้ไขได้)
+            <input value={editForm.id} disabled style={{ ...panelInput(c.surface, c.border, c.ink), opacity: 0.6, cursor: 'not-allowed' }} />
+          </label>
+          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
+            ชื่อผู้ใช้ (Display Name) *
+            <input placeholder="เช่น สมชาย" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} style={panelInput(c.surface, c.border, c.ink)} />
+          </label>
+          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
+            บทบาท (Role) *
+            <select value={editForm.role} onChange={e => setEditForm(f => ({ ...f, role: e.target.value as UserRole }))} style={panelInput(c.surface, c.border, c.ink)}>
+              {Object.entries(ROLE_LABELS).map(([k, v]) => (
+                <option key={k} value={k}>{v} ({k})</option>
+              ))}
+            </select>
+          </label>
+          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
+            รหัสผ่านใหม่ (ระบุเมื่อต้องการเปลี่ยนเท่านั้น)
+            <input type="password" placeholder="ระบุรหัสผ่านใหม่หากต้องการเปลี่ยน" value={editForm.password} onChange={e => setEditForm(f => ({ ...f, password: e.target.value }))} style={panelInput(c.surface, c.border, c.ink)} />
           </label>
         </div>
       </SlidePanel>

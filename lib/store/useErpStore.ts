@@ -88,6 +88,7 @@ interface CustomErpStore extends ErpWorkflowStore {
 	users: AppUser[]
 	fetchInitialState: () => Promise<void>
 	createUser: (input: { id: string; name: string; role: any; password?: string }) => Promise<AppUser>
+	updateUser: (id: string, input: { name?: string; role?: any; password?: string }) => Promise<AppUser>
 }
 
 export const useErpStore = create<CustomErpStore>((set, get) => {
@@ -175,6 +176,24 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 		const newUser = await res.json()
 		set(s => ({ users: [...s.users, newUser] }))
 		return newUser
+	},
+
+	updateUser: async (id, input) => {
+		const res = await fetch(`${getApiUrl()}/api/users/${id}`, {
+			method: 'PUT',
+			headers: getHeaders(),
+			body: JSON.stringify(input),
+		})
+		if (!res.ok) {
+			const err = await res.json()
+			throw new Error(err.error || 'Failed to update user')
+		}
+		const updatedUser = await res.json()
+		set(s => ({
+			users: s.users.map(u => u.id === id ? updatedUser : u),
+			currentUser: s.currentUser.id === id ? updatedUser : s.currentUser,
+		}))
+		return updatedUser
 	},
 
 	// ── Settings ──
@@ -544,6 +563,18 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 			if (res.ok) get().fetchInitialState()
 		})
 		return stockReturn
+	},
+
+	updateStockReturnStatus: (id, status) => {
+		const updated = workflow.updateStockReturnStatus(id, status)
+		fetch(`${getApiUrl()}/api/stock-returns/${id}/status`, {
+			method: 'PUT',
+			headers: getHeaders(),
+			body: JSON.stringify({ status }),
+		}).then(res => {
+			if (res.ok) get().fetchInitialState()
+		})
+		return updated
 	},
 
 	// ── Stock Adjustments ──

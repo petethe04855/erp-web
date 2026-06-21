@@ -321,6 +321,8 @@ export type StockReturn = {
   date: string
   returnedBy: string
   refunded: boolean
+  channel: string
+  status: 'Pending' | 'Completed' | 'Cancelled'
 }
 
 export type CreateStockReturnInput = {
@@ -330,6 +332,7 @@ export type CreateStockReturnInput = {
   condition: ReturnCondition
   reason: ReturnReason
   note: string
+  channel?: string
 }
 
 // ── Stock Adjustment (from physical count) ─────────────────────────────────
