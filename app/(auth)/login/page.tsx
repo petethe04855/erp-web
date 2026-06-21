@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useErpStore } from '@/lib/store/useErpStore'
 import { readApiResponse } from '@/lib/apiResponse'
@@ -12,6 +12,24 @@ export default function LoginPage() {
 	const [loading, setLoading] = useState(false)
 	const router = useRouter()
 	const setCurrentUser = useErpStore(s => s.setCurrentUser)
+
+	useEffect(() => {
+		const token = localStorage.getItem('chawy_token')
+		if (token) {
+			try {
+				const base64Url = token.split('.')[1]
+				if (base64Url) {
+					const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+					const payload = JSON.parse(window.atob(base64))
+					if (payload.userId && (!payload.exp || Date.now() < payload.exp * 1000)) {
+						window.location.href = '/dashboard'
+					}
+				}
+			} catch (e) {
+				// Ignore invalid tokens
+			}
+		}
+	}, [])
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault()
