@@ -326,6 +326,7 @@ export default function DashboardPage() {
   const purchaseReqs   = useErpStore(s => s.purchaseRequests)
   const purchaseOrders = useErpStore(s => s.purchaseOrders)
   const stockLots      = useErpStore(s => s.stockLots)
+  const currentUser    = useErpStore(s => s.currentUser)
 
   const now = new Date()
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
@@ -431,7 +432,7 @@ export default function DashboardPage() {
       <TopBar
         t={t}
         breadcrumb={['Chawy', 'Dashboard']}
-        title={`Good morning, ${useErpStore.getState().currentUser.name.split(' ')[0]}`}
+        title={`Good morning, ${(currentUser?.name || 'Guest').split(' ')[0]}`}
         subtitle={`${dateStr} · ภาพรวมระบบ Chawy ERP`}
         right={
           <>
