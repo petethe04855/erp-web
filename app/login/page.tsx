@@ -31,8 +31,9 @@ export default function LoginPage() {
 
 			const data = await readApiResponse<{ token: string; user: Parameters<typeof setCurrentUser>[0] }>(res)
 
-			// Store JWT Token in LocalStorage
+			// Store JWT Token in LocalStorage and Cookies
 			localStorage.setItem('chawy_token', data.token)
+			document.cookie = `chawy_token=${encodeURIComponent(data.token)}; path=/; max-age=604800; SameSite=Lax`
 
 			// Update Zustand Store
 			setCurrentUser(data.user)
