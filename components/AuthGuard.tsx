@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import TweaksPanel from '@/components/TweaksPanel'
 import { useErpStore } from '@/lib/store/useErpStore'
@@ -35,7 +35,6 @@ const ROUTE_RESOURCES: Record<string, ErpResource[]> = {
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname()
-	const router = useRouter()
 	const [authenticated, setAuthenticated] = useState(false)
 	const [loading, setLoading] = useState(true)
 	const currentUser = useErpStore(s => s.currentUser)
@@ -44,6 +43,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
 	useEffect(() => {
 		const token = localStorage.getItem('chawy_token')
+		const redirectToLogin = () => {
+			localStorage.removeItem('chawy_token')
+			setAuthenticated(false)
+			setLoading(false)
+			window.location.replace('/login')
+		}
 
 		if (pathname === '/login') {
 			setAuthenticated(false)
@@ -52,17 +57,20 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 		}
 
 		if (!token) {
-			router.push('/login')
+			redirectToLogin()
 		} else {
 			// Decrypt or verify token claims loosely on client for UI role mapping
 			try {
 				const base64Url = token.split('.')[1]
+				if (!base64Url) {
+					redirectToLogin()
+					return
+				}
 				const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
 				const payload = JSON.parse(window.atob(base64))
 				
-				if (payload.exp && Date.now() >= payload.exp * 1000) {
-					localStorage.removeItem('chawy_token')
-					router.push('/login')
+				if (!payload.userId || (payload.exp && Date.now() >= payload.exp * 1000)) {
+					redirectToLogin()
 				} else {
 					if (!currentUser.id) {
 						setCurrentUser({
@@ -74,12 +82,11 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 					setAuthenticated(true)
 				}
 			} catch (e) {
-				localStorage.removeItem('chawy_token')
-				router.push('/login')
+				redirectToLogin()
 			}
 			setLoading(false)
 		}
-	}, [pathname, router, currentUser.id, setCurrentUser])
+	}, [pathname, currentUser.id, setCurrentUser])
 
 	useEffect(() => {
 		if (!authenticated || pathname === '/login') return
