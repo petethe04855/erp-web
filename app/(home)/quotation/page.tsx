@@ -9,6 +9,7 @@ import SlidePanel from "@/components/SlidePanel";
 import { useErpStore } from "@/lib/store/useErpStore";
 import { useTheme } from "@/lib/design/ThemeContext";
 import {
+  Card,
   Mono,
   TopBar,
 } from "@/components/ui";
@@ -167,128 +168,128 @@ export default function QuotationPage() {
       />
 
       <div style={{ padding: "24px 32px 48px" }}>
-        <Table className="min-w-[920px]">
-          <TableHeader>
-            <TableRow>
-              {["Quote", "Customer", "Issued", "Valid until"].map((h) => (
-                <TableHead key={h}>{h}</TableHead>
-              ))}
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead>Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {list.map((q) => (
-              <TableRow key={q.id}>
-                <TableCell>
-                  <Mono t={t} size={12} weight={500}>
-                    {q.id}
-                  </Mono>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 5,
-                      marginTop: 6,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    {q.status === "Draft" && (
-                      <Button
-                        variant="ghost"
-                        onClick={() =>
-                          transition(q.id, "Sent", "ส่งให้ลูกค้าแล้ว รออนุมัติ")
-                        }
-                        className="h-6 px-2 text-[10px]"
-                      >
-                        Send
-                      </Button>
-                    )}
-                    {q.status === "Sent" && (
-                      <Button
-                        variant="secondary"
-                        onClick={() =>
-                          transition(
-                            q.id,
-                            "Approved",
-                            "Admin/Owner อนุมัติใบเสนอราคา",
-                          )
-                        }
-                        className="h-6 px-2 text-[10px]"
-                      >
-                        Approve
-                      </Button>
-                    )}
-                    {q.status === "Approved" && !q.soRef && (
-                      <Button
-                        variant="secondary"
-                        onClick={() => convertToSO(q.id)}
-                        className="h-6 px-2 text-[10px]"
-                      >
-                        Create SO
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <span
-                    style={{ fontSize: 13, fontWeight: 500, color: c.ink }}
-                  >
-                    {q.customer}
-                  </span>
-                  <div style={{ fontSize: 11, color: c.ink3, marginTop: 2 }}>
-                    {q.leadSource} · {q.items} items
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Mono t={t} size={12} color={c.ink2}>
-                    {q.date}
-                  </Mono>
-                </TableCell>
-                <TableCell>
-                  <Mono t={t} size={12} color={c.ink2}>
-                    {q.validUntil}
-                  </Mono>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Mono t={t} size={13} weight={600}>
-                    {formatBaht(q.amount)}
-                  </Mono>
-                </TableCell>
-                <TableCell>
-                  {quoteStatus(q.status) === "completed" && (
-                    <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20">
-                      Approved
-                    </Badge>
-                  )}
-                  {quoteStatus(q.status) === "cancelled" && (
-                    <Badge variant="destructive">
-                      Cancelled
-                    </Badge>
-                  )}
-                  {quoteStatus(q.status) === "sent" && (
-                    <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-blue-500/20">
-                      Sent
-                    </Badge>
-                  )}
-                  {quoteStatus(q.status) === "draft" && (
-                    <Badge variant="outline">
-                      Draft
-                    </Badge>
-                  )}
-                </TableCell>
+        <Card t={t} pad={false} style={{ overflow: "auto" }}>
+          <Table className="min-w-[920px]">
+            <TableHeader>
+              <TableRow>
+                {["Quote", "Customer", "Issued", "Valid until"].map((h) => (
+                  <TableHead key={h} className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{h}</TableHead>
+                ))}
+                <TableHead className="text-right py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Amount</TableHead>
+                <TableHead className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Status</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {list.map((q) => (
+                <TableRow key={q.id}>
+                  <TableCell className="py-3.5 px-6">
+                    <Mono t={t} size={12} weight={500}>
+                      {q.id}
+                    </Mono>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 5,
+                        marginTop: 6,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      {q.status === "Draft" && (
+                        <Button
+                          variant="outline"
+                          onClick={() =>
+                            transition(q.id, "Sent", "ส่งให้ลูกค้าแล้ว รออนุมัติ")
+                          }
+                          className="h-6 px-2 text-[10px]"
+                        >
+                          Send
+                        </Button>
+                      )}
+                      {q.status === "Sent" && (
+                        <Button
+                          onClick={() =>
+                            transition(
+                              q.id,
+                              "Approved",
+                              "Admin/Owner อนุมัติใบเสนอราคา",
+                            )
+                          }
+                          className="h-6 px-2 text-[10px] bg-[#0F6E58] text-white hover:bg-[#0F6E58]/90"
+                        >
+                          Approve
+                        </Button>
+                      )}
+                      {q.status === "Approved" && !q.soRef && (
+                        <Button
+                          onClick={() => convertToSO(q.id)}
+                          className="h-6 px-2 text-[10px] bg-[#0F6E58] text-white hover:bg-[#0F6E58]/90"
+                        >
+                          Create SO
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-3.5 px-6">
+                    <span
+                      style={{ fontSize: 13, fontWeight: 500, color: c.ink }}
+                    >
+                      {q.customer}
+                    </span>
+                    <div style={{ fontSize: 11, color: c.ink3, marginTop: 2 }}>
+                      {q.leadSource} · {q.items} items
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-3.5 px-6">
+                    <Mono t={t} size={12} color={c.ink2}>
+                      {q.date}
+                    </Mono>
+                  </TableCell>
+                  <TableCell className="py-3.5 px-6">
+                    <Mono t={t} size={12} color={c.ink2}>
+                      {q.validUntil}
+                    </Mono>
+                  </TableCell>
+                  <TableCell className="text-right py-3.5 px-6">
+                    <Mono t={t} size={13} weight={600}>
+                      {formatBaht(q.amount)}
+                    </Mono>
+                  </TableCell>
+                  <TableCell className="py-3.5 px-6">
+                    {quoteStatus(q.status) === "completed" && (
+                      <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20">
+                        Approved
+                      </Badge>
+                    )}
+                    {quoteStatus(q.status) === "cancelled" && (
+                      <Badge variant="destructive">
+                        Cancelled
+                      </Badge>
+                    )}
+                    {quoteStatus(q.status) === "sent" && (
+                      <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-blue-500/20">
+                        Sent
+                      </Badge>
+                    )}
+                    {quoteStatus(q.status) === "draft" && (
+                      <Badge variant="outline">
+                        Draft
+                      </Badge>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       </div>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="right" className="sm:max-w-[440px] flex flex-col h-full overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>New Quotation</SheetTitle>
-            <SheetDescription>สร้างใบเสนอราคาใหม่ - ยอดรวม {formatBaht(lineTotal)}</SheetDescription>
+        <SheetContent side="right" className="sm:max-w-[520px] flex flex-col h-full p-0 bg-background">
+          <SheetHeader className="p-6 border-b border-border flex-shrink-0">
+            <SheetTitle className="text-base font-bold text-foreground">New Quotation</SheetTitle>
+            <SheetDescription className="text-xs text-muted-foreground mt-1">สร้างใบเสนอราคาใหม่ - ยอดรวม {formatBaht(lineTotal)}</SheetDescription>
           </SheetHeader>
-          <div className="flex-1 overflow-y-auto py-4 space-y-4">
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
             <div className="grid gap-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Customer</label>
               <Input
@@ -330,7 +331,7 @@ export default function QuotationPage() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold text-foreground">Items</span>
-              <Button variant="ghost" onClick={addLine}>
+              <Button variant="outline" onClick={addLine}>
                 + Add item
               </Button>
             </div>
@@ -415,16 +416,19 @@ export default function QuotationPage() {
               </table>
             </div>
           </div>
-          <SheetFooter className="border-t pt-4">
+          <SheetFooter className="border-t border-border p-6 flex-shrink-0">
             <div className="flex w-full items-center justify-between">
               <Mono t={t} size={14} weight={600}>
                 {formatBaht(lineTotal)}
               </Mono>
               <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => setOpen(false)}>
+                <Button variant="outline" onClick={() => setOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleSubmit}>
+                <Button
+                  onClick={handleSubmit}
+                  className="bg-[#0F6E58] text-white hover:bg-[#0F6E58]/90"
+                >
                   Save Draft
                 </Button>
               </div>
