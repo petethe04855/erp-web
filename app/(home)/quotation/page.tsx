@@ -8,11 +8,7 @@ import {
 import SlidePanel from "@/components/SlidePanel";
 import { useErpStore } from "@/lib/store/useErpStore";
 import { useTheme } from "@/lib/design/ThemeContext";
-import {
-  Card,
-  Mono,
-  TopBar,
-} from "@/components/ui";
+import { Card, Mono, TopBar } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -32,7 +28,6 @@ import {
   SheetDescription,
   SheetFooter,
 } from "@/components/ui/sheet";
-
 
 type Line = { sku: string; qty: number };
 const LEAD_SOURCES: LeadSource[] = [
@@ -173,10 +168,19 @@ export default function QuotationPage() {
             <TableHeader>
               <TableRow>
                 {["Quote", "Customer", "Issued", "Valid until"].map((h) => (
-                  <TableHead key={h} className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{h}</TableHead>
+                  <TableHead
+                    key={h}
+                    className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider"
+                  >
+                    {h}
+                  </TableHead>
                 ))}
-                <TableHead className="text-right py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Amount</TableHead>
-                <TableHead className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Status</TableHead>
+                <TableHead className="text-right py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Amount
+                </TableHead>
+                <TableHead className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Status
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -198,7 +202,11 @@ export default function QuotationPage() {
                         <Button
                           variant="outline"
                           onClick={() =>
-                            transition(q.id, "Sent", "ส่งให้ลูกค้าแล้ว รออนุมัติ")
+                            transition(
+                              q.id,
+                              "Sent",
+                              "ส่งให้ลูกค้าแล้ว รออนุมัติ",
+                            )
                           }
                           className="h-6 px-2 text-[10px]"
                         >
@@ -261,9 +269,7 @@ export default function QuotationPage() {
                       </Badge>
                     )}
                     {quoteStatus(q.status) === "cancelled" && (
-                      <Badge variant="destructive">
-                        Cancelled
-                      </Badge>
+                      <Badge variant="destructive">Cancelled</Badge>
                     )}
                     {quoteStatus(q.status) === "sent" && (
                       <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-blue-500/20">
@@ -271,9 +277,7 @@ export default function QuotationPage() {
                       </Badge>
                     )}
                     {quoteStatus(q.status) === "draft" && (
-                      <Badge variant="outline">
-                        Draft
-                      </Badge>
+                      <Badge variant="outline">Draft</Badge>
                     )}
                   </TableCell>
                 </TableRow>
@@ -284,14 +288,23 @@ export default function QuotationPage() {
       </div>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="right" className="sm:max-w-[520px] flex flex-col h-full p-0 bg-background">
+        <SheetContent
+          side="right"
+          className="sm:max-w-[520px] flex flex-col h-full p-0 bg-background"
+        >
           <SheetHeader className="p-6 border-b border-border flex-shrink-0">
-            <SheetTitle className="text-base font-bold text-foreground">New Quotation</SheetTitle>
-            <SheetDescription className="text-xs text-muted-foreground mt-1">สร้างใบเสนอราคาใหม่ - ยอดรวม {formatBaht(lineTotal)}</SheetDescription>
+            <SheetTitle className="text-base font-bold text-foreground">
+              New Quotation
+            </SheetTitle>
+            <SheetDescription className="text-xs text-muted-foreground mt-1">
+              สร้างใบเสนอราคาใหม่ - ยอดรวม {formatBaht(lineTotal)}
+            </SheetDescription>
           </SheetHeader>
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
             <div className="grid gap-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Customer</label>
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Customer
+              </label>
               <Input
                 value={form.customer}
                 onChange={(e) =>
@@ -302,7 +315,9 @@ export default function QuotationPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Lead source</label>
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Lead source
+                </label>
                 <select
                   value={form.leadSource}
                   onChange={(e) =>
@@ -314,12 +329,16 @@ export default function QuotationPage() {
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
                 >
                   {LEAD_SOURCES.map((source) => (
-                    <option key={source} value={source}>{source}</option>
+                    <option key={source} value={source}>
+                      {source}
+                    </option>
                   ))}
                 </select>
               </div>
               <div className="grid gap-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Valid until</label>
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Valid until
+                </label>
                 <Input
                   type="date"
                   value={form.validUntil}
@@ -330,7 +349,9 @@ export default function QuotationPage() {
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-foreground">Items</span>
+              <span className="text-sm font-semibold text-foreground">
+                Items
+              </span>
               <Button variant="outline" onClick={addLine}>
                 + Add item
               </Button>
@@ -353,7 +374,9 @@ export default function QuotationPage() {
                         <td style={{ padding: 10 }}>
                           <select
                             value={line.sku}
-                            onChange={(e) => updateLine(i, "sku", e.target.value)}
+                            onChange={(e) =>
+                              updateLine(i, "sku", e.target.value)
+                            }
                             className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
                           >
                             <option value="">Select product</option>
@@ -385,17 +408,25 @@ export default function QuotationPage() {
                               updateLine(
                                 i,
                                 "qty",
-                                val === "" ? "" : Math.max(1, parseInt(val) || 0),
+                                val === ""
+                                  ? ""
+                                  : Math.max(1, parseInt(val) || 0),
                               );
                             }}
                             className="text-center w-20"
                           />
                         </td>
                         <td
-                          style={{ padding: 10, width: 110, textAlign: "right" }}
+                          style={{
+                            padding: 10,
+                            width: 110,
+                            textAlign: "right",
+                          }}
                         >
                           <Mono t={t} size={12}>
-                            {product ? formatBaht(product.price * line.qty) : "—"}
+                            {product
+                              ? formatBaht(product.price * line.qty)
+                              : "—"}
                           </Mono>
                         </td>
                         <td style={{ padding: 10, width: 42 }}>
