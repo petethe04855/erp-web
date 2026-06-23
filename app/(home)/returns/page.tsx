@@ -2,11 +2,29 @@
 import { useMemo, useState } from 'react'
 import { useErpStore } from '@/lib/store/useErpStore'
 import { exportXlsx } from '@/lib/utils/exportUtil'
-
-import SlidePanel from '@/components/SlidePanel'
 import type { ReturnReason, ReturnCondition } from '@/lib/store/erpWorkflow'
 import { useTheme } from '@/lib/design/ThemeContext'
-import { Btn, Field, Mono, PremiumTable, PremiumTd, PremiumTh, SelectField, StatStrip, StatusPill, TextAreaField, TopBar, fmtBaht } from '@/components/ui'
+import { Card, Mono, StatStrip, TopBar, fmtBaht } from '@/components/ui'
+import { Button } from '@/components/ui/button'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from '@/components/ui/sheet'
 
 const REASONS: ReturnReason[] = ['สินค้าชำรุด', 'ผิดสินค้า', 'ลูกค้าเปลี่ยนใจ', 'ผิดขนาด/รุ่น', 'อื่นๆ']
 const BLANK = { soRef: '', sku: '', qty: 1, condition: 'ดี' as ReturnCondition, reason: 'สินค้าชำรุด' as ReturnReason, note: '', channel: 'Manual' }
@@ -73,8 +91,8 @@ export default function ReturnsPage() {
          right={
            <>
              {toast && <span style={{ fontSize: 12, fontWeight: 600, color: c.pos }}>{toast}</span>}
-             <Btn t={t} variant="ghost" onClick={handleExport}>Export</Btn>
-             <Btn t={t} variant="primary" onClick={() => setOpen(true)}>+ New Return</Btn>
+             <Button variant="outline" onClick={handleExport}>Export</Button>
+             <Button onClick={() => setOpen(true)}>+ New Return</Button>
            </>
          }
       />
@@ -90,86 +108,177 @@ export default function ReturnsPage() {
           ]}
         />
 
-        <PremiumTable t={t} minWidth={1000}>
-          <thead>
-            <tr>
-              {['RMA', 'SO Ref', 'Customer', 'Channel', 'Date', 'Reason'].map(h => <PremiumTh key={h} t={t}>{h}</PremiumTh>)}
-              <PremiumTh t={t} right>Qty</PremiumTh>
-              <PremiumTh t={t} right>Amount</PremiumTh>
-              <PremiumTh t={t}>Status</PremiumTh>
-              <PremiumTh t={t}>Actions</PremiumTh>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => {
-              const last = i === rows.length - 1
-              return (
-                <tr key={r.id}>
-                  <PremiumTd t={t} last={last}><Mono t={t} size={12} weight={500}>{r.id}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last}><Mono t={t} size={12} color={r.soRef ? c.accent : c.ink3}>{r.soRef || '—'}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last}><span style={{ fontSize: 13, fontWeight: 500, color: c.ink }}>{r.customer}</span></PremiumTd>
-                  <PremiumTd t={t} last={last}><span style={{ fontSize: 13, fontWeight: 500, color: c.ink2 }}>{r.channel}</span></PremiumTd>
-                  <PremiumTd t={t} last={last}><Mono t={t} size={12} color={c.ink2}>{r.date}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last}>
-                    <span style={{ fontSize: 13, color: c.ink }}>{r.reason}</span>
-                    <span style={{ fontSize: 11, color: c.ink3, marginLeft: 6 }}>{r.condition}</span>
-                  </PremiumTd>
-                  <PremiumTd t={t} last={last} right><Mono t={t} size={12} color={c.ink2}>{r.qty}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last} right><Mono t={t} size={13} weight={600}>{fmtBaht(r.amount)}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last}><StatusPill t={t} status={r.status} /></PremiumTd>
-                  <PremiumTd t={t} last={last}>
-                    {r.status === 'pending' && (
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <Btn t={t} variant="accent" onClick={() => handleUpdateStatus(r.id, 'Completed')} style={{ padding: '4px 8px', fontSize: 11 }}>ของกลับมาแล้ว</Btn>
-                        <Btn t={t} variant="ghost" onClick={() => handleUpdateStatus(r.id, 'Cancelled')} style={{ padding: '4px 8px', fontSize: 11 }}>ยกเลิก</Btn>
-                      </div>
-                    )}
-                  </PremiumTd>
-                </tr>
-              )
-            })}
-          </tbody>
-        </PremiumTable>
+        <Card t={t} pad={false} style={{ overflow: 'auto' }}>
+          <Table className="min-w-[1000px]">
+            <TableHeader>
+              <TableRow>
+                {['RMA', 'SO Ref', 'Customer', 'Channel', 'Date', 'Reason'].map(h => (
+                  <TableHead key={h} className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    {h}
+                  </TableHead>
+                ))}
+                <TableHead className="text-right py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Qty</TableHead>
+                <TableHead className="text-right py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Amount</TableHead>
+                <TableHead className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Status</TableHead>
+                <TableHead className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r) => {
+                return (
+                  <TableRow key={r.id}>
+                    <TableCell className="py-3.5 px-6">
+                      <Mono t={t} size={12} weight={500}>{r.id}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      <Mono t={t} size={12} color={r.soRef ? c.accent : c.ink3}>{r.soRef || '—'}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      <span style={{ fontSize: 13, fontWeight: 500, color: c.ink }}>{r.customer}</span>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      <span style={{ fontSize: 13, fontWeight: 500, color: c.ink2 }}>{r.channel}</span>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      <Mono t={t} size={12} color={c.ink2}>{r.date}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      <span style={{ fontSize: 13, color: c.ink }}>{r.reason}</span>
+                      <span style={{ fontSize: 11, color: c.ink3, marginLeft: 6 }}>{r.condition}</span>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6 text-right">
+                      <Mono t={t} size={12} color={c.ink2}>{r.qty}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6 text-right">
+                      <Mono t={t} size={13} weight={600}>{fmtBaht(r.amount)}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      {r.status === 'completed' && (
+                        <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20">
+                          Completed
+                        </Badge>
+                      )}
+                      {r.status === 'cancelled' && (
+                        <Badge variant="destructive">
+                          Cancelled
+                        </Badge>
+                      )}
+                      {r.status === 'pending' && (
+                        <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-blue-500/20">
+                          Pending
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      {r.status === 'pending' && (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <Button onClick={() => handleUpdateStatus(r.id, 'Completed')} className="h-6 px-2 text-[10px] bg-[#0F6E58] text-white hover:bg-[#0F6E58]/90">ของกลับมาแล้ว</Button>
+                          <Button variant="outline" onClick={() => handleUpdateStatus(r.id, 'Cancelled')} className="h-6 px-2 text-[10px]">ยกเลิก</Button>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </Card>
       </div>
 
-      <SlidePanel open={open} onClose={() => setOpen(false)} title="New Return" subtitle="บันทึกการรับสินค้ากลับจากลูกค้า"
-        footer={
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <Btn t={t} variant="ghost" onClick={() => setOpen(false)}>Cancel</Btn>
-            <Btn t={t} variant="accent" onClick={handleSubmit} style={{ opacity: form.sku ? 1 : 0.45 }}>Save Return</Btn>
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent side="right" className="sm:max-w-[520px] flex flex-col h-full p-0 bg-background">
+          <SheetHeader className="p-6 border-b border-border flex-shrink-0">
+            <SheetTitle className="text-base font-bold text-foreground">New Return</SheetTitle>
+            <SheetDescription className="text-xs text-muted-foreground mt-1">บันทึกการรับสินค้ากลับจากลูกค้า</SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div className="grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sales Order</label>
+              <select
+                value={form.soRef}
+                onChange={e => {
+                  const soId = e.target.value
+                  const so = salesOrders.find(o => o.id === soId)
+                  setForm(f => ({ ...f, soRef: soId, channel: so ? so.channel : f.channel }))
+                }}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="">No SO reference</option>
+                {completedSOs.map(o => <option key={o.id} value={o.id}>{o.id} — {o.customer}</option>)}
+              </select>
+            </div>
+            <div className="grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Product</label>
+              <select
+                value={form.sku}
+                onChange={e => setForm(f => ({ ...f, sku: e.target.value }))}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="">Select product</option>
+                {products.map(p => <option key={p.sku} value={p.sku}>{p.name}</option>)}
+              </select>
+            </div>
+            <div className="grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Quantity</label>
+              <Input
+                type="number"
+                min={1}
+                value={form.qty}
+                onChange={e => setForm(f => ({ ...f, qty: Math.max(1, parseInt(e.target.value) || 1) }))}
+              />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Condition</label>
+              <select
+                value={form.condition}
+                onChange={e => setForm(f => ({ ...f, condition: e.target.value as ReturnCondition }))}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="ดี">ดี · add back to stock</option>
+                <option value="เสียหาย">เสียหาย · do not add stock</option>
+              </select>
+            </div>
+            <div className="grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Channel</label>
+              <select
+                value={form.channel}
+                disabled={!!form.soRef}
+                onChange={e => setForm(f => ({ ...f, channel: e.target.value }))}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <option value="Manual">Manual</option>
+                <option value="LINE">LINE</option>
+                <option value="Shopee">Shopee</option>
+                <option value="TikTok">TikTok</option>
+              </select>
+            </div>
+            <div className="grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reason</label>
+              <select
+                value={form.reason}
+                onChange={e => setForm(f => ({ ...f, reason: e.target.value as ReturnReason }))}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                {REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+            <div className="grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Note</label>
+              <Textarea
+                value={form.note}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setForm(f => ({ ...f, note: e.target.value }))}
+                placeholder="รายละเอียดอื่นๆ"
+              />
+            </div>
           </div>
-        }
-      >
-        <div style={{ display: 'grid', gap: 16 }}>
-          <SelectField t={t} label="Sales Order" value={form.soRef} onChange={e => {
-            const soId = e.target.value
-            const so = salesOrders.find(o => o.id === soId)
-            setForm(f => ({ ...f, soRef: soId, channel: so ? so.channel : f.channel }))
-          }}>
-            <option value="">No SO reference</option>
-            {completedSOs.map(o => <option key={o.id} value={o.id}>{o.id} — {o.customer}</option>)}
-          </SelectField>
-          <SelectField t={t} label="Product" value={form.sku} onChange={e => setForm(f => ({ ...f, sku: e.target.value }))}>
-            <option value="">Select product</option>
-            {products.map(p => <option key={p.sku} value={p.sku}>{p.name}</option>)}
-          </SelectField>
-          <Field t={t} label="Quantity" type="number" min={1} value={form.qty} onChange={e => setForm(f => ({ ...f, qty: Math.max(1, parseInt(e.target.value) || 1) }))} />
-          <SelectField t={t} label="Condition" value={form.condition} onChange={e => setForm(f => ({ ...f, condition: e.target.value as ReturnCondition }))}>
-            <option value="ดี">ดี · add back to stock</option>
-            <option value="เสียหาย">เสียหาย · do not add stock</option>
-          </SelectField>
-          <SelectField t={t} label="Channel" value={form.channel} disabled={!!form.soRef} onChange={e => setForm(f => ({ ...f, channel: e.target.value }))}>
-            <option value="Manual">Manual</option>
-            <option value="LINE">LINE</option>
-            <option value="Shopee">Shopee</option>
-            <option value="TikTok">TikTok</option>
-          </SelectField>
-          <SelectField t={t} label="Reason" value={form.reason} onChange={e => setForm(f => ({ ...f, reason: e.target.value as ReturnReason }))}>
-            {REASONS.map(r => <option key={r} value={r}>{r}</option>)}
-          </SelectField>
-          <TextAreaField t={t} label="Note" value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} />
-        </div>
-      </SlidePanel>
+          <SheetFooter className="border-t border-border p-6 flex-shrink-0">
+            <div className="flex justify-end gap-2 w-full">
+              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button onClick={handleSubmit} className="bg-[#0F6E58] text-white hover:bg-[#0F6E58]/90" disabled={!form.sku}>Save Return</Button>
+            </div>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
