@@ -4,8 +4,26 @@ import { useState } from 'react'
 import { useErpStore } from '@/lib/store/useErpStore'
 import { ROLE_LABELS, type AppUser, type UserRole } from '@/lib/store/erpTypes'
 import { useTheme } from '@/lib/design/ThemeContext'
-import { Btn, Dot, Mono, PremiumTable, PremiumTd, PremiumTh, TopBar } from '@/components/ui'
-import SlidePanel from '@/components/SlidePanel'
+import { Card, Mono, TopBar } from '@/components/ui'
+import { Button } from '@/components/ui/button'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from '@/components/ui/sheet'
 
 const BLANK = { id: '', name: '', role: 'sales' as UserRole, password: '' }
 
@@ -128,142 +146,152 @@ export default function UsersPage() {
         right={
           <>
             {toast && <span style={{ fontSize: 12, color: c.pos, fontWeight: 600 }}>{toast}</span>}
-            <Btn t={t} variant="primary" onClick={() => setCreateOpen(true)}>+ Create User</Btn>
+            <Button onClick={() => setCreateOpen(true)}>+ Create User</Button>
           </>
         }
       />
       <div style={{ padding: '24px 32px 48px' }}>
-        <PremiumTable t={t} minWidth={900}>
-          <thead>
-            <tr>
-              {['User', 'Role', 'Access', 'Last active', 'Status', 'Actions'].map(h => <PremiumTh key={h} t={t}>{h}</PremiumTh>)}
-            </tr>
-          </thead>
-          <tbody>
-            {displayUsers.map((user, i) => {
-              const last = i === displayUsers.length - 1
-              const isCurrentUser = user.id === currentUser.id
-              const isEnabled = user.isActive !== false
-              return (
-                <tr key={user.id} style={{ background: isCurrentUser ? c.subtle : 'transparent', opacity: isEnabled ? 1 : 0.62 }}>
-                  <PremiumTd t={t} last={last}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: isCurrentUser ? c.ink : c.subtle, border: `1px solid ${c.border}`, color: isCurrentUser ? c.canvas : c.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
-                        {user.name.trim().charAt(0)}
+        <Card t={t} pad={false} style={{ overflow: 'auto' }}>
+          <Table className="min-w-[900px]">
+            <TableHeader>
+              <TableRow>
+                {['User', 'Role', 'Access', 'Last active', 'Status', 'Actions'].map(h => (
+                  <TableHead key={h} className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    {h}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {displayUsers.map((user, i) => {
+                const isCurrentUser = user.id === currentUser.id
+                const isEnabled = user.isActive !== false
+                return (
+                  <TableRow key={user.id} className={!isEnabled ? 'opacity-60' : ''} style={{ background: isCurrentUser ? c.subtle : 'transparent' }}>
+                    <TableCell className="py-3.5 px-6">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: isCurrentUser ? c.ink : c.subtle, border: `1px solid ${c.border}`, color: isCurrentUser ? c.canvas : c.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
+                          {user.name.trim().charAt(0)}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: c.ink }}>{user.name}</div>
+                          <Mono t={t} size={11} color={c.ink3} style={{ marginTop: 1, display: 'block' }}>{user.id.toLowerCase()}@chawy.local</Mono>
+                        </div>
                       </div>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: c.ink }}>{user.name}</div>
-                        <Mono t={t} size={11} color={c.ink3} style={{ marginTop: 1, display: 'block' }}>{user.id.toLowerCase()}@chawy.local</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      <span style={{ fontSize: 13, color: c.ink }}>{ROLE_LABELS[user.role]}</span>
+                      <span style={{ fontSize: 11, color: c.ink3, marginLeft: 6 }}>{user.role}</span>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      <span style={{ fontSize: 11, color: c.ink2, background: c.subtle, padding: '3px 9px', borderRadius: 4, border: `1px solid ${c.border}`, fontWeight: 500 }}>
+                        {user.role === 'owner' ? 'All modules' : `${ROLE_LABELS[user.role]} access`}
+                      </span>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      <span style={{ fontSize: 12, color: c.ink2 }}>{formatLastActive(user)}</span>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      {isEnabled ? (
+                        <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20">
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive">
+                          Inactive
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6 text-right">
+                      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                        <Button variant="ghost" onClick={() => handleEditClick(user)}>แก้ไข</Button>
+                        <Button variant="ghost" onClick={() => handleStatusChange(user)} disabled={isCurrentUser || busyUserId === user.id}>
+                          {busyUserId === user.id ? 'กำลังบันทึก...' : isEnabled ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}
+                        </Button>
                       </div>
-                    </div>
-                  </PremiumTd>
-                  <PremiumTd t={t} last={last}>
-                    <span style={{ fontSize: 13, color: c.ink }}>{ROLE_LABELS[user.role]}</span>
-                    <span style={{ fontSize: 11, color: c.ink3, marginLeft: 6 }}>{user.role}</span>
-                  </PremiumTd>
-                  <PremiumTd t={t} last={last}>
-                    <span style={{ fontSize: 11, color: c.ink2, background: c.subtle, padding: '3px 9px', borderRadius: 4, border: `1px solid ${c.border}`, fontWeight: 500 }}>
-                      {user.role === 'owner' ? 'All modules' : `${ROLE_LABELS[user.role]} access`}
-                    </span>
-                  </PremiumTd>
-                  <PremiumTd t={t} last={last}><span style={{ fontSize: 12, color: c.ink2 }}>{formatLastActive(user)}</span></PremiumTd>
-                  <PremiumTd t={t} last={last}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: isEnabled ? c.pos : c.neg }}>
-                      <Dot color={isEnabled ? c.pos : c.neg} /> {isEnabled ? 'Active' : 'Inactive'}
-                    </span>
-                  </PremiumTd>
-                  <PremiumTd t={t} last={last} right>
-                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                      <Btn t={t} variant="ghost" onClick={() => handleEditClick(user)}>แก้ไข</Btn>
-                      <Btn t={t} variant="ghost" onClick={() => handleStatusChange(user)} disabled={isCurrentUser || busyUserId === user.id}>
-                        {busyUserId === user.id ? 'กำลังบันทึก...' : isEnabled ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}
-                      </Btn>
-                    </div>
-                  </PremiumTd>
-                </tr>
-              )
-            })}
-          </tbody>
-        </PremiumTable>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </Card>
       </div>
 
-      <SlidePanel open={createOpen} onClose={() => setCreateOpen(false)} title="สร้างผู้ใช้ใหม่" subtitle="เพิ่มผู้ใช้งานระบบ ERP ใหม่"
-        footer={
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button onClick={() => setCreateOpen(false)} style={{ padding: '9px 20px', border: `1px solid ${c.border}`, borderRadius: 7, background: c.surface, cursor: 'pointer', fontSize: 13, color: c.ink2 }}>ยกเลิก</button>
-            <button onClick={handleSubmit} style={{ padding: '9px 20px', border: 'none', borderRadius: 7, background: c.accent, color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>บันทึกผู้ใช้</button>
+      <Sheet open={createOpen} onOpenChange={setCreateOpen}>
+        <SheetContent side="right" className="sm:max-w-[520px] flex flex-col h-full p-0 bg-background">
+          <SheetHeader className="p-6 border-b border-border flex-shrink-0">
+            <SheetTitle className="text-base font-bold text-foreground">สร้างผู้ใช้ใหม่</SheetTitle>
+            <SheetDescription className="text-xs text-muted-foreground mt-1">เพิ่มผู้ใช้งานระบบ ERP ใหม่</SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div className="grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">รหัสผู้ใช้ (User ID / Username) *</label>
+              <Input placeholder="เช่น USR-005 หรือ somchai" value={form.id} onChange={e => setForm(f => ({ ...f, id: e.target.value }))} />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">ชื่อผู้ใช้ (Display Name) *</label>
+              <Input placeholder="เช่น สมชาย" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">บทบาท (Role) *</label>
+              <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value as UserRole }))} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring">
+                {Object.entries(ROLE_LABELS).map(([k, v]) => (
+                  <option key={k} value={k}>{v} ({k})</option>
+                ))}
+              </select>
+            </div>
+            <div className="grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">รหัสผ่าน (Password) *</label>
+              <Input type="password" placeholder="••••••••" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
+            </div>
           </div>
-        }
-      >
-        <div style={{ display: 'grid', gap: 16 }}>
-          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
-            รหัสผู้ใช้ (User ID / Username) *
-            <input placeholder="เช่น USR-005 หรือ somchai" value={form.id} onChange={e => setForm(f => ({ ...f, id: e.target.value }))} style={panelInput(c.surface, c.border, c.ink)} />
-          </label>
-          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
-            ชื่อผู้ใช้ (Display Name) *
-            <input placeholder="เช่น สมชาย" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} style={panelInput(c.surface, c.border, c.ink)} />
-          </label>
-          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
-            บทบาท (Role) *
-            <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value as UserRole }))} style={panelInput(c.surface, c.border, c.ink)}>
-              {Object.entries(ROLE_LABELS).map(([k, v]) => (
-                <option key={k} value={k}>{v} ({k})</option>
-              ))}
-            </select>
-          </label>
-          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
-            รหัสผ่าน (Password) *
-            <input type="password" placeholder="••••••••" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} style={panelInput(c.surface, c.border, c.ink)} />
-          </label>
-        </div>
-      </SlidePanel>
+          <SheetFooter className="border-t border-border p-6 flex-shrink-0">
+            <div className="flex justify-end gap-2 w-full">
+              <Button variant="outline" onClick={() => setCreateOpen(false)}>ยกเลิก</Button>
+              <Button onClick={handleSubmit} className="bg-[#0F6E58] text-white hover:bg-[#0F6E58]/90">บันทึกผู้ใช้</Button>
+            </div>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
-      <SlidePanel open={editOpen} onClose={() => setEditOpen(false)} title="แก้ไขข้อมูลผู้ใช้" subtitle="อัปเดตรายละเอียดของผู้ใช้งานในระบบ"
-        footer={
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button onClick={() => setEditOpen(false)} style={{ padding: '9px 20px', border: `1px solid ${c.border}`, borderRadius: 7, background: c.surface, cursor: 'pointer', fontSize: 13, color: c.ink2 }}>ยกเลิก</button>
-            <button onClick={handleEditSubmit} style={{ padding: '9px 20px', border: 'none', borderRadius: 7, background: c.accent, color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>บันทึกการเปลี่ยนแปลง</button>
+      <Sheet open={editOpen} onOpenChange={setEditOpen}>
+        <SheetContent side="right" className="sm:max-w-[520px] flex flex-col h-full p-0 bg-background">
+          <SheetHeader className="p-6 border-b border-border flex-shrink-0">
+            <SheetTitle className="text-base font-bold text-foreground">แก้ไขข้อมูลผู้ใช้</SheetTitle>
+            <SheetDescription className="text-xs text-muted-foreground mt-1">อัปเดตรายละเอียดของผู้ใช้งานในระบบ</SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div className="grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">รหัสผู้ใช้ (ไม่สามารถแก้ไขได้)</label>
+              <Input value={editForm.id} disabled className="opacity-60 cursor-not-allowed" />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">ชื่อผู้ใช้ (Display Name) *</label>
+              <Input placeholder="เช่น สมชาย" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">บทบาท (Role) *</label>
+              <select value={editForm.role} onChange={e => setEditForm(f => ({ ...f, role: e.target.value as UserRole }))} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring">
+                {Object.entries(ROLE_LABELS).map(([k, v]) => (
+                  <option key={k} value={k}>{v} ({k})</option>
+                ))}
+              </select>
+            </div>
+            <div className="grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">รหัสผ่านใหม่ (ระบุเมื่อต้องการเปลี่ยนเท่านั้น)</label>
+              <Input type="password" placeholder="ระบุรหัสผ่านใหม่หากต้องการเปลี่ยน" value={editForm.password} onChange={e => setEditForm(f => ({ ...f, password: e.target.value }))} />
+            </div>
           </div>
-        }
-      >
-        <div style={{ display: 'grid', gap: 16 }}>
-          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink3 }}>
-            รหัสผู้ใช้ (ไม่สามารถแก้ไขได้)
-            <input value={editForm.id} disabled style={{ ...panelInput(c.surface, c.border, c.ink), opacity: 0.6, cursor: 'not-allowed' }} />
-          </label>
-          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
-            ชื่อผู้ใช้ (Display Name) *
-            <input placeholder="เช่น สมชาย" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} style={panelInput(c.surface, c.border, c.ink)} />
-          </label>
-          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
-            บทบาท (Role) *
-            <select value={editForm.role} onChange={e => setEditForm(f => ({ ...f, role: e.target.value as UserRole }))} style={panelInput(c.surface, c.border, c.ink)}>
-              {Object.entries(ROLE_LABELS).map(([k, v]) => (
-                <option key={k} value={k}>{v} ({k})</option>
-              ))}
-            </select>
-          </label>
-          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
-            รหัสผ่านใหม่ (ระบุเมื่อต้องการเปลี่ยนเท่านั้น)
-            <input type="password" placeholder="ระบุรหัสผ่านใหม่หากต้องการเปลี่ยน" value={editForm.password} onChange={e => setEditForm(f => ({ ...f, password: e.target.value }))} style={panelInput(c.surface, c.border, c.ink)} />
-          </label>
-        </div>
-      </SlidePanel>
+          <SheetFooter className="border-t border-border p-6 flex-shrink-0">
+            <div className="flex justify-end gap-2 w-full">
+              <Button variant="outline" onClick={() => setEditOpen(false)}>ยกเลิก</Button>
+              <Button onClick={handleEditSubmit} className="bg-[#0F6E58] text-white hover:bg-[#0F6E58]/90">บันทึกการเปลี่ยนแปลง</Button>
+            </div>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
 
-function panelInput(surface: string, border: string, ink: string): React.CSSProperties {
-  return {
-    width: '100%',
-    padding: '8px 12px',
-    border: `1px solid ${border}`,
-    borderRadius: 6,
-    fontSize: 13,
-    outline: 'none',
-    boxSizing: 'border-box',
-    background: surface,
-    color: ink,
-  }
-}
