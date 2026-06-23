@@ -4,8 +4,25 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useErpStore } from '@/lib/store/useErpStore'
 import { useTheme } from '@/lib/design/ThemeContext'
-import { Btn, Card, Mono, PremiumTable, PremiumTd, PremiumTh, TopBar } from '@/components/ui'
+import { Card, Mono, TopBar } from '@/components/ui'
 import BomEditorModal from '@/app/(home)/sku/components/BomEditorModal'
+import { Button } from '@/components/ui/button'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
 
 type BomRow = {
   componentSku: string
@@ -72,11 +89,11 @@ export default function BomPage() {
         breadcrumb={['Chawy', 'Inventory', 'BOM']}
         title="Bill of Materials"
         subtitle="จัดการสูตร ส่วนประกอบ และต้นทุนสินค้าสำเร็จรูป"
-        right={<Btn t={t} variant="primary" onClick={() => {
+        right={<Button onClick={() => {
           setMessage('')
           setSelectedParentSku(availableParents[0]?.sku ?? '')
           setCreateOpen(true)
-        }}>+ เพิ่ม BOM</Btn>}
+        }}>+ เพิ่ม BOM</Button>}
       />
       <div style={{ padding: '24px 32px 48px' }}>
         {message && (
@@ -90,35 +107,60 @@ export default function BomPage() {
           <Card t={t}><div style={{ fontSize: 11, color: c.ink3 }}>รายการส่วนประกอบ</div><Mono t={t} size={24} weight={600}>{components.length}</Mono></Card>
         </div>
 
-        <PremiumTable t={t} minWidth={850}>
-          <thead><tr>{['SKU ตัวแม่', 'ชื่อสินค้า', 'จำนวนส่วนประกอบ', 'ต้นทุน BOM', 'Virtual stock', 'สถานะสูตร', ''].map(label => <PremiumTh key={label} t={t}>{label}</PremiumTh>)}</tr></thead>
-          <tbody>
-            {bundles.length === 0 && (
-              <tr>
-                <PremiumTd t={t} last>
-                  <div style={{ padding: 30, textAlign: 'center', color: c.ink3 }}>
+        <Card t={t} pad={false} style={{ overflow: 'auto' }}>
+          <Table className="min-w-[850px]">
+            <TableHeader>
+              <TableRow>
+                {['SKU ตัวแม่', 'ชื่อสินค้า', 'จำนวนส่วนประกอบ', 'ต้นทุน BOM', 'Virtual stock', 'สถานะสูตร', ''].map(label => (
+                  <TableHead key={label} className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    {label}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {bundles.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
                     ยังไม่มี SKU ตัวแม่สำหรับสร้าง BOM · <Link href="/sku" style={{ color: c.accent }}>ไปสร้าง SKU ประเภท Bundle</Link>
-                  </div>
-                </PremiumTd>
-              </tr>
-            )}
-            {bundles.map((bundle, index) => {
-              const bomItems = components.filter(item => item.bundleSku === bundle.sku)
-              const last = index === bundles.length - 1
-              return (
-                <tr key={bundle.sku}>
-                  <PremiumTd t={t} last={last}><Mono t={t} size={12} weight={600}>{bundle.sku}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last}>{bundle.name}</PremiumTd>
-                  <PremiumTd t={t} last={last}>{bomItems.length}</PremiumTd>
-                  <PremiumTd t={t} last={last}><Mono t={t} size={13}>฿{bundle.cost.toLocaleString('th-TH', { maximumFractionDigits: 2 })}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last}>{calcVirtualStock(bundle.sku).toLocaleString()}</PremiumTd>
-                  <PremiumTd t={t} last={last}><span style={{ color: bomItems.length ? c.pos : c.warn }}>{bomItems.length ? 'พร้อมใช้งาน' : 'ยังไม่มีสูตร'}</span></PremiumTd>
-                  <PremiumTd t={t} last={last} right><Btn t={t} variant="ghost" onClick={() => openEditor(bundle.sku)}>{bomItems.length ? 'แก้ไขสูตร' : 'สร้างสูตร'}</Btn></PremiumTd>
-                </tr>
-              )
-            })}
-          </tbody>
-        </PremiumTable>
+                  </TableCell>
+                </TableRow>
+              )}
+              {bundles.map((bundle) => {
+                const bomItems = components.filter(item => item.bundleSku === bundle.sku)
+                return (
+                  <TableRow key={bundle.sku}>
+                    <TableCell className="py-3.5 px-6">
+                      <Mono t={t} size={12} weight={600}>{bundle.sku}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      {bundle.name}
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      {bomItems.length}
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      <Mono t={t} size={13}>฿{bundle.cost.toLocaleString('th-TH', { maximumFractionDigits: 2 })}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      {calcVirtualStock(bundle.sku).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      <span style={{ color: bomItems.length ? c.pos : c.warn }}>
+                        {bomItems.length ? 'พร้อมใช้งาน' : 'ยังไม่มีสูตร'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6 text-right">
+                      <Button variant="ghost" onClick={() => openEditor(bundle.sku)}>
+                        {bomItems.length ? 'แก้ไขสูตร' : 'สร้างสูตร'}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </Card>
       </div>
 
       {editingSku && editingProduct && (
@@ -133,59 +175,57 @@ export default function BomPage() {
         />
       )}
 
-      {createOpen && (
-        <div
-          onClick={() => setCreateOpen(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 210, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >
-          <div onClick={event => event.stopPropagation()}>
-          <Card t={t} style={{ width: 460, maxWidth: '92vw', padding: 24 }}>
-            <div style={{ fontSize: 17, fontWeight: 700, color: c.ink }}>เพิ่ม BOM ใหม่</div>
-            <div style={{ fontSize: 12, color: c.ink3, marginTop: 4, marginBottom: 18 }}>เลือก SKU ตัวแม่ที่ต้องการสร้างสูตร</div>
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="sm:max-w-[460px] bg-background">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">เพิ่ม BOM ใหม่</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground mt-1">เลือก SKU ตัวแม่ที่ต้องการสร้างสูตร</DialogDescription>
+          </DialogHeader>
 
+          <div className="space-y-4 py-2">
             {availableParents.length > 0 ? (
-              <>
-                <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
-                  SKU ตัวแม่
-                  <select
-                    value={selectedParentSku}
-                    onChange={event => setSelectedParentSku(event.target.value)}
-                    style={{ padding: '9px 11px', border: `1px solid ${c.border}`, borderRadius: t.radius, background: c.surface, color: c.ink }}
-                  >
-                    {availableParents.map(product => (
-                      <option key={product.sku} value={product.sku}>{product.sku} — {product.name}</option>
-                    ))}
-                  </select>
-                </label>
-              </>
+              <div className="grid gap-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">SKU ตัวแม่</label>
+                <select
+                  value={selectedParentSku}
+                  onChange={event => setSelectedParentSku(event.target.value)}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  {availableParents.map(product => (
+                    <option key={product.sku} value={product.sku}>{product.sku} — {product.name}</option>
+                  ))}
+                </select>
+              </div>
             ) : (
-              <div style={{ padding: 14, borderRadius: 8, background: c.subtle, color: c.ink2, fontSize: 13 }}>
+              <div className="p-4 rounded-lg bg-muted text-muted-foreground text-xs">
                 {bundles.length === 0
                   ? 'ยังไม่มี SKU ประเภท Bundle กรุณาสร้าง SKU ตัวแม่ก่อน'
                   : 'SKU ตัวแม่ทุกตัวมี BOM แล้ว กรุณาใช้ปุ่ม “แก้ไขสูตร” ในตาราง'}
               </div>
             )}
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
-              <Btn t={t} variant="ghost" onClick={() => setCreateOpen(false)}>ยกเลิก</Btn>
-              {bundles.length === 0 && <Link href="/sku"><Btn t={t} variant="ghost">ไปหน้า SKU</Btn></Link>}
-              <Btn
-                t={t}
-                variant="primary"
-                disabled={!selectedParentSku}
-                onClick={() => {
-                  if (!selectedParentSku) return
-                  setCreateOpen(false)
-                  openEditor(selectedParentSku)
-                }}
-              >
-                เพิ่มส่วนประกอบ
-              </Btn>
-            </div>
-          </Card>
           </div>
-        </div>
-      )}
+
+          <DialogFooter className="mt-4 gap-2">
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>ยกเลิก</Button>
+            {bundles.length === 0 && (
+              <Button variant="outline" onClick={() => window.location.href = '/sku'}>
+                ไปหน้า SKU
+              </Button>
+            )}
+            <Button
+              disabled={!selectedParentSku}
+              onClick={() => {
+                if (!selectedParentSku) return
+                setCreateOpen(false)
+                openEditor(selectedParentSku)
+              }}
+              className="bg-[#0F6E58] text-white hover:bg-[#0F6E58]/90"
+            >
+              เพิ่มส่วนประกอบ
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
