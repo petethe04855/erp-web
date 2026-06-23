@@ -1,10 +1,28 @@
 'use client'
 import { useMemo, useState } from 'react'
 import { formatBaht } from '@/lib/mockData'
-import SlidePanel from '@/components/SlidePanel'
 import { useErpStore } from '@/lib/store/useErpStore'
 import { useTheme } from '@/lib/design/ThemeContext'
-import { Btn, Field, Mono, PremiumTable, PremiumTd, PremiumTh, SelectField, StatStrip, StatusPill, TopBar } from '@/components/ui'
+import { Card, Mono, StatStrip, TopBar } from '@/components/ui'
+import { Button } from '@/components/ui/button'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from '@/components/ui/sheet'
 
 type ReceiveLine = { sku: string; name: string; qtyOrdered: number; qtyRemaining: number; qtyReceived: number; lot: string; expiryDate: string }
 
@@ -104,7 +122,7 @@ export default function GoodsReceivePage() {
         right={
           <>
             {toast && <span style={{ fontSize: 12, fontWeight: 600, color: toast.includes('ไม่') || toast.includes('กรุณา') ? c.neg : c.pos }}>{toast}</span>}
-            <Btn t={t} variant="primary" onClick={resetPanel}>+ Receive Goods</Btn>
+            <Button onClick={resetPanel}>+ Receive Goods</Button>
           </>
         }
       />
@@ -120,79 +138,153 @@ export default function GoodsReceivePage() {
           ]}
         />
 
-        <PremiumTable t={t} minWidth={960}>
-          <thead>
-            <tr>
-              {['GR', 'PO Ref', 'Supplier', 'Date'].map(h => <PremiumTh key={h} t={t}>{h}</PremiumTh>)}
-              <PremiumTh t={t} right>Items</PremiumTh>
-              <PremiumTh t={t}>Quantity</PremiumTh>
-              <PremiumTh t={t} right>Value</PremiumTh>
-              <PremiumTh t={t}>Status</PremiumTh>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((g, i) => {
-              const last = i === rows.length - 1
-              return (
-                <tr key={g.id}>
-                  <PremiumTd t={t} last={last}><Mono t={t} size={12} weight={500}>{g.id}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last}><Mono t={t} size={12} color={c.accent}>{g.poRef}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last}><span style={{ fontSize: 13, fontWeight: 500, color: c.ink }}>{g.supplier}</span></PremiumTd>
-                  <PremiumTd t={t} last={last}><Mono t={t} size={12} color={c.ink2}>{g.receiveDate}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last} right><Mono t={t} size={12} color={c.ink2}>{g.items.length}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last}><Mono t={t} size={12} color={c.ink2}>{g.qty}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last} right><Mono t={t} size={13} weight={600}>{formatBaht(g.value)}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last}><StatusPill t={t} status={g.status} /></PremiumTd>
-                </tr>
-              )
-            })}
-          </tbody>
-        </PremiumTable>
+        <Card t={t} pad={false} style={{ overflow: 'auto' }}>
+          <Table className="min-w-[960px]">
+            <TableHeader>
+              <TableRow>
+                {['GR', 'PO Ref', 'Supplier', 'Date'].map(h => (
+                  <TableHead key={h} className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    {h}
+                  </TableHead>
+                ))}
+                <TableHead className="text-right py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Items</TableHead>
+                <TableHead className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Quantity</TableHead>
+                <TableHead className="text-right py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Value</TableHead>
+                <TableHead className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((g) => {
+                return (
+                  <TableRow key={g.id}>
+                    <TableCell className="py-3.5 px-6">
+                      <Mono t={t} size={12} weight={500}>{g.id}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      <Mono t={t} size={12} color={c.accent}>{g.poRef}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      <span style={{ fontSize: 13, fontWeight: 500, color: c.ink }}>{g.supplier}</span>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      <Mono t={t} size={12} color={c.ink2}>{g.receiveDate}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6 text-right">
+                      <Mono t={t} size={12} color={c.ink2}>{g.items.length}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      <Mono t={t} size={12} color={c.ink2}>{g.qty}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6 text-right">
+                      <Mono t={t} size={13} weight={600}>{formatBaht(g.value)}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      {g.status === 'pending' ? (
+                        <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-blue-500/20">
+                          Pending
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20">
+                          Completed
+                        </Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </Card>
       </div>
 
-      <SlidePanel open={open} onClose={() => setOpen(false)} title="Receive Goods" subtitle="เลือก PO และระบุ lot / expiry สำหรับ LOT tracking"
-        footer={
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <Btn t={t} variant="ghost" onClick={() => setOpen(false)}>Cancel</Btn>
-            <Btn t={t} variant="accent" onClick={handleSubmit}>Save Receipt</Btn>
-          </div>
-        }
-      >
-        <div style={{ display: 'grid', gap: 16 }}>
-          <SelectField t={t} label="Purchase Order" value={selectedPO} onChange={e => onSelectPO(e.target.value)}>
-            <option value="">Select PO</option>
-            {eligiblePOs.map(po => <option key={po.id} value={po.id}>{po.id} — {po.supplier} ({formatBaht(po.totalCost)})</option>)}
-          </SelectField>
-          <Field t={t} label="Receive date" type="date" value={receiveDate} onChange={e => setReceiveDate(e.target.value)} />
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent side="right" className="sm:max-w-[760px] flex flex-col h-full p-0 bg-background">
+          <SheetHeader className="p-6 border-b border-border flex-shrink-0">
+            <SheetTitle className="text-base font-bold text-foreground">Receive Goods</SheetTitle>
+            <SheetDescription className="text-xs text-muted-foreground mt-1">เลือก PO และระบุ lot / expiry สำหรับ LOT tracking</SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div className="grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Purchase Order</label>
+              <select
+                value={selectedPO}
+                onChange={e => onSelectPO(e.target.value)}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="">Select PO</option>
+                {eligiblePOs.map(po => <option key={po.id} value={po.id}>{po.id} — {po.supplier} ({formatBaht(po.totalCost)})</option>)}
+              </select>
+            </div>
+            <div className="grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Receive date</label>
+              <Input type="date" value={receiveDate} onChange={e => setReceiveDate(e.target.value)} />
+            </div>
 
-          {lines.length > 0 && (
-            <PremiumTable t={t} minWidth={720}>
-              <thead>
-                <tr>
-                  {['Item', 'Remain', 'Receive', 'Lot', 'Expiry'].map(h => <PremiumTh key={h} t={t}>{h}</PremiumTh>)}
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((line, i) => {
-                  const last = i === lines.length - 1
-                  return (
-                    <tr key={line.sku}>
-                      <PremiumTd t={t} last={last}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: c.ink }}>{line.name}</span>
-                        <div><Mono t={t} size={10} color={c.ink3}>{line.sku}</Mono></div>
-                      </PremiumTd>
-                      <PremiumTd t={t} last={last}><Mono t={t} size={12} color={c.warn}>{line.qtyRemaining}</Mono></PremiumTd>
-                      <PremiumTd t={t} last={last}><input type="number" min={0} max={line.qtyRemaining} value={line.qtyReceived} onChange={e => updateReceiveLine(i, 'qtyReceived', e.target.value)} style={{ width: 74, border: `1px solid ${c.border}`, borderRadius: 6, padding: '6px 8px', fontFamily: t.font.mono }} /></PremiumTd>
-                      <PremiumTd t={t} last={last}><input value={line.lot} onChange={e => updateReceiveLine(i, 'lot', e.target.value)} placeholder="LOT" style={{ width: 120, border: `1px solid ${c.border}`, borderRadius: 6, padding: '6px 8px' }} /></PremiumTd>
-                      <PremiumTd t={t} last={last}><input type="date" value={line.expiryDate} onChange={e => updateReceiveLine(i, 'expiryDate', e.target.value)} style={{ width: 136, border: `1px solid ${c.border}`, borderRadius: 6, padding: '6px 8px' }} /></PremiumTd>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </PremiumTable>
-          )}
-        </div>
-      </SlidePanel>
+            {lines.length > 0 && (
+              <Card t={t} pad={false} style={{ overflow: 'auto', marginTop: 16 }}>
+                <Table className="min-w-[700px]">
+                  <TableHeader>
+                    <TableRow>
+                      {['Item', 'Remain', 'Receive', 'Lot', 'Expiry'].map(h => (
+                        <TableHead key={h} className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                          {h}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {lines.map((line, i) => {
+                      return (
+                        <TableRow key={line.sku}>
+                          <TableCell className="py-3.5 px-6">
+                            <span style={{ fontSize: 12, fontWeight: 600, color: c.ink }}>{line.name}</span>
+                            <div><Mono t={t} size={10} color={c.ink3}>{line.sku}</Mono></div>
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6">
+                            <Mono t={t} size={12} color={c.warn}>{line.qtyRemaining}</Mono>
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6">
+                            <input
+                              type="number"
+                              min={0}
+                              max={line.qtyRemaining}
+                              value={line.qtyReceived}
+                              onChange={e => updateReceiveLine(i, 'qtyReceived', e.target.value)}
+                              style={{ width: 74, border: `1px solid ${c.border}`, borderRadius: 6, padding: '6px 8px', fontFamily: t.font.mono }}
+                            />
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6">
+                            <input
+                              value={line.lot}
+                              onChange={e => updateReceiveLine(i, 'lot', e.target.value)}
+                              placeholder="LOT"
+                              style={{ width: 120, border: `1px solid ${c.border}`, borderRadius: 6, padding: '6px 8px' }}
+                            />
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6">
+                            <input
+                              type="date"
+                              value={line.expiryDate}
+                              onChange={e => updateReceiveLine(i, 'expiryDate', e.target.value)}
+                              style={{ width: 136, border: `1px solid ${c.border}`, borderRadius: 6, padding: '6px 8px' }}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </Card>
+            )}
+          </div>
+          <SheetFooter className="border-t border-border p-6 flex-shrink-0">
+            <div className="flex justify-end gap-2 w-full">
+              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button onClick={handleSubmit} className="bg-[#0F6E58] text-white hover:bg-[#0F6E58]/90">Save Receipt</Button>
+            </div>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
