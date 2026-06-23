@@ -3,7 +3,17 @@ import { useState } from 'react'
 import { useErpStore } from '@/lib/store/useErpStore'
 import { useTheme } from '@/lib/design/ThemeContext'
 import { exportXlsx } from '@/lib/utils/exportUtil'
-import { Btn, Mono, PremiumTable, PremiumTd, PremiumTh, SectionLabel, StatStrip, StatusPill, TopBar, fmtBaht, fmtNum } from '@/components/ui'
+import { Card, Mono, SectionLabel, StatStrip, TopBar, fmtBaht, fmtNum } from '@/components/ui'
+import { Button } from '@/components/ui/button'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
 
 type SettlementRecord = {
   orderId: string
@@ -18,6 +28,39 @@ function orderStatus(status: string) {
   if (status === 'IN_TRANSIT') return 'shipped'
   if (status === 'CANCELLED') return 'cancelled'
   return status
+}
+
+function getBadge(status: string) {
+  const norm = orderStatus(status)
+  if (norm === 'completed') {
+    return (
+      <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20">
+        Completed
+      </Badge>
+    )
+  }
+  if (norm === 'pending') {
+    return (
+      <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-blue-500/20">
+        Pending
+      </Badge>
+    )
+  }
+  if (norm === 'shipped') {
+    return (
+      <Badge className="bg-indigo-500/10 text-indigo-600 hover:bg-indigo-500/20 border-indigo-500/20">
+        Shipped
+      </Badge>
+    )
+  }
+  if (norm === 'cancelled') {
+    return (
+      <Badge variant="destructive">
+        Cancelled
+      </Badge>
+    )
+  }
+  return <Badge variant="outline">{status}</Badge>
 }
 
 export default function TikTokOrdersPage() {
@@ -84,8 +127,8 @@ export default function TikTokOrdersPage() {
         right={
           <>
             {syncMsg && <span style={{ fontSize: 12, fontWeight: 600, color: syncMsg.startsWith('Sync สำเร็จ') ? c.pos : c.neg }}>{syncMsg}</span>}
-            <Btn t={t} variant="ghost" onClick={handleExport}>Export</Btn>
-            <Btn t={t} variant="primary" onClick={handleSyncSettlement}>{syncing ? 'Syncing...' : 'Sync Settlement'}</Btn>
+            <Button variant="outline" onClick={handleExport}>Export</Button>
+            <Button onClick={handleSyncSettlement}>{syncing ? 'Syncing...' : 'Sync Settlement'}</Button>
           </>
         }
       />
@@ -104,60 +147,105 @@ export default function TikTokOrdersPage() {
         {liveSessions.length > 0 && (
           <div style={{ marginBottom: 24 }}>
             <SectionLabel t={t}>Recent Live Sessions</SectionLabel>
-            <PremiumTable t={t} minWidth={840}>
-              <thead>
-                <tr>
-                  {['Date', 'Host', 'Status'].map(h => <PremiumTh key={h} t={t}>{h}</PremiumTh>)}
-                  <PremiumTh t={t} right>Orders</PremiumTh>
-                  <PremiumTh t={t} right>GMV</PremiumTh>
-                </tr>
-              </thead>
-              <tbody>
-                {liveSessions.slice(0, 5).map((session, i) => {
-                  const last = i === Math.min(liveSessions.length, 5) - 1
-                  return (
-                    <tr key={session.id}>
-                      <PremiumTd t={t} last={last}><Mono t={t} size={12} weight={500}>{session.live_date}</Mono></PremiumTd>
-                      <PremiumTd t={t} last={last}><span style={{ fontSize: 13, fontWeight: 500, color: c.ink }}>{session.tiktok_account}</span></PremiumTd>
-                      <PremiumTd t={t} last={last}><StatusPill t={t} status={session.status === 'Manager_Approved' ? 'completed' : 'pending'} /></PremiumTd>
-                      <PremiumTd t={t} last={last} right><Mono t={t} size={12}>{Math.max(1, Math.round(session.revenue_generated / Math.max(avgOrder, 1)))}</Mono></PremiumTd>
-                      <PremiumTd t={t} last={last} right><Mono t={t} size={13} weight={600}>{fmtBaht(session.revenue_generated)}</Mono></PremiumTd>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </PremiumTable>
+            <Card t={t} pad={false} style={{ overflow: 'auto' }}>
+              <Table className="min-w-[840px]">
+                <TableHeader>
+                  <TableRow>
+                    {['Date', 'Host', 'Status'].map(h => (
+                      <TableHead key={h} className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                        {h}
+                      </TableHead>
+                    ))}
+                    <TableHead className="text-right py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Orders</TableHead>
+                    <TableHead className="text-right py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">GMV</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {liveSessions.slice(0, 5).map((session) => {
+                    return (
+                      <TableRow key={session.id}>
+                        <TableCell className="py-3.5 px-6">
+                          <Mono t={t} size={12} weight={500}>{session.live_date}</Mono>
+                        </TableCell>
+                        <TableCell className="py-3.5 px-6">
+                          <span style={{ fontSize: 13, fontWeight: 500, color: c.ink }}>{session.tiktok_account}</span>
+                        </TableCell>
+                        <TableCell className="py-3.5 px-6">
+                          {session.status === 'Manager_Approved' ? (
+                            <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20">
+                              Approved
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-blue-500/20">
+                              Pending
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-3.5 px-6 text-right">
+                          <Mono t={t} size={12}>{Math.max(1, Math.round(session.revenue_generated / Math.max(avgOrder, 1)))}</Mono>
+                        </TableCell>
+                        <TableCell className="py-3.5 px-6 text-right">
+                          <Mono t={t} size={13} weight={600}>{fmtBaht(session.revenue_generated)}</Mono>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </Card>
           </div>
         )}
 
         <SectionLabel t={t}>Order Feed</SectionLabel>
-        <PremiumTable t={t} minWidth={1040}>
-          <thead>
-            <tr>
-              {['Order', 'Handle', 'Product'].map(h => <PremiumTh key={h} t={t}>{h}</PremiumTh>)}
-              <PremiumTh t={t} right>Qty</PremiumTh>
-              <PremiumTh t={t} right>Amount</PremiumTh>
-              <PremiumTh t={t} right>Net</PremiumTh>
-              <PremiumTh t={t}>Status</PremiumTh>
-            </tr>
-          </thead>
-          <tbody>
-            {tiktokOrders.map((order, i) => {
-              const last = i === tiktokOrders.length - 1
-              return (
-                <tr key={order.id}>
-                  <PremiumTd t={t} last={last}><Mono t={t} size={12} weight={500}>{order.id}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last}><span style={{ fontSize: 12, color: c.accent, fontWeight: 500 }}>@tiktok</span></PremiumTd>
-                  <PremiumTd t={t} last={last}><span style={{ fontSize: 13, color: c.ink }}>{order.product}</span><div style={{ fontSize: 11, color: c.ink3 }}>{order.sku}</div></PremiumTd>
-                  <PremiumTd t={t} last={last} right><Mono t={t} size={12} color={c.ink2}>{order.qty}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last} right><Mono t={t} size={13} weight={600}>{fmtBaht(order.amount)}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last} right><Mono t={t} size={12} color={order.settled ? c.pos : c.ink3}>{order.settled ? fmtBaht(order.netRevenue ?? 0) : '—'}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last}><StatusPill t={t} status={orderStatus(order.status)} /></PremiumTd>
-                </tr>
-              )
-            })}
-          </tbody>
-        </PremiumTable>
+        <Card t={t} pad={false} style={{ overflow: 'auto' }}>
+          <Table className="min-w-[1040px]">
+            <TableHeader>
+              <TableRow>
+                {['Order', 'Handle', 'Product'].map(h => (
+                  <TableHead key={h} className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    {h}
+                  </TableHead>
+                ))}
+                <TableHead className="text-right py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Qty</TableHead>
+                <TableHead className="text-right py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Amount</TableHead>
+                <TableHead className="text-right py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Net</TableHead>
+                <TableHead className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {tiktokOrders.map((order) => {
+                return (
+                  <TableRow key={order.id}>
+                    <TableCell className="py-3.5 px-6">
+                      <Mono t={t} size={12} weight={500}>{order.id}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      <span style={{ fontSize: 12, color: c.accent, fontWeight: 500 }}>@tiktok</span>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      <span style={{ fontSize: 13, color: c.ink }}>{order.product}</span>
+                      <div style={{ fontSize: 11, color: c.ink3 }}>{order.sku}</div>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6 text-right">
+                      <Mono t={t} size={12} color={c.ink2}>{order.qty}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6 text-right">
+                      <Mono t={t} size={13} weight={600}>{fmtBaht(order.amount)}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6 text-right">
+                      <Mono t={t} size={12} color={order.settled ? c.pos : c.ink3}>
+                        {order.settled ? fmtBaht(order.netRevenue ?? 0) : '—'}
+                      </Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      {getBadge(order.status)}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </Card>
       </div>
     </div>
   )
