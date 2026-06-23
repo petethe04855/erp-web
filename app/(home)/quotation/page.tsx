@@ -9,17 +9,28 @@ import SlidePanel from "@/components/SlidePanel";
 import { useErpStore } from "@/lib/store/useErpStore";
 import { useTheme } from "@/lib/design/ThemeContext";
 import {
-  Btn,
-  Field,
   Mono,
-  PremiumTable,
-  PremiumTd,
-  PremiumTh,
-  SelectField,
-  StatusPill,
   TopBar,
 } from "@/components/ui";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from "@/components/ui/sheet";
 
 
 type Line = { sku: string; qty: number };
@@ -144,305 +155,283 @@ export default function QuotationPage() {
               </span>
             )}
             <Button
-              variant="outline"
-              onClick={() => showToast("Shadcn Button Clicked!")}
-            >
-              Test Shadcn
-            </Button>
-            <Btn
-              t={t}
-              variant="primary"
               onClick={() => {
                 setForm({ ...BLANK_FORM, validUntil: addDaysIso(15) });
                 setOpen(true);
               }}
             >
               + New Quotation
-            </Btn>
+            </Button>
           </>
         }
       />
 
       <div style={{ padding: "24px 32px 48px" }}>
-        <PremiumTable t={t} minWidth={920}>
-          <thead>
-            <tr>
+        <Table className="min-w-[920px]">
+          <TableHeader>
+            <TableRow>
               {["Quote", "Customer", "Issued", "Valid until"].map((h) => (
-                <PremiumTh key={h} t={t}>
-                  {h}
-                </PremiumTh>
+                <TableHead key={h}>{h}</TableHead>
               ))}
-              <PremiumTh t={t} right>
-                Amount
-              </PremiumTh>
-              <PremiumTh t={t}>Status</PremiumTh>
-            </tr>
-          </thead>
-          <tbody>
-            {list.map((q, i) => {
-              const last = i === list.length - 1;
-              return (
-                <tr key={q.id}>
-                  <PremiumTd t={t} last={last}>
-                    <Mono t={t} size={12} weight={500}>
-                      {q.id}
-                    </Mono>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 5,
-                        marginTop: 6,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      {q.status === "Draft" && (
-                        <Btn
-                          t={t}
-                          variant="ghost"
-                          onClick={() =>
-                            transition(
-                              q.id,
-                              "Sent",
-                              "ส่งให้ลูกค้าแล้ว รออนุมัติ",
-                            )
-                          }
-                          style={{ padding: "3px 8px", fontSize: 10 }}
-                        >
-                          Send
-                        </Btn>
-                      )}
-                      {q.status === "Sent" && (
-                        <Btn
-                          t={t}
-                          variant="accent"
-                          onClick={() =>
-                            transition(
-                              q.id,
-                              "Approved",
-                              "Admin/Owner อนุมัติใบเสนอราคา",
-                            )
-                          }
-                          style={{ padding: "3px 8px", fontSize: 10 }}
-                        >
-                          Approve
-                        </Btn>
-                      )}
-                      {q.status === "Approved" && !q.soRef && (
-                        <Btn
-                          t={t}
-                          variant="accent"
-                          onClick={() => convertToSO(q.id)}
-                          style={{ padding: "3px 8px", fontSize: 10 }}
-                        >
-                          Create SO
-                        </Btn>
-                      )}
-                    </div>
-                  </PremiumTd>
-                  <PremiumTd t={t} last={last}>
-                    <span
-                      style={{ fontSize: 13, fontWeight: 500, color: c.ink }}
-                    >
-                      {q.customer}
-                    </span>
-                    <div style={{ fontSize: 11, color: c.ink3, marginTop: 2 }}>
-                      {q.leadSource} · {q.items} items
-                    </div>
-                  </PremiumTd>
-                  <PremiumTd t={t} last={last}>
-                    <Mono t={t} size={12} color={c.ink2}>
-                      {q.date}
-                    </Mono>
-                  </PremiumTd>
-                  <PremiumTd t={t} last={last}>
-                    <Mono t={t} size={12} color={c.ink2}>
-                      {q.validUntil}
-                    </Mono>
-                  </PremiumTd>
-                  <PremiumTd t={t} last={last} right>
-                    <Mono t={t} size={13} weight={600}>
-                      {formatBaht(q.amount)}
-                    </Mono>
-                  </PremiumTd>
-                  <PremiumTd t={t} last={last}>
-                    <StatusPill t={t} status={quoteStatus(q.status)} />
-                  </PremiumTd>
-                </tr>
-              );
-            })}
-          </tbody>
-        </PremiumTable>
+              <TableHead className="text-right">Amount</TableHead>
+              <TableHead>Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {list.map((q) => (
+              <TableRow key={q.id}>
+                <TableCell>
+                  <Mono t={t} size={12} weight={500}>
+                    {q.id}
+                  </Mono>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 5,
+                      marginTop: 6,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    {q.status === "Draft" && (
+                      <Button
+                        variant="ghost"
+                        onClick={() =>
+                          transition(q.id, "Sent", "ส่งให้ลูกค้าแล้ว รออนุมัติ")
+                        }
+                        className="h-6 px-2 text-[10px]"
+                      >
+                        Send
+                      </Button>
+                    )}
+                    {q.status === "Sent" && (
+                      <Button
+                        variant="secondary"
+                        onClick={() =>
+                          transition(
+                            q.id,
+                            "Approved",
+                            "Admin/Owner อนุมัติใบเสนอราคา",
+                          )
+                        }
+                        className="h-6 px-2 text-[10px]"
+                      >
+                        Approve
+                      </Button>
+                    )}
+                    {q.status === "Approved" && !q.soRef && (
+                      <Button
+                        variant="secondary"
+                        onClick={() => convertToSO(q.id)}
+                        className="h-6 px-2 text-[10px]"
+                      >
+                        Create SO
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span
+                    style={{ fontSize: 13, fontWeight: 500, color: c.ink }}
+                  >
+                    {q.customer}
+                  </span>
+                  <div style={{ fontSize: 11, color: c.ink3, marginTop: 2 }}>
+                    {q.leadSource} · {q.items} items
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Mono t={t} size={12} color={c.ink2}>
+                    {q.date}
+                  </Mono>
+                </TableCell>
+                <TableCell>
+                  <Mono t={t} size={12} color={c.ink2}>
+                    {q.validUntil}
+                  </Mono>
+                </TableCell>
+                <TableCell className="text-right">
+                  <Mono t={t} size={13} weight={600}>
+                    {formatBaht(q.amount)}
+                  </Mono>
+                </TableCell>
+                <TableCell>
+                  {quoteStatus(q.status) === "completed" && (
+                    <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20">
+                      Approved
+                    </Badge>
+                  )}
+                  {quoteStatus(q.status) === "cancelled" && (
+                    <Badge variant="destructive">
+                      Cancelled
+                    </Badge>
+                  )}
+                  {quoteStatus(q.status) === "sent" && (
+                    <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-blue-500/20">
+                      Sent
+                    </Badge>
+                  )}
+                  {quoteStatus(q.status) === "draft" && (
+                    <Badge variant="outline">
+                      Draft
+                    </Badge>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
 
-      <SlidePanel
-        open={open}
-        onClose={() => setOpen(false)}
-        title="New Quotation"
-        subtitle={`Total ${formatBaht(lineTotal)}`}
-        footer={
-          <div
-            style={{
-              display: "flex",
-              gap: 10,
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Mono t={t} size={14} weight={600}>
-              {formatBaht(lineTotal)}
-            </Mono>
-            <div style={{ display: "flex", gap: 10 }}>
-              <Btn t={t} variant="ghost" onClick={() => setOpen(false)}>
-                Cancel
-              </Btn>
-              <Btn t={t} variant="accent" onClick={handleSubmit}>
-                Save Draft
-              </Btn>
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent side="right" className="sm:max-w-[440px] flex flex-col h-full overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>New Quotation</SheetTitle>
+            <SheetDescription>สร้างใบเสนอราคาใหม่ - ยอดรวม {formatBaht(lineTotal)}</SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto py-4 space-y-4">
+            <div className="grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Customer</label>
+              <Input
+                value={form.customer}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, customer: e.target.value }))
+                }
+                placeholder="ชื่อลูกค้า"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Lead source</label>
+                <select
+                  value={form.leadSource}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      leadSource: e.target.value as LeadSource,
+                    }))
+                  }
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  {LEAD_SOURCES.map((source) => (
+                    <option key={source} value={source}>{source}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid gap-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Valid until</label>
+                <Input
+                  type="date"
+                  value={form.validUntil}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, validUntil: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-foreground">Items</span>
+              <Button variant="ghost" onClick={addLine}>
+                + Add item
+              </Button>
+            </div>
+            <div className="border border-border rounded-md overflow-hidden bg-background">
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <tbody>
+                  {form.lines.map((line, i) => {
+                    const product = products.find((p) => p.sku === line.sku);
+                    return (
+                      <tr
+                        key={i}
+                        style={{
+                          borderBottom:
+                            i === form.lines.length - 1
+                              ? "none"
+                              : `1px solid ${c.border}`,
+                        }}
+                      >
+                        <td style={{ padding: 10 }}>
+                          <select
+                            value={line.sku}
+                            onChange={(e) => updateLine(i, "sku", e.target.value)}
+                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
+                          >
+                            <option value="">Select product</option>
+                            {products.map((p) => (
+                              <option key={p.sku} value={p.sku}>
+                                {p.name} · stock {p.stock}
+                              </option>
+                            ))}
+                          </select>
+                          {line.sku && (
+                            <div
+                              style={{
+                                fontSize: 11,
+                                color: c.ink3,
+                                marginTop: 4,
+                              }}
+                            >
+                              {getProductName(line.sku)}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding: 10, width: 86 }}>
+                          <Input
+                            type="number"
+                            min={1}
+                            value={line.qty}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              updateLine(
+                                i,
+                                "qty",
+                                val === "" ? "" : Math.max(1, parseInt(val) || 0),
+                              );
+                            }}
+                            className="text-center w-20"
+                          />
+                        </td>
+                        <td
+                          style={{ padding: 10, width: 110, textAlign: "right" }}
+                        >
+                          <Mono t={t} size={12}>
+                            {product ? formatBaht(product.price * line.qty) : "—"}
+                          </Mono>
+                        </td>
+                        <td style={{ padding: 10, width: 42 }}>
+                          {form.lines.length > 1 && (
+                            <Button
+                              variant="ghost"
+                              onClick={() => removeLine(i)}
+                              className="p-2 h-8 w-8 text-lg"
+                            >
+                              ×
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
-        }
-      >
-        <div style={{ display: "grid", gap: 16 }}>
-          <Field
-            t={t}
-            label="Customer"
-            value={form.customer}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, customer: e.target.value }))
-            }
-          />
-          <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}
-          >
-            <SelectField
-              t={t}
-              label="Lead source"
-              value={form.leadSource}
-              onChange={(e) =>
-                setForm((f) => ({
-                  ...f,
-                  leadSource: e.target.value as LeadSource,
-                }))
-              }
-            >
-              {LEAD_SOURCES.map((source) => (
-                <option key={source}>{source}</option>
-              ))}
-            </SelectField>
-            <Field
-              t={t}
-              label="Valid until"
-              type="date"
-              value={form.validUntil}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, validUntil: e.target.value }))
-              }
-            />
-          </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <span style={{ fontSize: 12, fontWeight: 600, color: c.ink2 }}>
-              Items
-            </span>
-            <Btn t={t} variant="ghost" onClick={addLine}>
-              + Add item
-            </Btn>
-          </div>
-          <div
-            style={{
-              border: `1px solid ${c.border}`,
-              borderRadius: t.radius,
-              overflow: "hidden",
-            }}
-          >
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <tbody>
-                {form.lines.map((line, i) => {
-                  const product = products.find((p) => p.sku === line.sku);
-                  return (
-                    <tr
-                      key={i}
-                      style={{
-                        borderBottom:
-                          i === form.lines.length - 1
-                            ? "none"
-                            : `1px solid ${c.border}`,
-                      }}
-                    >
-                      <td style={{ padding: 10 }}>
-                        <SelectField
-                          t={t}
-                          value={line.sku}
-                          onChange={(e) => updateLine(i, "sku", e.target.value)}
-                        >
-                          <option value="">Select product</option>
-                          {products.map((p) => (
-                            <option key={p.sku} value={p.sku}>
-                              {p.name} · stock {p.stock}
-                            </option>
-                          ))}
-                        </SelectField>
-                        {line.sku && (
-                          <div
-                            style={{
-                              fontSize: 11,
-                              color: c.ink3,
-                              marginTop: 4,
-                            }}
-                          >
-                            {getProductName(line.sku)}
-                          </div>
-                        )}
-                      </td>
-                      <td style={{ padding: 10, width: 86 }}>
-                        <Field
-                          t={t}
-                          type="number"
-                          min={1}
-                          value={line.qty}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            updateLine(
-                              i,
-                              "qty",
-                              val === "" ? "" : Math.max(1, parseInt(val) || 0),
-                            );
-                          }}
-                          inputStyle={{ textAlign: "center" }}
-                        />
-                      </td>
-                      <td
-                        style={{ padding: 10, width: 110, textAlign: "right" }}
-                      >
-                        <Mono t={t} size={12}>
-                          {product ? formatBaht(product.price * line.qty) : "—"}
-                        </Mono>
-                      </td>
-                      <td style={{ padding: 10, width: 42 }}>
-                        {form.lines.length > 1 && (
-                          <Btn
-                            t={t}
-                            variant="ghost"
-                            onClick={() => removeLine(i)}
-                            style={{ padding: "6px 9px" }}
-                          >
-                            ×
-                          </Btn>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </SlidePanel>
+          <SheetFooter className="border-t pt-4">
+            <div className="flex w-full items-center justify-between">
+              <Mono t={t} size={14} weight={600}>
+                {formatBaht(lineTotal)}
+              </Mono>
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={() => setOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSubmit}>
+                  Save Draft
+                </Button>
+              </div>
+            </div>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
