@@ -3,6 +3,10 @@ import './globals.css'
 import { ThemeProvider } from '@/lib/design/ThemeContext'
 import BodyStyle from '@/components/BodyStyle'
 import AuthGuard from '@/components/AuthGuard'
+import { Geist } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: 'Chawy ERP — ชาวี Pet Food System',
@@ -11,7 +15,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="th">
+    <html lang="th" className={cn("font-sans", geist.variable)}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
