@@ -3,7 +3,16 @@ import { useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useErpStore } from '@/lib/store/useErpStore'
 import { useTheme } from '@/lib/design/ThemeContext'
-import { Btn, Mono, PremiumTable, PremiumTd, PremiumTh, StatStrip, TopBar, fmtBaht, fmtBahtK, fmtNum } from '@/components/ui'
+import { Card, Mono, StatStrip, TopBar, fmtBaht, fmtBahtK, fmtNum } from '@/components/ui'
+import { Button } from '@/components/ui/button'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table'
 
 function earliestLot(lots: ReturnType<typeof useErpStore.getState>['stockLots'], sku: string) {
   return lots
@@ -46,9 +55,9 @@ export default function StockPage() {
         subtitle={`${rows.length} SKUs tracked · ${fmtBahtK(totalValue)} on-hand value`}
         right={
           <>
-            <Btn t={t} variant="ghost" onClick={() => router.push('/stock-check')}>Stock Check</Btn>
-            <Btn t={t} variant="ghost" onClick={() => router.push('/stock-check')}>Adjust</Btn>
-            <Btn t={t} variant="primary" onClick={() => router.push('/goods-receive')}>+ Receive Goods</Btn>
+            <Button variant="outline" onClick={() => router.push('/stock-check')}>Stock Check</Button>
+            <Button variant="outline" onClick={() => router.push('/stock-check')}>Adjust</Button>
+            <Button onClick={() => router.push('/goods-receive')} className="bg-[#0F6E58] text-white hover:bg-[#0F6E58]/90">+ Receive Goods</Button>
           </>
         }
       />
@@ -64,49 +73,66 @@ export default function StockPage() {
           ]}
         />
 
-        <PremiumTable t={t} minWidth={1060}>
-          <thead>
-            <tr>
-              {['SKU', 'Product', 'Lot'].map(h => <PremiumTh key={h} t={t}>{h}</PremiumTh>)}
-              <PremiumTh t={t} right>On hand</PremiumTh>
-              <PremiumTh t={t} right>Reorder</PremiumTh>
-              <PremiumTh t={t}>Stock level</PremiumTh>
-              <PremiumTh t={t} right>Value</PremiumTh>
-              <PremiumTh t={t} right>30D trend</PremiumTh>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((p, i) => {
-              const last = i === rows.length - 1
-              const barColor = p.status === 'out' ? c.neg : p.status === 'low' ? c.warn : c.pos
-              return (
-                <tr key={p.sku}>
-                  <PremiumTd t={t} last={last}><Mono t={t} size={12} weight={500}>{p.sku}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last}><div style={{ fontSize: 13, fontWeight: 500, color: c.ink }}>{p.name}</div></PremiumTd>
-                  <PremiumTd t={t} last={last}>
-                    <Mono t={t} size={11} color={p.lot ? c.ink3 : c.ink4}>
-                      {p.lot ? `${p.lot.lot}${p.lot.expiryDate ? ` · exp ${p.lot.expiryDate}` : ''}` : 'No active lot'}
-                    </Mono>
-                  </PremiumTd>
-                  <PremiumTd t={t} last={last} right><Mono t={t} size={13} weight={600} color={p.status === 'out' ? c.neg : c.ink}>{fmtNum(p.onHand)}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last} right><Mono t={t} size={12} color={c.ink3}>{p.reorder}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 160 }}>
-                      <div style={{ flex: 1, height: 6, background: c.subtle, borderRadius: 999, overflow: 'hidden' }}>
-                        <div style={{ width: `${Math.max(p.ratio * 100, p.onHand > 0 ? 6 : 0)}%`, height: '100%', background: barColor }} />
+        <Card t={t} pad={false} style={{ overflow: 'auto' }}>
+          <Table className="min-w-[1060px]">
+            <TableHeader>
+              <TableRow>
+                {['SKU', 'Product', 'Lot'].map(h => (
+                  <TableHead key={h} className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    {h}
+                  </TableHead>
+                ))}
+                <TableHead className="text-right py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">On hand</TableHead>
+                <TableHead className="text-right py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Reorder</TableHead>
+                <TableHead className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Stock level</TableHead>
+                <TableHead className="text-right py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Value</TableHead>
+                <TableHead className="text-right py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">30D trend</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((p) => {
+                const barColor = p.status === 'out' ? c.neg : p.status === 'low' ? c.warn : c.pos
+                return (
+                  <TableRow key={p.sku}>
+                    <TableCell className="py-3.5 px-6">
+                      <Mono t={t} size={12} weight={500}>{p.sku}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      <div style={{ fontSize: 13, fontWeight: 500, color: c.ink }}>{p.name}</div>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      <Mono t={t} size={11} color={p.lot ? c.ink3 : c.ink4}>
+                        {p.lot ? `${p.lot.lot}${p.lot.expiryDate ? ` · exp ${p.lot.expiryDate}` : ''}` : 'No active lot'}
+                      </Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6 text-right">
+                      <Mono t={t} size={13} weight={600} color={p.status === 'out' ? c.neg : c.ink}>{fmtNum(p.onHand)}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6 text-right">
+                      <Mono t={t} size={12} color={c.ink3}>{p.reorder}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 160 }}>
+                        <div style={{ flex: 1, height: 6, background: c.subtle, borderRadius: 999, overflow: 'hidden' }}>
+                          <div style={{ width: `${Math.max(p.ratio * 100, p.onHand > 0 ? 6 : 0)}%`, height: '100%', background: barColor }} />
+                        </div>
+                        <span style={{ fontSize: 11, color: barColor, fontWeight: 500, minWidth: 50 }}>
+                          {p.status === 'out' ? 'Out' : p.status === 'low' ? 'Low' : 'Healthy'}
+                        </span>
                       </div>
-                      <span style={{ fontSize: 11, color: barColor, fontWeight: 500, minWidth: 50 }}>
-                        {p.status === 'out' ? 'Out' : p.status === 'low' ? 'Low' : 'Healthy'}
-                      </span>
-                    </div>
-                  </PremiumTd>
-                  <PremiumTd t={t} last={last} right><Mono t={t} size={12}>{fmtBaht(p.value)}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last} right><Mono t={t} size={11} color={c.ink3}>+0.0%</Mono></PremiumTd>
-                </tr>
-              )
-            })}
-          </tbody>
-        </PremiumTable>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6 text-right">
+                      <Mono t={t} size={12}>{fmtBaht(p.value)}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6 text-right">
+                      <Mono t={t} size={11} color={c.ink3}>+0.0%</Mono>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </Card>
       </div>
     </div>
   )
