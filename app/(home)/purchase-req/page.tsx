@@ -1,11 +1,30 @@
 'use client'
 import { useMemo, useState } from 'react'
 import { formatBaht } from '@/lib/mockData'
-import SlidePanel from '@/components/SlidePanel'
 import { useErpStore } from '@/lib/store/useErpStore'
 import type { PurchaseRequestStatus } from '@/lib/store/erpWorkflow'
 import { useTheme } from '@/lib/design/ThemeContext'
-import { Btn, Field, Mono, PremiumTable, PremiumTd, PremiumTh, SelectField, StatStrip, StatusPill, TextAreaField, TopBar } from '@/components/ui'
+import { Card, Mono, StatStrip, TopBar } from '@/components/ui'
+import { Button } from '@/components/ui/button'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from '@/components/ui/sheet'
 
 type ItemLine = { sku: string; name: string; qty: number; note: string }
 const BLANK_LINE: ItemLine = { sku: '', name: '', qty: 1, note: '' }
@@ -16,6 +35,32 @@ const statusMap: Record<PurchaseRequestStatus, string> = {
   'Pending Approval': 'pending',
   Approved: 'completed',
   Rejected: 'cancelled',
+}
+
+function getBadge(status: PurchaseRequestStatus) {
+  const code = statusMap[status]
+  if (code === 'completed') {
+    return (
+      <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20">
+        Approved
+      </Badge>
+    )
+  }
+  if (code === 'pending') {
+    return (
+      <Badge className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-blue-500/20">
+        Pending
+      </Badge>
+    )
+  }
+  if (code === 'cancelled') {
+    return (
+      <Badge variant="destructive">
+        Rejected
+      </Badge>
+    )
+  }
+  return <Badge variant="outline">Draft</Badge>
 }
 
 export default function PurchaseReqPage() {
@@ -112,7 +157,7 @@ export default function PurchaseReqPage() {
         right={
           <>
             {toast && <span style={{ fontSize: 12, fontWeight: 600, color: toast.includes('กรุณา') ? c.neg : c.pos }}>{toast}</span>}
-            <Btn t={t} variant="primary" onClick={() => { setForm(BLANK); setOpen(true) }}>+ New Request</Btn>
+            <Button onClick={() => { setForm(BLANK); setOpen(true) }}>+ New Request</Button>
           </>
         }
       />
@@ -128,135 +173,184 @@ export default function PurchaseReqPage() {
           ]}
         />
 
-        <PremiumTable t={t} minWidth={980}>
-          <thead>
-            <tr>
-              {['PR', 'Requester', 'Date', 'Item', 'Quantity'].map(h => <PremiumTh key={h} t={t}>{h}</PremiumTh>)}
-              <PremiumTh t={t} right>Est. value</PremiumTh>
-              <PremiumTh t={t}>Status</PremiumTh>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((pr, i) => {
-              const last = i === rows.length - 1
-              return (
-                <tr key={pr.id}>
-                  <PremiumTd t={t} last={last}><Mono t={t} size={12} weight={500}>{pr.id}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last}><span style={{ fontSize: 13, color: c.ink2 }}>{pr.requester}</span></PremiumTd>
-                  <PremiumTd t={t} last={last}><Mono t={t} size={12} color={c.ink2}>{pr.date}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last}>
-                    <span style={{ fontSize: 13, fontWeight: 500, color: c.ink }}>{pr.items[0]?.name || pr.items[0]?.sku || '—'}</span>
-                    {pr.items.length > 1 && <span style={{ fontSize: 11, color: c.ink3, marginLeft: 6 }}>+{pr.items.length - 1}</span>}
-                  </PremiumTd>
-                  <PremiumTd t={t} last={last}><Mono t={t} size={12} color={c.ink2}>{pr.items.reduce((s, item) => s + item.qty, 0)}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last} right><Mono t={t} size={13} weight={600}>{formatBaht(pr.est)}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last}>
-                    {pr.status === 'Pending Approval' ? (
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <Btn t={t} variant="accent" onClick={() => handleStatusChange(pr.id, 'Approved')} style={{ padding: '4px 10px', fontSize: 11 }}>Approve</Btn>
-                        <Btn t={t} variant="ghost" onClick={() => handleStatusChange(pr.id, 'Rejected')} style={{ padding: '4px 10px', fontSize: 11 }}>Reject</Btn>
-                      </div>
-                    ) : pr.status === 'Draft' ? (
-                      <Btn t={t} variant="ghost" onClick={() => handleStatusChange(pr.id, 'Pending Approval')} style={{ padding: '4px 10px', fontSize: 11 }}>Submit</Btn>
-                    ) : pr.status === 'Approved' && !pr.poRef ? (
-                      <Btn t={t} variant="accent" onClick={() => openConvertToPO(pr.id)} style={{ padding: '4px 10px', fontSize: 11 }}>Create PO</Btn>
-                    ) : (
-                      <StatusPill t={t} status={statusMap[pr.status]} />
-                    )}
-                  </PremiumTd>
-                </tr>
-              )
-            })}
-          </tbody>
-        </PremiumTable>
+        <Card t={t} pad={false} style={{ overflow: 'auto' }}>
+          <Table className="min-w-[980px]">
+            <TableHeader>
+              <TableRow>
+                {['PR', 'Requester', 'Date', 'Item', 'Quantity'].map(h => (
+                  <TableHead key={h} className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    {h}
+                  </TableHead>
+                ))}
+                <TableHead className="text-right py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Est. value</TableHead>
+                <TableHead className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((pr) => {
+                return (
+                  <TableRow key={pr.id}>
+                    <TableCell className="py-3.5 px-6">
+                      <Mono t={t} size={12} weight={500}>{pr.id}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      <span style={{ fontSize: 13, color: c.ink2 }}>{pr.requester}</span>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      <Mono t={t} size={12} color={c.ink2}>{pr.date}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      <span style={{ fontSize: 13, fontWeight: 500, color: c.ink }}>{pr.items[0]?.name || pr.items[0]?.sku || '—'}</span>
+                      {pr.items.length > 1 && <span style={{ fontSize: 11, color: c.ink3, marginLeft: 6 }}>+{pr.items.length - 1}</span>}
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      <Mono t={t} size={12} color={c.ink2}>{pr.items.reduce((s, item) => s + item.qty, 0)}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6 text-right">
+                      <Mono t={t} size={13} weight={600}>{formatBaht(pr.est)}</Mono>
+                    </TableCell>
+                    <TableCell className="py-3.5 px-6">
+                      {pr.status === 'Pending Approval' ? (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <Button onClick={() => handleStatusChange(pr.id, 'Approved')} className="h-6 px-2 text-[10px] bg-[#0F6E58] text-white hover:bg-[#0F6E58]/90">Approve</Button>
+                          <Button variant="outline" onClick={() => handleStatusChange(pr.id, 'Rejected')} className="h-6 px-2 text-[10px]">Reject</Button>
+                        </div>
+                      ) : pr.status === 'Draft' ? (
+                        <Button variant="outline" onClick={() => handleStatusChange(pr.id, 'Pending Approval')} className="h-6 px-2 text-[10px]">Submit</Button>
+                      ) : pr.status === 'Approved' && !pr.poRef ? (
+                        <Button onClick={() => openConvertToPO(pr.id)} className="h-6 px-2 text-[10px] bg-[#0F6E58] text-white hover:bg-[#0F6E58]/90">Create PO</Button>
+                      ) : (
+                        getBadge(pr.status)
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </Card>
       </div>
 
-      <SlidePanel open={open} onClose={() => setOpen(false)} title="New Purchase Request"
-        footer={
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <Btn t={t} variant="ghost" onClick={() => setOpen(false)}>Cancel</Btn>
-            <Btn t={t} variant="accent" onClick={handleSubmit}>Save Draft</Btn>
-          </div>
-        }
-      >
-        <div style={{ display: 'grid', gap: 16 }}>
-          <Field t={t} label="Requester" value={form.requester} onChange={e => setForm(f => ({ ...f, requester: e.target.value }))} />
-          <TextAreaField t={t} label="Reason" value={form.reason} onChange={e => setForm(f => ({ ...f, reason: e.target.value }))} />
-          <Field t={t} label="Needed date" type="date" value={form.neededDate} onChange={e => setForm(f => ({ ...f, neededDate: e.target.value }))} />
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent side="right" className="sm:max-w-[520px] flex flex-col h-full p-0 bg-background">
+          <SheetHeader className="p-6 border-b border-border flex-shrink-0">
+            <SheetTitle className="text-base font-bold text-foreground">New Purchase Request</SheetTitle>
+            <SheetDescription className="text-xs text-muted-foreground mt-1">สร้างใบขอซื้อใหม่</SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div className="grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Requester</label>
+              <Input value={form.requester} onChange={e => setForm(f => ({ ...f, requester: e.target.value }))} />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reason</label>
+              <Textarea value={form.reason} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setForm(f => ({ ...f, reason: e.target.value }))} />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Needed date</label>
+              <Input type="date" value={form.neededDate} onChange={e => setForm(f => ({ ...f, neededDate: e.target.value }))} />
+            </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: c.ink2 }}>Items</span>
-            <Btn t={t} variant="ghost" onClick={addLine}>+ Add item</Btn>
-          </div>
-          <div style={{ border: `1px solid ${c.border}`, borderRadius: t.radius, overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <tbody>
-                {form.items.map((line, i) => (
-                  <tr key={i} style={{ borderBottom: i === form.items.length - 1 ? 'none' : `1px solid ${c.border}` }}>
-                    <td style={{ padding: 10 }}>
-                      <SelectField t={t} value={line.sku} onChange={e => updateLine(i, 'sku', e.target.value)}>
-                        <option value="">Select product</option>
-                        {products.map(p => <option key={p.sku} value={p.sku}>{p.name} ({p.sku})</option>)}
-                      </SelectField>
-                    </td>
-                    <td style={{ padding: 10, width: 88 }}>
-                      <Field t={t} type="number" min={1} value={line.qty} onChange={e => updateLine(i, 'qty', Math.max(1, parseInt(e.target.value) || 1))} inputStyle={{ textAlign: 'center' }} />
-                    </td>
-                    <td style={{ padding: 10, width: 42 }}>
-                      {form.items.length > 1 && <Btn t={t} variant="ghost" onClick={() => removeLine(i)} style={{ padding: '6px 9px' }}>×</Btn>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </SlidePanel>
-
-      <SlidePanel open={convertOpen} onClose={() => setConvertOpen(false)} title="Create PO from PR" subtitle={convertPrId}
-        footer={
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <Btn t={t} variant="ghost" onClick={() => setConvertOpen(false)}>Cancel</Btn>
-            <Btn t={t} variant="accent" onClick={handleConvert}>Create Purchase Order</Btn>
-          </div>
-        }
-      >
-        <div style={{ display: 'grid', gap: 16 }}>
-          <Field t={t} label="Supplier" value={convertSupplier} onChange={e => setConvertSupplier(e.target.value)} />
-          <Field t={t} label="ETA" type="date" value={convertEta} onChange={e => setConvertEta(e.target.value)} />
-          {convertPr && (
-            <PremiumTable t={t} minWidth={520}>
-              <thead>
-                <tr>
-                  <PremiumTh t={t}>Item</PremiumTh>
-                  <PremiumTh t={t}>Qty</PremiumTh>
-                  <PremiumTh t={t} right>Unit cost</PremiumTh>
-                </tr>
-              </thead>
-              <tbody>
-                {convertPr.items.map((item, i) => {
-                  const last = i === convertPr.items.length - 1
-                  return (
-                    <tr key={`${item.sku}-${i}`}>
-                      <PremiumTd t={t} last={last}><span style={{ fontSize: 12, color: c.ink }}>{item.name || item.sku}</span></PremiumTd>
-                      <PremiumTd t={t} last={last}><Mono t={t} size={12}>{item.qty}</Mono></PremiumTd>
-                      <PremiumTd t={t} last={last} right>
-                        <input
-                          type="number"
-                          min={0}
-                          value={convertCosts[item.sku] ?? 0}
-                          onChange={e => setConvertCosts(costs => ({ ...costs, [item.sku]: parseFloat(e.target.value) || 0 }))}
-                          style={{ width: 100, textAlign: 'right', border: `1px solid ${c.border}`, borderRadius: 6, padding: '6px 8px', fontFamily: t.font.mono }}
-                        />
-                      </PremiumTd>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span className="text-sm font-semibold text-foreground">Items</span>
+              <Button variant="outline" onClick={addLine}>+ Add item</Button>
+            </div>
+            <div style={{ border: `1px solid ${c.border}`, borderRadius: t.radius, overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <tbody>
+                  {form.items.map((line, i) => (
+                    <tr key={i} style={{ borderBottom: i === form.items.length - 1 ? 'none' : `1px solid ${c.border}` }}>
+                      <td style={{ padding: 10 }}>
+                        <select
+                          value={line.sku}
+                          onChange={e => updateLine(i, 'sku', e.target.value)}
+                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring"
+                        >
+                          <option value="">Select product</option>
+                          {products.map(p => <option key={p.sku} value={p.sku}>{p.name} ({p.sku})</option>)}
+                        </select>
+                      </td>
+                      <td style={{ padding: 10, width: 88 }}>
+                        <Input type="number" min={1} value={line.qty} onChange={e => updateLine(i, 'qty', Math.max(1, parseInt(e.target.value) || 1))} className="text-center" />
+                      </td>
+                      <td style={{ padding: 10, width: 42 }}>
+                        {form.items.length > 1 && <Button variant="ghost" onClick={() => removeLine(i)} className="p-2 h-8 w-8 text-lg">×</Button>}
+                      </td>
                     </tr>
-                  )
-                })}
-              </tbody>
-            </PremiumTable>
-          )}
-        </div>
-      </SlidePanel>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <SheetFooter className="border-t border-border p-6 flex-shrink-0">
+            <div className="flex justify-end gap-2 w-full">
+              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button onClick={handleSubmit} className="bg-[#0F6E58] text-white hover:bg-[#0F6E58]/90">Save Draft</Button>
+            </div>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={convertOpen} onOpenChange={setConvertOpen}>
+        <SheetContent side="right" className="sm:max-w-[600px] flex flex-col h-full p-0 bg-background">
+          <SheetHeader className="p-6 border-b border-border flex-shrink-0">
+            <SheetTitle className="text-base font-bold text-foreground">Create PO from PR</SheetTitle>
+            <SheetDescription className="text-xs text-muted-foreground mt-1">{convertPrId}</SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div className="grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Supplier</label>
+              <Input value={convertSupplier} onChange={e => setConvertSupplier(e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">ETA</label>
+              <Input type="date" value={convertEta} onChange={e => setConvertEta(e.target.value)} />
+            </div>
+            {convertPr && (
+              <Card t={t} pad={false} style={{ overflow: 'auto', marginTop: 16 }}>
+                <Table className="min-w-[500px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Item</TableHead>
+                      <TableHead className="py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Qty</TableHead>
+                      <TableHead className="text-right py-3 px-6 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Unit cost</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {convertPr.items.map((item, i) => {
+                      return (
+                        <TableRow key={`${item.sku}-${i}`}>
+                          <TableCell className="py-3.5 px-6">
+                            <span style={{ fontSize: 12, color: c.ink }}>{item.name || item.sku}</span>
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6">
+                            <Mono t={t} size={12}>{item.qty}</Mono>
+                          </TableCell>
+                          <TableCell className="py-3.5 px-6 text-right">
+                            <input
+                              type="number"
+                              min={0}
+                              value={convertCosts[item.sku] ?? 0}
+                              onChange={e => setConvertCosts(costs => ({ ...costs, [item.sku]: parseFloat(e.target.value) || 0 }))}
+                              style={{ width: 100, textAlign: 'right', border: `1px solid ${c.border}`, borderRadius: 6, padding: '6px 8px', fontFamily: t.font.mono }}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </Card>
+            )}
+          </div>
+          <SheetFooter className="border-t border-border p-6 flex-shrink-0">
+            <div className="flex justify-end gap-2 w-full">
+              <Button variant="outline" onClick={() => setConvertOpen(false)}>Cancel</Button>
+              <Button onClick={handleConvert} className="bg-[#0F6E58] text-white hover:bg-[#0F6E58]/90">Create Purchase Order</Button>
+            </div>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
