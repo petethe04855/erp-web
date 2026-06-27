@@ -75,8 +75,8 @@ export default function SkuFormModal({
               style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid var(--erp-border)', fontSize: 13, boxSizing: 'border-box' }} />
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>น้ำหนัก (กรัม)</label>
-            <input type="number" min={1} value={form.weightGrams === 0 ? '' : (form.weightGrams ?? '')} onChange={e => setForm(f => ({ ...f, weightGrams: e.target.value === '' ? 0 : +e.target.value }))}
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>น้ำหนัก (กรัม) {form.type === 'Other' ? '' : '*'}</label>
+            <input type="number" min={0} value={form.weightGrams === 0 ? '' : (form.weightGrams ?? '')} onChange={e => setForm(f => ({ ...f, weightGrams: e.target.value === '' ? 0 : +e.target.value }))}
               style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid var(--erp-border)', fontSize: 13, boxSizing: 'border-box' }} />
           </div>
           <div>
@@ -90,22 +90,22 @@ export default function SkuFormModal({
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>ต้นทุน (Cost) ฿ *</label>
-            <input type="number" min={1} value={form.cost === 0 ? '' : form.cost} onChange={e => setForm(f => ({ ...f, cost: e.target.value === '' ? 0 : +e.target.value }))}
+            <input type="number" min={0} value={form.cost === 0 ? '' : form.cost} onChange={e => setForm(f => ({ ...f, cost: e.target.value === '' ? 0 : +e.target.value }))}
               style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid var(--erp-border)', fontSize: 13, boxSizing: 'border-box' }} />
           </div>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>ราคาขาย B2C ฿ *</label>
-            <input type="number" min={1} value={form.retailPrice === 0 ? '' : form.retailPrice} onChange={e => setForm(f => ({ ...f, retailPrice: e.target.value === '' ? 0 : +e.target.value, price: e.target.value === '' ? 0 : +e.target.value }))}
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>ราคาขาย B2C ฿ {form.type === 'Other' ? '' : '*'}</label>
+            <input type="number" min={0} value={form.retailPrice === 0 ? '' : form.retailPrice} onChange={e => setForm(f => ({ ...f, retailPrice: e.target.value === '' ? 0 : +e.target.value, price: e.target.value === '' ? 0 : +e.target.value }))}
               style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid var(--erp-border)', fontSize: 13, boxSizing: 'border-box' }} />
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>ราคาขาย B2B (ส่ง) ฿</label>
-            <input type="number" min={1} value={form.wholesalePrice === 0 ? '' : (form.wholesalePrice ?? '')} onChange={e => setForm(f => ({ ...f, wholesalePrice: e.target.value === '' ? 0 : +e.target.value }))}
+            <input type="number" min={0} value={form.wholesalePrice === 0 ? '' : (form.wholesalePrice ?? '')} onChange={e => setForm(f => ({ ...f, wholesalePrice: e.target.value === '' ? 0 : +e.target.value }))}
               style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid var(--erp-border)', fontSize: 13, boxSizing: 'border-box' }} />
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Reorder Point</label>
-            <input type="number" min={1} value={form.reorder === 0 ? '' : (form.reorder ?? '')} onChange={e => setForm(f => ({ ...f, reorder: e.target.value === '' ? 0 : +e.target.value }))}
+            <input type="number" min={0} value={form.reorder === 0 ? '' : (form.reorder ?? '')} onChange={e => setForm(f => ({ ...f, reorder: e.target.value === '' ? 0 : +e.target.value }))}
               style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid var(--erp-border)', fontSize: 13, boxSizing: 'border-box' }} />
           </div>
           <div style={{ gridColumn: '1 / -1' }}>

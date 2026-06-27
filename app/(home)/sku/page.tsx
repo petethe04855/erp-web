@@ -89,9 +89,9 @@ export default function SkuPage() {
   function handleSave() {
     if (!form.sku.trim()) { setError('กรุณากรอก SKU'); return }
     if (!form.name.trim()) { setError('กรุณากรอกชื่อสินค้า'); return }
-    if (form.retailPrice <= 0) { setError('ราคาขายต้องมากกว่า 0'); return }
+    if (form.type !== 'Other' && form.retailPrice <= 0) { setError('ราคาขายต้องมากกว่า 0'); return }
     if (form.cost <= 0) { setError('ต้นทุนต้องมากกว่า 0'); return }
-    if (!form.weightGrams || form.weightGrams <= 0) { setError('น้ำหนักสินค้าต้องมากกว่า 0'); return }
+    if (form.type !== 'Other' && (!form.weightGrams || form.weightGrams <= 0)) { setError('น้ำหนักสินค้าต้องมากกว่า 0'); return }
     try {
       if (modalMode === 'add') {
         addProduct({ ...form, isBundle: form.type === 'Bundle' })

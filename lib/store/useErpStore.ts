@@ -237,6 +237,8 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 
 	// ── Products ──
 	addProduct: (input) => {
+		const exists = get().products.some(product => product.sku.toUpperCase() === input.sku.toUpperCase())
+		if (exists) throw new Error(`SKU "${input.sku}" already exists`)
 		const newProduct = {
 			...input,
 			stock: 0,
@@ -249,14 +251,19 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 			isBundle: input.isBundle || false,
 			note: input.note || '',
 			price: input.retailPrice,
+			baseUnit: input.baseUnit || 'piece',
 		} as Product
+
+		set(s => ({ products: [...s.products, newProduct] }))
 
 		fetch(`${getApiUrl()}/api/products`, {
 			method: 'POST',
 			headers: getHeaders(),
 			body: JSON.stringify(newProduct),
 		}).then(res => readApiResponse<Product>(res)).then(data => {
-			set(s => ({ products: [...s.products, data] }))
+			set(s => ({ products: s.products.map(product => product.sku === newProduct.sku ? data : product) }))
+		}).catch(error => {
+			console.error('Failed to create product', error)
 		})
 
 		return newProduct
