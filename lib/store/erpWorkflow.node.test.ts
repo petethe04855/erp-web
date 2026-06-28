@@ -180,6 +180,60 @@ test('goods receive adds stock and creates movement', () => {
   assert.equal(finalPO?.status, 'Completed')
 })
 
+// ── 7.5. GR Landed Cost calculations ──────────────────────────────
+test('goods receive calculates landed costs and updates product cost moving average', () => {
+  const store = freshStore()
+  const po = store.getState().createPurchaseOrder({
+    supplier: 'China Freight Supplier',
+    etaDate: '2026-06-15',
+    items: [
+      { sku: 'CAT-CHK-30', name: 'ไก่อกฟรีซดราย 30g', qty: 100, unitCost: 10 },
+      { sku: 'CAT-SAL-100', name: 'แซลมอนฟรีซดราย 100g', qty: 100, unitCost: 20 },
+    ],
+  })
+  store.getState().updatePOStatus(po.id, 'Sent')
+
+  // Set initial product cost and stock
+  store.setState(s => ({
+    products: s.products.map(p => {
+      if (p.sku === 'CAT-CHK-30') return { ...p, stock: 100, cost: 8 }
+      if (p.sku === 'CAT-SAL-100') return { ...p, stock: 100, cost: 15 }
+      return p
+    })
+  }))
+
+  const gr = store.getState().createGoodsReceive({
+    poRef: po.id,
+    receiveDate: '2026-06-15',
+    items: [
+      { sku: 'CAT-CHK-30', qtyReceived: 100, lot: 'LOT-A', expiryDate: '' },
+      { sku: 'CAT-SAL-100', qtyReceived: 100, lot: 'LOT-B', expiryDate: '' },
+    ],
+    landedCosts: [
+      { type: 'freight', amount: 3000, allocatable: true, note: 'ค่าเรือ' },
+      { type: 'duty', amount: 1000, allocatable: false, note: 'ภาษีไม่ปันส่วน' }, // non-allocatable
+    ]
+  })
+
+  assert.ok(gr)
+  // Total allocatable landed cost = 3000
+  // Total items value base = (100 * 10) + (100 * 20) = 1000 + 2000 = 3000
+  // CHK allocation: 3000 * (1000 / 3000) = 1000. Landed unit cost = (1000 + 1000) / 100 = 20
+  // SAL allocation: 3000 * (2000 / 3000) = 2000. Landed unit cost = (2000 + 2000) / 100 = 40
+
+  const grChkItem = gr.items.find(i => i.sku === 'CAT-CHK-30')
+  const grSalItem = gr.items.find(i => i.sku === 'CAT-SAL-100')
+  assert.equal(grChkItem?.landedUnitCost, 20)
+  assert.equal(grSalItem?.landedUnitCost, 40)
+
+  // CHK moving average: (100 * 8 + 100 * 20) / 200 = 2800 / 200 = 14
+  // SAL moving average: (100 * 15 + 100 * 40) / 200 = 5500 / 200 = 27.5
+  const chkProduct = store.getState().products.find(p => p.sku === 'CAT-CHK-30')
+  const salProduct = store.getState().products.find(p => p.sku === 'CAT-SAL-100')
+  assert.equal(chkProduct?.cost, 14)
+  assert.equal(salProduct?.cost, 27.5)
+})
+
 // ── 8. GR cannot receive more than PO remaining ─────────────────
 test('goods receive rejects over-receive', () => {
   const store = freshStore()

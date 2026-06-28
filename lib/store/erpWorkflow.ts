@@ -16,7 +16,7 @@ import type {
   PurchaseRequestStatus, PurchaseOrderStatus, StockMovementType,
   PurchaseRequestItem, PurchaseRequest,
   PurchaseOrderItem, PurchaseOrder,
-  GoodsReceiveItem, GoodsReceive, StockMovement,
+  GoodsReceiveItem, GoodsReceive, StockMovement, LandedCostLine,
   Product, StockLot, ProductCategory, BundleComponent,
   SamplingStatus, SamplingRecipient, SamplingCampaign,
   AppUser,
@@ -45,7 +45,7 @@ export type {
   PurchaseRequestStatus, PurchaseOrderStatus, StockMovementType,
   PurchaseRequestItem, PurchaseRequest,
   PurchaseOrderItem, PurchaseOrder,
-  GoodsReceiveItem, GoodsReceive, StockMovement,
+  GoodsReceiveItem, GoodsReceive, StockMovement, LandedCostLine,
   Product, StockLot, ProductCategory, BundleComponent,
   SamplingStatus, SamplingRecipient, SamplingCampaign,
   AppUser,
@@ -921,10 +921,35 @@ export function createErpWorkflowState(
         if (!poItem || grItem.qtyReceived > poItem.qty - poItem.receivedQty) return null
       }
       const by = state.currentUser.name
+      const totalLanded = (input.landedCosts || [])
+        .filter(lc => lc.allocatable)
+        .reduce((sum, lc) => sum + lc.amount, 0)
+
+      const totalValue = input.items.reduce((sum, item) => {
+        const poItem = po.items.find(i => i.sku === item.sku)
+        return sum + item.qtyReceived * (poItem?.unitCost ?? 0)
+      }, 0)
+
+      const grItems = input.items.map(item => {
+        const poItem = po.items.find(i => i.sku === item.sku)
+        const unitCost = poItem?.unitCost ?? 0
+        const lineValue = item.qtyReceived * unitCost
+        const allocatedFreight = totalValue > 0 ? totalLanded * (lineValue / totalValue) : 0
+        const landedUnitCost = (lineValue + allocatedFreight) / item.qtyReceived
+        return {
+          sku: item.sku,
+          qtyReceived: item.qtyReceived,
+          lot: item.lot,
+          expiryDate: item.expiryDate,
+          landedUnitCost,
+        }
+      })
+
       const gr: GoodsReceive = {
         id: nextId('GR-2026-', state.goodsReceives.map(g => g.id)),
         poRef: input.poRef, receiveDate: input.receiveDate,
-        items: input.items.map(i => ({ sku: i.sku, qtyReceived: i.qtyReceived, lot: i.lot, expiryDate: i.expiryDate })),
+        items: grItems,
+        landedCosts: input.landedCosts || [],
         auditTrail: [{ action: 'Created', by, at: nowIso(), note: `รับสินค้าจาก ${po.supplier}` }],
       }
       const updatedPoItems = po.items.map(poItem => {
@@ -956,8 +981,14 @@ export function createErpWorkflowState(
         stockMovements: [...newMovements, ...s.stockMovements],
         stockLots: [...newLots, ...s.stockLots],
         products: s.products.map(p => {
-          const g = input.items.find(g => g.sku === p.sku)
-          return g ? { ...p, stock: p.stock + g.qtyReceived } : p
+          const g = grItems.find(item => item.sku === p.sku)
+          if (!g) return p
+          const oldStock = p.stock
+          const landedUnitCost = g.landedUnitCost || 0
+          const newCost = oldStock + g.qtyReceived > 0
+            ? ((oldStock * p.cost) + (g.qtyReceived * landedUnitCost)) / (oldStock + g.qtyReceived)
+            : p.cost
+          return { ...p, stock: p.stock + g.qtyReceived, cost: newCost }
         }),
       }))
       return gr

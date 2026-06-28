@@ -7,6 +7,9 @@ import type { PurchaseRequestStatus } from '@/lib/store/erpWorkflow'
 import { useTheme } from '@/lib/design/ThemeContext'
 import { Btn, Field, Mono, PremiumTable, PremiumTd, PremiumTh, SelectField, StatStrip, StatusPill, TextAreaField, TopBar } from '@/components/ui'
 
+import { readApiResponse } from '@/lib/apiResponse'
+import { useEffect } from 'react'
+
 type ItemLine = { sku: string; name: string; qty: number; note: string }
 const BLANK_LINE: ItemLine = { sku: '', name: '', qty: 1, note: '' }
 const BLANK = { requester: '', reason: '', neededDate: '', items: [{ ...BLANK_LINE }] }
@@ -35,16 +38,38 @@ export default function PurchaseReqPage() {
   const [convertSupplier, setConvertSupplier] = useState('')
   const [convertEta, setConvertEta] = useState('')
   const [convertCosts, setConvertCosts] = useState<Record<string, number>>({})
+  const [bomsList, setBomsList] = useState<any[]>([])
+
+  async function loadBOMs() {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/boms`, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: typeof window !== 'undefined' ? `Bearer ${localStorage.getItem('chawy_token')}` : '',
+        }
+      })
+      const result = await readApiResponse<any[]>(response)
+      setBomsList(result || [])
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  useEffect(() => {
+    loadBOMs()
+  }, [])
 
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 3000) }
 
   const rows = useMemo(() => list.map(pr => {
     const est = pr.items.reduce((sum, item) => {
       const product = products.find(p => p.sku === item.sku)
-      return sum + item.qty * (product?.cost ?? 0)
+      const bom = bomsList.find(b => b.code === item.sku)
+      const cost = product ? product.cost : (bom ? bom.cost : 0)
+      return sum + item.qty * cost
     }, 0)
     return { ...pr, est, itemSummary: pr.items.map(i => `${i.name || i.sku} x${i.qty}`).join(', ') }
-  }), [list, products])
+  }), [list, products, bomsList])
   const pending = rows.filter(p => p.status === 'Pending Approval')
   const totalEst = rows.reduce((s, p) => s + p.est, 0)
 
@@ -55,7 +80,8 @@ export default function PurchaseReqPage() {
       if (idx !== i) return line
       if (field === 'sku') {
         const prod = products.find(p => p.sku === val)
-        return { ...line, sku: val as string, name: prod?.name ?? '' }
+        const bom = bomsList.find(b => b.code === val)
+        return { ...line, sku: val as string, name: prod?.name || bom?.name || '' }
       }
       return { ...line, [field]: val }
     }) }))
@@ -87,7 +113,8 @@ export default function PurchaseReqPage() {
     const costs: Record<string, number> = {}
     pr.items.forEach(i => {
       const prod = products.find(p => p.sku === i.sku)
-      costs[i.sku] = prod?.cost ?? 0
+      const bom = bomsList.find(b => b.code === i.sku)
+      costs[i.sku] = prod ? prod.cost : (bom ? bom.cost : 0)
     })
     setConvertCosts(costs)
     setConvertOpen(true)
@@ -195,8 +222,13 @@ export default function PurchaseReqPage() {
                   <tr key={i} style={{ borderBottom: i === form.items.length - 1 ? 'none' : `1px solid ${c.border}` }}>
                     <td style={{ padding: 10 }}>
                       <SelectField t={t} value={line.sku} onChange={e => updateLine(i, 'sku', e.target.value)}>
-                        <option value="">Select product</option>
-                        {products.map(p => <option key={p.sku} value={p.sku}>{p.name} ({p.sku})</option>)}
+                        <option value="">Select product / BOM</option>
+                        <optgroup label="Products / Raw Materials">
+                          {products.map(p => <option key={p.sku} value={p.sku}>{p.name} ({p.sku})</option>)}
+                        </optgroup>
+                        <optgroup label="BOMs (Recipes)">
+                          {bomsList.map(b => <option key={b.code} value={b.code}>{b.name} ({b.code})</option>)}
+                        </optgroup>
                       </SelectField>
                     </td>
                     <td style={{ padding: 10, width: 88 }}>
