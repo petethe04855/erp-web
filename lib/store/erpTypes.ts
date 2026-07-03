@@ -78,11 +78,19 @@ export type PurchaseOrder = {
   auditTrail: AuditEvent[]     // Gap 9
 }
 
+export type LandedCostLine = {
+  type: 'freight' | 'duty' | 'shipping' | 'other'
+  amount: number
+  allocatable: boolean
+  note: string
+}
+
 export type GoodsReceiveItem = {
   sku: string
   qtyReceived: number
   lot: string
   expiryDate: string           // Gap 1: FEFO expiry (yyyy-mm-dd or '' = no expiry)
+  landedUnitCost?: number      // Price + allocated landed cost per unit
 }
 
 export type GoodsReceive = {
@@ -90,6 +98,7 @@ export type GoodsReceive = {
   poRef: string
   receiveDate: string
   items: GoodsReceiveItem[]
+  landedCosts?: LandedCostLine[]
   auditTrail: AuditEvent[]     // Gap 9
 }
 
@@ -135,6 +144,7 @@ export type BundleComponent = {
   unit?: 'piece' | 'g' | 'kg' | 'baht'
   componentType?: 'material' | 'packaging' | 'expense'
   unitCostOverride?: number
+  yieldFactor?: number
 }
 
 export type StockLot = {       // Gap 1: lot-level tracking for FEFO
@@ -266,6 +276,7 @@ export type CreateGoodsReceiveInput = {
   poRef: string
   receiveDate: string
   items: Array<{ sku: string; qtyReceived: number; lot: string; expiryDate: string }>
+  landedCosts?: LandedCostLine[]
 }
 
 export type CreateSamplingCampaignInput = {
