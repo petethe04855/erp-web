@@ -8,7 +8,7 @@ import { exportXlsx } from '@/lib/utils/exportUtil'
 import { useTheme } from '@/lib/design/ThemeContext'
 import { Btn, Field, Mono, PremiumTable, PremiumTd, PremiumTh, SelectField, StatStrip, StatusPill, TopBar } from '@/components/ui'
 
-type ItemLine = { sku: string; name: string; qty: number; unitCost: number }
+type ItemLine = { sku: string; name: string; qty: number | ""; unitCost: number | "" }
 const BLANK_LINE: ItemLine = { sku: '', name: '', qty: 1, unitCost: 0 }
 const BLANK = { supplier: '', etaDate: '', items: [{ ...BLANK_LINE }] }
 const statusMap: Record<PurchaseOrderStatus, string> = {
@@ -26,7 +26,11 @@ export default function PurchaseOrderPage() {
   const createPO = useErpStore(s => s.createPurchaseOrder)
   const updatePOStatus = useErpStore(s => s.updatePOStatus)
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState(BLANK)
+  const [form, setForm] = useState<{
+    supplier: string;
+    etaDate: string;
+    items: ItemLine[];
+  }>(BLANK)
   const [toast, setToast] = useState('')
 
   const rows = useMemo(() => list.map(po => ({
@@ -35,7 +39,7 @@ export default function PurchaseOrderPage() {
   })), [list])
   const total = rows.reduce((s, p) => s + p.totalCost, 0)
   const openValue = rows.reduce((s, p) => s + p.openValue, 0)
-  const lineTotal = form.items.reduce((s, line) => s + line.qty * line.unitCost, 0)
+  const lineTotal = form.items.reduce((s, line) => s + Number(line.qty) * Number(line.unitCost), 0)
 
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 3000) }
   function addLine() { setForm(f => ({ ...f, items: [...f.items, { ...BLANK_LINE }] })) }
@@ -52,7 +56,14 @@ export default function PurchaseOrderPage() {
   }
 
   function handleSubmit() {
-    const validItems = form.items.filter(i => (i.sku || i.name) && i.qty > 0)
+    const hasInvalidItem = form.items.some(i => i.qty === "" || Number(i.qty) <= 0 || i.unitCost === "" || Number(i.unitCost) < 0)
+    if (hasInvalidItem) {
+      showToast('กรุณากรอกจำนวนและราคาสินค้าให้ถูกต้อง')
+      return
+    }
+    const validItems = form.items
+      .filter(i => i.sku || i.name)
+      .map(i => ({ ...i, qty: Number(i.qty), unitCost: Number(i.unitCost) }))
     if (!form.supplier || !form.etaDate || validItems.length === 0) {
       showToast('กรุณากรอกซัพพลายเออร์ วัน ETA และรายการ')
       return
@@ -165,10 +176,10 @@ export default function PurchaseOrderPage() {
                       </SelectField>
                     </td>
                     <td style={{ padding: 10, width: 84 }}>
-                      <Field t={t} type="number" min={1} value={line.qty} onChange={e => updateLine(i, 'qty', Math.max(1, parseInt(e.target.value) || 1))} inputStyle={{ textAlign: 'center' }} />
+                      <Field t={t} type="number" min={1} value={line.qty} onChange={e => updateLine(i, 'qty', e.target.value === '' ? '' : parseInt(e.target.value) || 0)} inputStyle={{ textAlign: 'center' }} />
                     </td>
                     <td style={{ padding: 10, width: 106 }}>
-                      <Field t={t} type="number" min={0} value={line.unitCost} onChange={e => updateLine(i, 'unitCost', parseFloat(e.target.value) || 0)} inputStyle={{ textAlign: 'right' }} />
+                      <Field t={t} type="number" min={0} value={line.unitCost} onChange={e => updateLine(i, 'unitCost', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)} inputStyle={{ textAlign: 'right' }} />
                     </td>
                     <td style={{ padding: 10, width: 42 }}>
                       {form.items.length > 1 && <Btn t={t} variant="ghost" onClick={() => removeLine(i)} style={{ padding: '6px 9px' }}>×</Btn>}

@@ -20,19 +20,33 @@ export default function StockTransferPage() {
   const createStockTransfer = useErpStore(s => s.createStockTransfer)
 
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState(BLANK)
+  const [form, setForm] = useState<{
+    sku: string;
+    qty: number | "";
+    fromLocation: string;
+    toLocation: string;
+    note: string;
+  }>(BLANK)
   const [toast, setToast] = useState('')
 
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 3000) }
 
   const selectedProduct = products.find(p => p.sku === form.sku)
   const available = selectedProduct ? selectedProduct.stock - selectedProduct.reservedQty : 0
-  const isOverStock = !!form.sku && form.qty > available
+  const isOverStock = !!form.sku && Number(form.qty) > available
 
   function handleSubmit() {
-    if (!form.sku || form.qty < 1 || isOverStock) return
+    if (!form.sku) return
+    if (form.qty === "" || Number(form.qty) < 1) {
+      showToast('กรุณากรอกจำนวนอย่างน้อย 1 ชิ้น')
+      return
+    }
+    if (isOverStock) {
+      showToast(`จำนวนเกินสต๊อกที่พร้อมโอน (${available} ชิ้น)`)
+      return
+    }
     if (form.fromLocation === form.toLocation) { showToast('ต้นทางและปลายทางต้องไม่เหมือนกัน'); return }
-    const result = createStockTransfer({ sku: form.sku, qty: form.qty, fromLocation: form.fromLocation, toLocation: form.toLocation, note: form.note })
+    const result = createStockTransfer({ sku: form.sku, qty: Number(form.qty), fromLocation: form.fromLocation, toLocation: form.toLocation, note: form.note })
     if (!result) { showToast('สต๊อกไม่พอ'); return }
     setForm(BLANK); setOpen(false)
     showToast(`โอน ${result.skuName} ${result.qty} ชิ้น: ${result.fromLocation} → ${result.toLocation}`)
@@ -119,7 +133,7 @@ export default function StockTransferPage() {
             <div>
               <label style={lbl}>จำนวน *</label>
               <input type="number" min={1} max={available} value={form.qty}
-                onChange={e => setForm(f => ({ ...f, qty: Math.max(1, parseInt(e.target.value) || 1) }))}
+                onChange={e => setForm(f => ({ ...f, qty: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }))}
                 style={{ ...inp, borderColor: isOverStock ? 'var(--erp-neg)' : 'var(--erp-border)' }} />
               {isOverStock && <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--erp-neg)' }}>เกินสต๊อกที่พร้อมโอน ({available} ชิ้น)</p>}
             </div>

@@ -84,12 +84,28 @@ export default function LiveSessionsPage() {
   const [scheduleForm, setScheduleForm] = useState(BLANK_SCHEDULE)
   const [scheduleErrors, setScheduleErrors] = useState<{ date?: string; topic?: string; time?: string }>({})
 
-  const [form, setForm]   = useState(BLANK_FORM)
+  const [form, setForm]   = useState<{
+    staff_id: string;
+    live_date: string;
+    platform: LivePlatform;
+    tiktok_account: string;
+    start_datetime: string;
+    end_datetime: string;
+    break_minutes: number | "";
+    revenue_generated: number | "";
+    has_clip: boolean;
+    clip_link: string;
+    live_summary_image: string;
+    host_notes: string;
+  }>(BLANK_FORM)
   const [roundingPolicy, setRoundingPolicy] = useState<RoundingPolicy>('actual')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [toast, setToast] = useState('')
 
-  const formNetMinutes = getLiveNetMinutes(form)
+  const formNetMinutes = getLiveNetMinutes({
+    ...form,
+    break_minutes: Number(form.break_minutes || 0)
+  })
   const formHours      = getLiveDecimalHours(getRoundedLiveMinutes(formNetMinutes, roundingPolicy))
 
   const analytics = useMemo(() => {
@@ -121,7 +137,15 @@ export default function LiveSessionsPage() {
     if (hasLiveOverlap(sessions, { staff_id: form.staff_id, start_datetime: form.start_datetime, end_datetime: form.end_datetime })) {
       setToast('เวลานี้ซ้อนกับ log เดิมของพนักงานคนนี้'); return
     }
-    addLiveSession({ ...form, break_minutes: Number(form.break_minutes), revenue_generated: Number(form.revenue_generated), rejection_reason: '' })
+    if (form.break_minutes === "" || form.revenue_generated === "") {
+      setToast('กรุณากรอกเวลาพักและยอดขาย (ใส่ 0 ได้หากไม่มี)'); return
+    }
+    addLiveSession({
+      ...form,
+      break_minutes: Number(form.break_minutes),
+      revenue_generated: Number(form.revenue_generated),
+      rejection_reason: ''
+    })
     setForm(BLANK_FORM)
     setToast('ส่งรายการไลฟ์เพื่ออนุมัติแล้ว')
     setTimeout(() => setToast(''), 3000)
@@ -469,7 +493,7 @@ export default function LiveSessionsPage() {
                   <input type="date" value={form.live_date} onChange={e => setForm(f => ({ ...f, live_date: e.target.value }))} style={{ ...inp, background: c.subtle, boxSizing: 'border-box' }} />
                 </div>
                 <div><label style={lbl}>พัก (นาที)</label>
-                  <input type="number" min={0} value={form.break_minutes} onChange={e => setForm(f => ({ ...f, break_minutes: Math.max(0, Number(e.target.value) || 0) }))} style={{ ...inp, background: c.subtle }} />
+                  <input type="number" min={0} value={form.break_minutes} onChange={e => setForm(f => ({ ...f, break_minutes: e.target.value === '' ? '' : Math.max(0, Number(e.target.value) || 0) }))} style={{ ...inp, background: c.subtle }} />
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
@@ -486,7 +510,7 @@ export default function LiveSessionsPage() {
               </div>
               <div style={{ marginBottom: 12 }}>
                 <label style={lbl}>ยอดขายสุทธิจากไลฟ์</label>
-                <input type="number" min={0} value={form.revenue_generated} onChange={e => setForm(f => ({ ...f, revenue_generated: Math.max(0, Number(e.target.value) || 0) }))} style={{ ...inp, background: c.subtle }} />
+                <input type="number" min={0} value={form.revenue_generated} onChange={e => setForm(f => ({ ...f, revenue_generated: e.target.value === '' ? '' : Math.max(0, Number(e.target.value) || 0) }))} style={{ ...inp, background: c.subtle }} />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 0 12px' }}>
                 <input id="has_clip" type="checkbox" checked={form.has_clip} onChange={e => setForm(f => ({ ...f, has_clip: e.target.checked }))} />

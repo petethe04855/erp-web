@@ -22,7 +22,7 @@ const CHANNELS = ['LINE', 'Instagram', 'Facebook', 'Offline', 'Other']
 const TABS = ['ทั้งหมด', 'Pending', 'Confirmed', 'Completed', 'Cancelled']
 
 type MO = ManualOrder
-type Line = { sku: string; qty: number }
+type Line = { sku: string; qty: number | "" }
 
 const th: React.CSSProperties = { padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: 'var(--erp-ink4)', background: 'var(--erp-subtle)', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid var(--erp-border)' }
 const td: React.CSSProperties = { padding: '11px 14px', fontSize: 13, borderBottom: '1px solid var(--erp-subtle)' }
@@ -43,7 +43,14 @@ export default function ManualOrderPage() {
   const products = useErpStore(s => s.products)
   const addManualOrder = useErpStore(s => s.addManualOrder)
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState(BLANK)
+  const [form, setForm] = useState<{
+    customer: string;
+    phone: string;
+    channel: string;
+    date: string;
+    notes: string;
+    lines: Line[];
+  }>(BLANK)
   const [activeTab, setActiveTab] = useState('ทั้งหมด')
   const [search, setSearch] = useState('')
 
@@ -66,7 +73,7 @@ export default function ManualOrderPage() {
 
   const lineTotal = form.lines.reduce((s, l) => {
     const p = products.find(p => p.sku === l.sku)
-    return s + (p ? p.price * l.qty : 0)
+    return s + (p ? p.price * Number(l.qty) : 0)
   }, 0)
 
   function addLine() { setForm(f => ({ ...f, lines: [...f.lines, { sku: '', qty: 1 }] })) }
@@ -77,7 +84,18 @@ export default function ManualOrderPage() {
 
   function handleSubmit() {
     if (!form.customer) return
-    const validLines = form.lines.filter(l => l.sku)
+    const hasInvalidLine = form.lines.some(l => l.qty === "" || Number(l.qty) <= 0)
+    if (hasInvalidLine) {
+      alert('กรุณากรอกจำนวนสินค้าให้ถูกต้อง (มากกว่า 0)')
+      return
+    }
+    const validLines = form.lines
+      .filter(l => l.sku)
+      .map(l => ({ ...l, qty: Number(l.qty) }))
+    if (validLines.length === 0) {
+      alert('กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ')
+      return
+    }
     addManualOrder({
       customer: form.customer,
       phone: form.phone,
@@ -304,10 +322,10 @@ export default function ManualOrderPage() {
                       </select>
                     </td>
                     <td style={{ padding: '8px 10px', width: 70 }}>
-                      <input type="number" min={1} value={line.qty} onChange={e => updateLine(i, 'qty', Math.max(1, parseInt(e.target.value) || 1))} style={{ ...inp, padding: '6px 8px', fontSize: 12, textAlign: 'center' }} />
+                      <input type="number" min={1} value={line.qty} onChange={e => updateLine(i, 'qty', e.target.value === '' ? '' : parseInt(e.target.value) || 0)} style={{ ...inp, padding: '6px 8px', fontSize: 12, textAlign: 'center' }} />
                     </td>
                     <td style={{ padding: '8px 10px', fontSize: 12, color: 'var(--erp-ink3)' }}>{prod ? formatBaht(prod.price) : '—'}</td>
-                    <td style={{ padding: '8px 10px', fontSize: 12, fontWeight: 600 }}>{prod ? formatBaht(prod.price * line.qty) : '—'}</td>
+                    <td style={{ padding: '8px 10px', fontSize: 12, fontWeight: 600 }}>{prod ? formatBaht(prod.price * Number(line.qty)) : '—'}</td>
                     <td style={{ padding: '8px 10px', textAlign: 'center' }}>
                       {form.lines.length > 1 && <button onClick={() => removeLine(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', fontSize: 16 }}>×</button>}
                     </td>

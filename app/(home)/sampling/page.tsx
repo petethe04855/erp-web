@@ -19,8 +19,25 @@ const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
 }
 
 const today = new Date().toISOString().split('T')[0]
-const BLANK_CAMPAIGN = { name: '', sku: '', skuName: '', targetQty: 0, note: '', startDate: today, endDate: today }
-const BLANK_RECIPIENT = { campaignId: '', name: '', contact: '', qtyGiven: 1, date: today, feedback: '', converted: false }
+const BLANK_CAMPAIGN: {
+  name: string;
+  sku: string;
+  skuName: string;
+  targetQty: number | "";
+  note: string;
+  startDate: string;
+  endDate: string;
+} = { name: '', sku: '', skuName: '', targetQty: 0, note: '', startDate: today, endDate: today }
+
+const BLANK_RECIPIENT: {
+  campaignId: string;
+  name: string;
+  contact: string;
+  qtyGiven: number | "";
+  date: string;
+  feedback: string;
+  converted: boolean;
+} = { campaignId: '', name: '', contact: '', qtyGiven: 1, date: today, feedback: '', converted: false }
 
 export default function SamplingPage() {
   const { tokens: t } = useTheme()
@@ -40,28 +57,35 @@ export default function SamplingPage() {
 
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 3000) }
 
-  function onSkuChange(sku: string) {
+  const onSkuChange = (sku: string) => {
     const p = products.find(p => p.sku === sku)
     setCampaignForm(f => ({ ...f, sku, skuName: p?.name ?? '' }))
   }
 
   function handleCreateCampaign() {
-    if (!campaignForm.name || !campaignForm.sku || campaignForm.targetQty <= 0) {
-      showToast('กรุณากรอกชื่อแคมเปญ สินค้า และจำนวนเป้าหมาย')
+    if (!campaignForm.name || !campaignForm.sku || campaignForm.targetQty === "" || Number(campaignForm.targetQty) <= 0) {
+      showToast('กรุณากรอกชื่อแคมเปญ สินค้า และจำนวนเป้าหมายที่มากกว่า 0')
       return
     }
-    createSamplingCampaign(campaignForm)
+    createSamplingCampaign({
+      ...campaignForm,
+      targetQty: Number(campaignForm.targetQty)
+    })
     setCampaignForm(BLANK_CAMPAIGN)
     setOpen(false)
     showToast('สร้างแคมเปญ Sampling แล้ว')
   }
 
   function handleAddRecipient() {
-    if (!recipientForm.name || recipientForm.qtyGiven <= 0) {
-      showToast('กรุณากรอกชื่อผู้รับและจำนวน')
+    if (!recipientForm.name || recipientForm.qtyGiven === "" || Number(recipientForm.qtyGiven) <= 0) {
+      showToast('กรุณากรอกชื่อผู้รับและจำนวนที่มากกว่า 0')
       return
     }
-    const result = addSamplingRecipient({ ...recipientForm, campaignId: selectedCampaign!.id })
+    const result = addSamplingRecipient({
+      ...recipientForm,
+      qtyGiven: Number(recipientForm.qtyGiven),
+      campaignId: selectedCampaign!.id
+    })
     if (result) {
       setRecipientForm(BLANK_RECIPIENT)
       setRecipientOpen(false)
@@ -225,7 +249,7 @@ export default function SamplingPage() {
         </div>
         <div style={{ marginBottom: 16 }}>
           <label style={lbl}>จำนวนเป้าหมาย (ชิ้น) *</label>
-          <input type="number" min={1} value={campaignForm.targetQty || ''} onChange={e => setCampaignForm(f => ({ ...f, targetQty: parseInt(e.target.value) || 0 }))} placeholder="0" style={inp} />
+          <input type="number" min={1} value={campaignForm.targetQty} onChange={e => setCampaignForm(f => ({ ...f, targetQty: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }))} placeholder="0" style={inp} />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
           <div>
@@ -264,7 +288,7 @@ export default function SamplingPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
           <div>
             <label style={lbl}>จำนวนที่ให้ (ชิ้น) *</label>
-            <input type="number" min={1} value={recipientForm.qtyGiven} onChange={e => setRecipientForm(f => ({ ...f, qtyGiven: parseInt(e.target.value) || 1 }))} style={inp} />
+            <input type="number" min={1} value={recipientForm.qtyGiven} onChange={e => setRecipientForm(f => ({ ...f, qtyGiven: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }))} style={inp} />
           </div>
           <div>
             <label style={lbl}>วันที่แจก</label>

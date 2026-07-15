@@ -6,7 +6,7 @@ import type { DesignTokens } from '@/lib/design/tokens'
 import type { Product } from '@/lib/store/erpWorkflow'
 
 const CHANNELS = ['Manual', 'LINE', 'Shopee', 'TikTok'] as const
-type Line = { sku: string; qty: number }
+export type Line = { sku: string; qty: number | "" }
 
 function panelInput(surface: string, border: string, ink: string): React.CSSProperties {
   return {
@@ -95,8 +95,8 @@ export default function SalesOrderFormPanel({
                 <option value="">-- เลือกสินค้า --</option>
                 {products.map(p => <option key={p.sku} value={p.sku}>{p.name}</option>)}
               </select>
-              <input type="number" min={1} value={line.qty} onChange={e => updateLine(i, 'qty', Math.max(1, parseInt(e.target.value) || 1))} style={panelInput(c.surface, c.border, c.ink)} />
-              <Mono t={t} size={12}>{product ? fmtBaht(product.price * line.qty) : '—'}</Mono>
+              <input type="number" min={1} value={line.qty} onChange={e => updateLine(i, 'qty', e.target.value === '' ? '' : parseInt(e.target.value) || 0)} style={panelInput(c.surface, c.border, c.ink)} />
+              <Mono t={t} size={12}>{product ? fmtBaht(product.price * Number(line.qty)) : '—'}</Mono>
               {form.lines.length > 1 && <button onClick={() => removeLine(i)} style={{ border: 'none', background: 'none', color: c.neg, cursor: 'pointer', fontSize: 18 }}>×</button>}
             </div>
           )
