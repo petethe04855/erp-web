@@ -191,7 +191,15 @@ export default function BomPage() {
   const [boms, setBoms] = useState<BOMSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAddRmModal, setShowAddRmModal] = useState(false);
-  const [newBom, setNewBom] = useState({
+  const [newBom, setNewBom] = useState<{
+    code: string;
+    name: string;
+    outputQty: number | "";
+    outputUnit: string;
+    status: string;
+    effectiveDate: string;
+    cost: number;
+  }>({
     code: "",
     name: "",
     outputQty: 1,
@@ -209,7 +217,7 @@ export default function BomPage() {
     return boms.filter(
       (bom) =>
         bom.code.toLowerCase().includes(q) ||
-        bom.name.toLowerCase().includes(q)
+        bom.name.toLowerCase().includes(q),
     );
   }, [boms, searchQuery]);
 
@@ -239,8 +247,15 @@ export default function BomPage() {
       showToast("กรุณากรอกรหัสสูตร (Code) และชื่อสูตรให้ครบถ้วน");
       return;
     }
+    if (newBom.outputQty === "" || Number(newBom.outputQty) <= 0) {
+      showToast("กรุณากรอกปริมาณผลผลิต (Output Qty) ให้มากกว่า 0");
+      return;
+    }
     try {
-      await createBOM(newBom);
+      await createBOM({
+        ...newBom,
+        outputQty: Number(newBom.outputQty),
+      });
       await loadBoms();
       setShowAddRmModal(false);
       showToast(`สร้างสูตรการผลิต ${newBom.code} สำเร็จ!`);
@@ -345,8 +360,12 @@ export default function BomPage() {
               <tr>
                 <PremiumTh t={t}>รหัสสูตร (BOM Code)</PremiumTh>
                 <PremiumTh t={t}>ชื่อสูตรการผลิต (BOM Name)</PremiumTh>
-                <PremiumTh t={t} right>ปริมาณผลผลิต</PremiumTh>
-                <PremiumTh t={t} right>ต้นทุนอ้างอิง</PremiumTh>
+                <PremiumTh t={t} right>
+                  ปริมาณผลผลิต
+                </PremiumTh>
+                <PremiumTh t={t} right>
+                  ต้นทุนอ้างอิง
+                </PremiumTh>
                 <PremiumTh t={t}>สถานะ</PremiumTh>
               </tr>
             </thead>
@@ -386,7 +405,11 @@ export default function BomPage() {
                       </PremiumTd>
                       <PremiumTd t={t} last={last}>
                         <span
-                          style={{ fontSize: 13, fontWeight: 600, color: c.ink }}
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: c.ink,
+                          }}
                         >
                           {row.name}
                         </span>
@@ -462,7 +485,9 @@ export default function BomPage() {
                   type="text"
                   placeholder="เช่น BOM-001"
                   value={newBom.code}
-                  onChange={(e) => setNewBom({ ...newBom, code: e.target.value })}
+                  onChange={(e) =>
+                    setNewBom({ ...newBom, code: e.target.value })
+                  }
                   style={{
                     padding: "8px 10px",
                     border: `1px solid ${c.border}`,
@@ -480,7 +505,9 @@ export default function BomPage() {
                   type="text"
                   placeholder="เช่น สูตรอาหารแมวไก่ 1 กก."
                   value={newBom.name}
-                  onChange={(e) => setNewBom({ ...newBom, name: e.target.value })}
+                  onChange={(e) =>
+                    setNewBom({ ...newBom, name: e.target.value })
+                  }
                   style={{
                     padding: "8px 10px",
                     border: `1px solid ${c.border}`,
@@ -505,9 +532,13 @@ export default function BomPage() {
                     type="number"
                     min={0}
                     value={newBom.outputQty}
-                    onChange={(e) =>
-                      setNewBom({ ...newBom, outputQty: Number(e.target.value) || 0 })
-                    }
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setNewBom({
+                        ...newBom,
+                        outputQty: val === "" ? "" : Number(val),
+                      });
+                    }}
                     style={{
                       padding: "8px 10px",
                       border: `1px solid ${c.border}`,
@@ -554,7 +585,10 @@ export default function BomPage() {
                     min={0}
                     value={newBom.cost}
                     onChange={(e) =>
-                      setNewBom({ ...newBom, cost: Number(e.target.value) || 0 })
+                      setNewBom({
+                        ...newBom,
+                        cost: Number(e.target.value) || 0,
+                      })
                     }
                     style={{
                       padding: "8px 10px",

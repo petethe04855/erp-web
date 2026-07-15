@@ -6,18 +6,22 @@ import { TopBar, fmtBaht } from '@/components/ui'
 export default function TikTokCalculatorPage() {
   const { tokens: t } = useTheme()
   const c = t.color
-  const [salePrice, setSalePrice] = useState(89)
-  const [cost, setCost] = useState(38)
+  const [salePrice, setSalePrice] = useState<number | "">(89)
+  const [cost, setCost] = useState<number | "">(38)
   const [platformFee, setPlatformFee] = useState(5)
   const [affiliateFee, setAffiliateFee] = useState(10)
-  const [shippingSubsidy, setShippingSubsidy] = useState(15)
+  const [shippingSubsidy, setShippingSubsidy] = useState<number | "">(15)
 
-  const platformCut = salePrice * (platformFee / 100)
-  const affiliateCut = salePrice * (affiliateFee / 100)
-  const totalFees = platformCut + affiliateCut + shippingSubsidy
-  const netRevenue = salePrice - totalFees
-  const grossProfit = netRevenue - cost
-  const marginPct = salePrice > 0 ? (grossProfit / salePrice) * 100 : 0
+  const priceNum = Number(salePrice)
+  const costNum = Number(cost)
+  const shippingNum = Number(shippingSubsidy)
+
+  const platformCut = priceNum * (platformFee / 100)
+  const affiliateCut = priceNum * (affiliateFee / 100)
+  const totalFees = platformCut + affiliateCut + shippingNum
+  const netRevenue = priceNum - totalFees
+  const grossProfit = netRevenue - costNum
+  const marginPct = priceNum > 0 ? (grossProfit / priceNum) * 100 : 0
 
   const rowStyle: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid ' + c.border }
   const labelStyle: React.CSSProperties = { fontSize: 13, color: c.ink2, fontFamily: t.font.sans }
@@ -38,7 +42,7 @@ export default function TikTokCalculatorPage() {
             ].map(({ label, value, set }) => (
               <div key={label} style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 12, fontWeight: 500, color: c.ink2, marginBottom: 6, fontFamily: t.font.sans }}>{label}</div>
-                <input type="number" value={value} onChange={e => set(Number(e.target.value))} style={fieldInp} />
+                <input type="number" value={value} onChange={e => set(e.target.value === '' ? '' : Number(e.target.value))} style={fieldInp} />
               </div>
             ))}
             <div style={{ fontSize: 14, fontWeight: 600, color: c.ink, margin: '20px 0 16px', fontFamily: t.font.sans }}>ค่าธรรมเนียม (%)</div>
@@ -53,7 +57,7 @@ export default function TikTokCalculatorPage() {
             ))}
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 12, fontWeight: 500, color: c.ink2, marginBottom: 6, fontFamily: t.font.sans }}>Shipping Subsidy (บาท)</div>
-              <input type="number" value={shippingSubsidy} onChange={e => setShippingSubsidy(Number(e.target.value))} style={fieldInp} />
+              <input type="number" value={shippingSubsidy} onChange={e => setShippingSubsidy(e.target.value === '' ? '' : Number(e.target.value))} style={fieldInp} />
             </div>
           </div>
 
@@ -62,7 +66,7 @@ export default function TikTokCalculatorPage() {
             <div style={{ fontSize: 14, fontWeight: 600, color: c.ink, marginBottom: 20, fontFamily: t.font.sans }}>ผลการคำนวณ</div>
             <div style={rowStyle}>
               <span style={labelStyle}>ราคาขาย</span>
-              <span style={valueStyle}>{fmtBaht(salePrice)}</span>
+              <span style={valueStyle}>{fmtBaht(priceNum)}</span>
             </div>
             <div style={rowStyle}>
               <span style={labelStyle}>Platform Fee ({platformFee}%)</span>
@@ -74,7 +78,7 @@ export default function TikTokCalculatorPage() {
             </div>
             <div style={{ ...rowStyle, marginBottom: 0 }}>
               <span style={labelStyle}>Shipping Subsidy</span>
-              <span style={{ ...valueStyle, color: c.neg }}>-{fmtBaht(shippingSubsidy)}</span>
+              <span style={{ ...valueStyle, color: c.neg }}>-{fmtBaht(shippingNum)}</span>
             </div>
             <div style={{ margin: '16px 0', borderTop: '2px solid ' + c.border, paddingTop: 16 }}>
               <div style={rowStyle}>
@@ -83,7 +87,7 @@ export default function TikTokCalculatorPage() {
               </div>
               <div style={rowStyle}>
                 <span style={labelStyle}>ต้นทุน</span>
-                <span style={{ ...valueStyle, color: c.neg }}>-{fmtBaht(cost)}</span>
+                <span style={{ ...valueStyle, color: c.neg }}>-{fmtBaht(costNum)}</span>
               </div>
             </div>
             <div style={{ padding: 16, borderRadius: t.radius, background: grossProfit >= 0 ? c.posBg : c.negBg, textAlign: 'center', marginTop: 8 }}>

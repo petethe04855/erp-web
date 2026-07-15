@@ -193,10 +193,12 @@ export type UserRole = 'owner' | 'sales' | 'warehouse' | 'accountant'
 
 export type AppUser = {        // Gap 7
   id: string
+  email?: string
   name: string
   role: UserRole
   isActive?: boolean
   lastLoginAt?: string | null
+  emailWarning?: string
 }
 
 export const APP_USERS: AppUser[] = [

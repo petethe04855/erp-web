@@ -10,7 +10,7 @@ import { Btn, Field, Mono, PremiumTable, PremiumTd, PremiumTh, SelectField, Stat
 import { readApiResponse } from '@/lib/apiResponse'
 import { useEffect } from 'react'
 
-type ItemLine = { sku: string; name: string; qty: number; note: string }
+type ItemLine = { sku: string; name: string; qty: number | ""; note: string }
 const BLANK_LINE: ItemLine = { sku: '', name: '', qty: 1, note: '' }
 const BLANK = { requester: '', reason: '', neededDate: '', items: [{ ...BLANK_LINE }] }
 
@@ -31,13 +31,18 @@ export default function PurchaseReqPage() {
   const convertPRtoPO = useErpStore(s => s.convertPRtoPO)
 
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState(BLANK)
+  const [form, setForm] = useState<{
+    requester: string;
+    reason: string;
+    neededDate: string;
+    items: ItemLine[];
+  }>(BLANK)
   const [toast, setToast] = useState('')
   const [convertOpen, setConvertOpen] = useState(false)
   const [convertPrId, setConvertPrId] = useState('')
   const [convertSupplier, setConvertSupplier] = useState('')
   const [convertEta, setConvertEta] = useState('')
-  const [convertCosts, setConvertCosts] = useState<Record<string, number>>({})
+  const [convertCosts, setConvertCosts] = useState<Record<string, number | "">>({})
   const [bomsList, setBomsList] = useState<any[]>([])
 
   async function loadBOMs() {
@@ -88,7 +93,14 @@ export default function PurchaseReqPage() {
   }
 
   function handleSubmit() {
-    const validItems = form.items.filter(i => (i.sku || i.name) && i.qty > 0)
+    const hasInvalidItem = form.items.some(i => i.qty === "" || Number(i.qty) <= 0)
+    if (hasInvalidItem) {
+      showToast('กรุณากรอกจำนวนในรายการให้ถูกต้อง (มากกว่า 0)')
+      return
+    }
+    const validItems = form.items
+      .filter(i => i.sku || i.name)
+      .map(i => ({ ...i, qty: Number(i.qty) }))
     if (!form.requester || !form.neededDate || validItems.length === 0) {
       showToast('กรุณากรอกผู้ขอ วันที่ต้องการ และรายการอย่างน้อย 1 รายการ')
       return
@@ -110,7 +122,7 @@ export default function PurchaseReqPage() {
     setConvertPrId(prId)
     setConvertSupplier('')
     setConvertEta('')
-    const costs: Record<string, number> = {}
+    const costs: Record<string, number | ""> = {}
     pr.items.forEach(i => {
       const prod = products.find(p => p.sku === i.sku)
       const bom = bomsList.find(b => b.code === i.sku)
@@ -122,7 +134,15 @@ export default function PurchaseReqPage() {
 
   function handleConvert() {
     if (!convertSupplier || !convertEta) { showToast('กรุณากรอกซัพพลายเออร์และ ETA'); return }
-    const po = convertPRtoPO(convertPrId, convertSupplier, convertEta, convertCosts)
+    const hasEmptyCost = Object.values(convertCosts).some(c => c === "")
+    if (hasEmptyCost) {
+      showToast('กรุณากรอกราคาทุกรายการให้ถูกต้อง'); return
+    }
+    const finalCosts: Record<string, number> = {}
+    Object.keys(convertCosts).forEach(k => {
+      finalCosts[k] = Number(convertCosts[k])
+    })
+    const po = convertPRtoPO(convertPrId, convertSupplier, convertEta, finalCosts)
     setConvertOpen(false)
     if (po) showToast(`${convertPrId} → ${po.id} แล้ว`)
   }
@@ -232,7 +252,7 @@ export default function PurchaseReqPage() {
                       </SelectField>
                     </td>
                     <td style={{ padding: 10, width: 88 }}>
-                      <Field t={t} type="number" min={1} value={line.qty} onChange={e => updateLine(i, 'qty', Math.max(1, parseInt(e.target.value) || 1))} inputStyle={{ textAlign: 'center' }} />
+                      <Field t={t} type="number" min={1} value={line.qty} onChange={e => updateLine(i, 'qty', e.target.value === '' ? '' : parseInt(e.target.value) || 0)} inputStyle={{ textAlign: 'center' }} />
                     </td>
                     <td style={{ padding: 10, width: 42 }}>
                       {form.items.length > 1 && <Btn t={t} variant="ghost" onClick={() => removeLine(i)} style={{ padding: '6px 9px' }}>×</Btn>}
@@ -276,8 +296,11 @@ export default function PurchaseReqPage() {
                         <input
                           type="number"
                           min={0}
-                          value={convertCosts[item.sku] ?? 0}
-                          onChange={e => setConvertCosts(costs => ({ ...costs, [item.sku]: parseFloat(e.target.value) || 0 }))}
+                          value={convertCosts[item.sku] ?? ""}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setConvertCosts(costs => ({ ...costs, [item.sku]: val === '' ? '' : parseFloat(val) || 0 }));
+                          }}
                           style={{ width: 100, textAlign: 'right', border: `1px solid ${c.border}`, borderRadius: 6, padding: '6px 8px', fontFamily: t.font.mono }}
                         />
                       </PremiumTd>

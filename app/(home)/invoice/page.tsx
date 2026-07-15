@@ -37,6 +37,79 @@ function enrichStatus(inv: Invoice): Invoice {
   return inv
 }
 
+const PDF_SAFE_CSS_VARS: Record<string, string> = {
+  '--background': '#ffffff',
+  '--foreground': '#171717',
+  '--card': '#ffffff',
+  '--card-foreground': '#171717',
+  '--popover': '#ffffff',
+  '--popover-foreground': '#171717',
+  '--primary': '#171717',
+  '--primary-foreground': '#ffffff',
+  '--secondary': '#f4f2ec',
+  '--secondary-foreground': '#171717',
+  '--muted': '#f4f2ec',
+  '--muted-foreground': '#8a8881',
+  '--accent': '#f4f2ec',
+  '--accent-foreground': '#171717',
+  '--destructive': '#b91c1c',
+  '--border': '#e8e4da',
+  '--input': '#e8e4da',
+  '--ring': '#8a8881',
+}
+
+function isUnsupportedPdfColor(value: string) {
+  return /(?:^|\s)(?:lab|lch|oklab|oklch|color-mix|color)\(/i.test(value)
+}
+
+function safePdfColor(value: string, fallback: string) {
+  return value && !isUnsupportedPdfColor(value) ? value : fallback
+}
+
+function preparePdfElement(source: HTMLElement) {
+  const clone = source.cloneNode(true) as HTMLElement
+  const sourceNodes = [source, ...Array.from(source.querySelectorAll<HTMLElement>('*'))]
+  const cloneNodes = [clone, ...Array.from(clone.querySelectorAll<HTMLElement>('*'))]
+  const colorProps = [
+    'color',
+    'backgroundColor',
+    'borderTopColor',
+    'borderRightColor',
+    'borderBottomColor',
+    'borderLeftColor',
+    'outlineColor',
+    'textDecorationColor',
+    'caretColor',
+  ] as const
+
+  Object.entries(PDF_SAFE_CSS_VARS).forEach(([name, value]) => clone.style.setProperty(name, value))
+  clone.querySelectorAll<HTMLElement>('.print-company-detail').forEach(el => {
+    el.style.setProperty('display', 'block', 'important')
+  })
+
+  cloneNodes.forEach((node, i) => {
+    const sourceNode = sourceNodes[i]
+    if (!sourceNode) return
+    const computed = window.getComputedStyle(sourceNode)
+    colorProps.forEach(prop => {
+      const fallback = prop === 'backgroundColor' ? 'rgba(255, 255, 255, 0)' : '#171717'
+      node.style[prop] = safePdfColor(computed[prop], fallback)
+    })
+    node.style.boxShadow = 'none'
+  })
+
+  const wrapper = document.createElement('div')
+  wrapper.style.position = 'fixed'
+  wrapper.style.left = '-10000px'
+  wrapper.style.top = '0'
+  wrapper.style.width = `${source.offsetWidth}px`
+  wrapper.style.background = '#ffffff'
+  wrapper.appendChild(clone)
+  document.body.appendChild(wrapper)
+
+  return { element: clone, cleanup: () => document.body.removeChild(wrapper) }
+}
+
 export default function InvoicePage() {
   const { tokens: t } = useTheme()
   const c = t.color
@@ -53,8 +126,14 @@ export default function InvoicePage() {
 
   const [createOpen, setCreateOpen] = useState(false)
   const [payOpen, setPayOpen] = useState(false)
-  const [payAmount, setPayAmount] = useState(0)
-  const [form, setForm] = useState(BLANK)
+  const [payAmount, setPayAmount] = useState<number | "">(0)
+  const [form, setForm] = useState<{
+    soRef: string;
+    customer: string;
+    issueDate: string;
+    dueDate: string;
+    amount: number | "";
+  }>(BLANK)
   const [toast, setToast] = useState('')
 
   const salesOrder = selected ? salesOrders.find(so => so.id === selected.soRef) : null
@@ -144,7 +223,7 @@ export default function InvoicePage() {
             </div>
             <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
               มูลค่า (บาท) *
-              <input type="number" min={0} value={form.amount || ''} onChange={e => setForm(f => ({ ...f, amount: parseFloat(e.target.value) || 0 }))} style={panelInput(c.surface, c.border, c.ink)} />
+              <input type="number" min={0} value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value === '' ? '' : parseFloat(e.target.value) || 0 }))} style={panelInput(c.surface, c.border, c.ink)} />
             </label>
           </div>
         </SlidePanel>
@@ -170,7 +249,11 @@ export default function InvoicePage() {
   }
 
   function handleCreate() {
-    if (!form.customer || !form.amount) return
+    if (!form.customer) return
+    if (form.amount === "" || Number(form.amount) <= 0) {
+      showToast('กรุณากรอกมูลค่าที่มากกว่า 0')
+      return
+    }
     if (form.dueDate < form.issueDate) {
       showToast('วันครบกำหนดต้อง >= วันที่ออก')
       return
@@ -184,7 +267,7 @@ export default function InvoicePage() {
       customer: form.customer,
       issueDate: form.issueDate,
       dueDate: form.dueDate,
-      amount: form.amount,
+      amount: Number(form.amount),
     })
     setSelectedId(inv.id)
     setForm(BLANK)
@@ -198,8 +281,11 @@ export default function InvoicePage() {
   }
 
   function handlePayment() {
-    if (payAmount <= 0) return
-    const updated = recordPayment(selected.id, payAmount)
+    if (payAmount === "" || Number(payAmount) <= 0) {
+      showToast('กรุณากรอกจำนวนเงินชำระมากกว่า 0')
+      return
+    }
+    const updated = recordPayment(selected.id, Number(payAmount))
     setPayOpen(false)
     if (updated) {
       setSelectedId(updated.id)
@@ -222,37 +308,30 @@ export default function InvoicePage() {
       showToast('กำลังเตรียมไฟล์ PDF...')
       const html2pdf = (await import('html2pdf.js')).default
 
-      // Temporarily show print company details programmatically
-      const companyDetails = document.querySelectorAll('.print-company-detail') as NodeListOf<HTMLElement>
-      companyDetails.forEach(el => {
-        el.style.setProperty('display', 'block', 'important')
-      })
-
       const element = document.querySelector('.invoice-card') as HTMLElement
       if (!element) {
         showToast('ไม่พบข้อมูล Invoice Card')
         return
       }
+      const pdf = preparePdfElement(element)
 
       const opt = {
         margin:       10,
         filename:     `${selected.id}.pdf`,
         image:        { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        html2canvas:  { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
       }
 
-      await html2pdf().set(opt).from(element).save()
-      showToast('ดาวน์โหลด PDF สำเร็จ')
+      try {
+        await html2pdf().set(opt).from(pdf.element).save()
+      } finally {
+        pdf.cleanup()
+      }
+      showToast('โหลดไฟล์สำเร็จ')
     } catch (err: any) {
       console.error(err)
       showToast('ดาวน์โหลด PDF ล้มเหลว')
-    } finally {
-      // Restore company details display to default (hidden on screen)
-      const companyDetails = document.querySelectorAll('.print-company-detail') as NodeListOf<HTMLElement>
-      companyDetails.forEach(el => {
-        el.style.removeProperty('display')
-      })
     }
   }
 
@@ -261,7 +340,7 @@ export default function InvoicePage() {
       {toast && <span style={{ fontSize: 12, color: c.pos, fontWeight: 600 }}>{toast}</span>}
       <Btn t={t} variant="ghost" onClick={handleExport}>Export CSV</Btn>
       <Btn t={t} variant="ghost" onClick={() => window.print()}>Print</Btn>
-      <Btn t={t} variant="ghost" onClick={handleDownloadPdf}>Download PDF</Btn>
+      <Btn t={t} variant="ghost" onClick={handleDownloadPdf}>Export PDF</Btn>
       <Btn t={t} variant="ghost">Send to customer</Btn>
       <Btn t={t} variant="primary" onClick={openPayment}>Record payment</Btn>
     </div>
@@ -554,7 +633,7 @@ export default function InvoicePage() {
           </div>
           <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
             มูลค่า (บาท) *
-            <input type="number" min={0} value={form.amount || ''} onChange={e => setForm(f => ({ ...f, amount: parseFloat(e.target.value) || 0 }))} style={panelInput(c.surface, c.border, c.ink)} />
+            <input type="number" min={0} value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value === '' ? '' : parseFloat(e.target.value) || 0 }))} style={panelInput(c.surface, c.border, c.ink)} />
           </label>
         </div>
       </SlidePanel>
@@ -569,7 +648,7 @@ export default function InvoicePage() {
       >
         <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
           จำนวนเงินที่รับชำระ (บาท)
-          <input type="number" min={0} value={payAmount || ''} onChange={e => setPayAmount(parseFloat(e.target.value) || 0)} style={panelInput(c.surface, c.border, c.ink)} />
+          <input type="number" min={0} value={payAmount} onChange={e => setPayAmount(e.target.value === '' ? '' : parseFloat(e.target.value) || 0)} style={panelInput(c.surface, c.border, c.ink)} />
         </label>
       </SlidePanel>
     </div>

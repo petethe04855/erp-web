@@ -21,7 +21,15 @@ export default function ReturnsPage() {
   const updateStockReturnStatus = useErpStore(s => s.updateStockReturnStatus)
 
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState(BLANK)
+  const [form, setForm] = useState<{
+    soRef: string;
+    sku: string;
+    qty: number | "";
+    condition: ReturnCondition;
+    reason: ReturnReason;
+    note: string;
+    channel: string;
+  }>(BLANK)
   const [toast, setToast] = useState('')
 
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 3000) }
@@ -42,8 +50,12 @@ export default function ReturnsPage() {
   })).sort((a, b) => b.count - a.count)[0]
 
   function handleSubmit() {
-    if (!form.sku || form.qty < 1) return
-    const result = createStockReturn({ soRef: form.soRef, sku: form.sku, qty: form.qty, condition: form.condition, reason: form.reason, note: form.note, channel: form.channel })
+    if (!form.sku) return
+    if (form.qty === "" || Number(form.qty) < 1) {
+      showToast('กรุณากรอกจำนวนอย่างน้อย 1 ชิ้น')
+      return
+    }
+    const result = createStockReturn({ soRef: form.soRef, sku: form.sku, qty: Number(form.qty), condition: form.condition, reason: form.reason, note: form.note, channel: form.channel })
     setForm(BLANK)
     setOpen(false)
     showToast(`รับคืน ${result.id} แล้ว · สถานะ: รอดำเนินการ`)
@@ -153,7 +165,7 @@ export default function ReturnsPage() {
             <option value="">Select product</option>
             {products.map(p => <option key={p.sku} value={p.sku}>{p.name}</option>)}
           </SelectField>
-          <Field t={t} label="Quantity" type="number" min={1} value={form.qty} onChange={e => setForm(f => ({ ...f, qty: Math.max(1, parseInt(e.target.value) || 1) }))} />
+          <Field t={t} label="Quantity" type="number" min={1} value={form.qty} onChange={e => setForm(f => ({ ...f, qty: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }))} />
           <SelectField t={t} label="Condition" value={form.condition} onChange={e => setForm(f => ({ ...f, condition: e.target.value as ReturnCondition }))}>
             <option value="ดี">ดี · add back to stock</option>
             <option value="เสียหาย">เสียหาย · do not add stock</option>

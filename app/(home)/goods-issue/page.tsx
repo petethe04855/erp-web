@@ -25,12 +25,17 @@ export default function GoodsIssuePage() {
   const createGoodsIssue = useErpStore(s => s.createGoodsIssue)
 
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState(BLANK)
+  const [form, setForm] = useState<{
+    sku: string;
+    qty: number | "";
+    reason: GoodsIssueReason;
+    note: string;
+  }>(BLANK)
   const [toast, setToast] = useState('')
 
   const selectedProduct = products.find(p => p.sku === form.sku)
   const available = selectedProduct ? selectedProduct.stock - selectedProduct.reservedQty : 0
-  const isOverStock = !!form.sku && form.qty > available
+  const isOverStock = !!form.sku && Number(form.qty) > available
 
   const rows = useMemo(() => goodsIssues.map(issue => {
     const product = products.find(p => p.sku === issue.sku)
@@ -46,8 +51,16 @@ export default function GoodsIssuePage() {
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 3000) }
 
   function handleSubmit() {
-    if (!form.sku || form.qty < 1) return
-    const result = createGoodsIssue({ sku: form.sku, qty: form.qty, reason: form.reason, note: form.note })
+    if (!form.sku) return
+    if (form.qty === "" || Number(form.qty) < 1) {
+      showToast('กรุณากรอกจำนวนอย่างน้อย 1 ชิ้น')
+      return
+    }
+    if (isOverStock) {
+      showToast('จำนวนเกินสต๊อกพร้อมเบิก')
+      return
+    }
+    const result = createGoodsIssue({ sku: form.sku, qty: Number(form.qty), reason: form.reason, note: form.note })
     if (!result) {
       showToast('สต๊อกไม่พอ กรุณาตรวจสอบ')
       return
@@ -151,7 +164,7 @@ export default function GoodsIssuePage() {
             </div>
           )}
 
-          <Field t={t} label="Quantity" type="number" min={1} max={available} value={form.qty} onChange={e => setForm(f => ({ ...f, qty: Math.max(1, parseInt(e.target.value) || 1) }))} inputStyle={{ borderColor: isOverStock ? c.neg : c.border }} />
+          <Field t={t} label="Quantity" type="number" min={1} max={available} value={form.qty} onChange={e => setForm(f => ({ ...f, qty: e.target.value === '' ? '' : parseInt(e.target.value) || 0 }))} inputStyle={{ borderColor: isOverStock ? c.neg : c.border }} />
           {isOverStock && <div style={{ marginTop: -10, fontSize: 11, color: c.neg }}>เกินสต๊อกพร้อมเบิก ({available} ชิ้น)</div>}
 
           <SelectField t={t} label="Purpose" value={form.reason} onChange={e => setForm(f => ({ ...f, reason: e.target.value as GoodsIssueReason }))}>

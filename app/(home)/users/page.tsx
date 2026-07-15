@@ -7,7 +7,7 @@ import { useTheme } from '@/lib/design/ThemeContext'
 import { Btn, Dot, Mono, PremiumTable, PremiumTd, PremiumTh, TopBar } from '@/components/ui'
 import SlidePanel from '@/components/SlidePanel'
 
-const BLANK = { id: '', name: '', role: 'sales' as UserRole, password: '' }
+const BLANK = { id: '', email: '', name: '', role: 'sales' as UserRole, password: '' }
 
 export default function UsersPage() {
   const { tokens: t } = useTheme()
@@ -17,6 +17,7 @@ export default function UsersPage() {
   const createUser = useErpStore(s => s.createUser)
   const updateUser = useErpStore(s => s.updateUser)
   const updateUserStatus = useErpStore(s => s.updateUserStatus)
+  const deleteUser = useErpStore(s => s.deleteUser)
 
   const [createOpen, setCreateOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
@@ -30,13 +31,21 @@ export default function UsersPage() {
     setTimeout(() => setToast(''), 3000)
   }
 
+  function userEmail(user: AppUser) {
+    return user.email || `${user.id.toLowerCase()}@chawy.local`
+  }
+
   const displayUsers = storeUsers
   const active = displayUsers.filter(user => user.isActive !== false).length
   const canManageUsers = currentUser.role === 'owner'
 
   async function handleSubmit() {
-    if (!form.id || !form.name || !form.password) {
+    if (!form.id || !form.email || !form.name || !form.password) {
       showToast('กรุณากรอกข้อมูลให้ครบถ้วน')
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      showToast('อีเมลไม่ถูกต้อง')
       return
     }
     // Prefix User ID with USR- if not present, but only if they type numeric ID
@@ -46,13 +55,14 @@ export default function UsersPage() {
     }
 
     try {
-      await createUser({
+      const newUser = await createUser({
         id: finalId,
+        email: form.email.trim().toLowerCase(),
         name: form.name,
         role: form.role,
         password: form.password,
       })
-      showToast(`สร้างผู้ใช้ ${form.name} สำเร็จ`)
+      showToast(newUser.emailWarning ? `สร้างผู้ใช้ ${form.email.trim().toLowerCase()} สำเร็จ แต่ส่งอีเมลแจ้งเตือนไม่สำเร็จ` : `สร้างผู้ใช้ ${form.email.trim().toLowerCase()} สำเร็จ`)
       setForm(BLANK)
       setCreateOpen(false)
     } catch (err: any) {
@@ -63,6 +73,7 @@ export default function UsersPage() {
   function handleEditClick(user: AppUser) {
     setEditForm({
       id: user.id,
+      email: user.email ?? '',
       name: user.name,
       role: user.role,
       password: '',
@@ -75,7 +86,7 @@ export default function UsersPage() {
     setBusyUserId(user.id)
     try {
       await updateUserStatus(user.id, nextActive)
-      showToast(`${nextActive ? 'เปิด' : 'ปิด'}การใช้งาน ${user.name} สำเร็จ`)
+      showToast(`${nextActive ? 'เปิด' : 'ปิด'}การใช้งาน ${userEmail(user)} สำเร็จ`)
     } catch (err: any) {
       showToast(err.message || 'เปลี่ยนสถานะผู้ใช้ไม่สำเร็จ')
     } finally {
@@ -92,6 +103,19 @@ export default function UsersPage() {
     }).format(new Date(user.lastLoginAt))
   }
 
+  async function handleDelete(user: AppUser) {
+    if (!window.confirm(`ลบผู้ใช้ ${userEmail(user)} ใช่ไหม?`)) return
+    setBusyUserId(user.id)
+    try {
+      await deleteUser(user.id)
+      showToast(`ลบผู้ใช้ ${userEmail(user)} สำเร็จ`)
+    } catch (err: any) {
+      showToast(err.message || 'ลบผู้ใช้ไม่สำเร็จ')
+    } finally {
+      setBusyUserId('')
+    }
+  }
+
   if (!canManageUsers) {
     return (
       <div style={{ minHeight: '100vh', background: c.canvas }}>
@@ -105,13 +129,18 @@ export default function UsersPage() {
       showToast('กรุณากรอกชื่อผู้ใช้')
       return
     }
+    if (editForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email)) {
+      showToast('อีเมลไม่ถูกต้อง')
+      return
+    }
     try {
       await updateUser(editForm.id, {
+        email: editForm.email || undefined,
         name: editForm.name,
         role: editForm.role,
         password: editForm.password || undefined,
       })
-      showToast(`แก้ไขผู้ใช้ ${editForm.name} สำเร็จ`)
+      showToast(`แก้ไขผู้ใช้ ${editForm.email || editForm.id} สำเร็จ`)
       setEditOpen(false)
     } catch (err: any) {
       showToast(err.message || 'แก้ไขผู้ใช้ไม่สำเร็จ')
@@ -149,11 +178,11 @@ export default function UsersPage() {
                   <PremiumTd t={t} last={last}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{ width: 32, height: 32, borderRadius: '50%', background: isCurrentUser ? c.ink : c.subtle, border: `1px solid ${c.border}`, color: isCurrentUser ? c.canvas : c.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
-                        {user.name.trim().charAt(0)}
+                        {userEmail(user).trim().charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: c.ink }}>{user.name}</div>
-                        <Mono t={t} size={11} color={c.ink3} style={{ marginTop: 1, display: 'block' }}>{user.id.toLowerCase()}@chawy.local</Mono>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: c.ink }}>{userEmail(user)}</div>
+                        <Mono t={t} size={11} color={c.ink3} style={{ marginTop: 1, display: 'block' }}>{user.id}</Mono>
                       </div>
                     </div>
                   </PremiumTd>
@@ -178,6 +207,7 @@ export default function UsersPage() {
                       <Btn t={t} variant="ghost" onClick={() => handleStatusChange(user)} disabled={isCurrentUser || busyUserId === user.id}>
                         {busyUserId === user.id ? 'กำลังบันทึก...' : isEnabled ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}
                       </Btn>
+                      <Btn t={t} variant="ghost" onClick={() => handleDelete(user)} disabled={isCurrentUser || busyUserId === user.id}>ลบ</Btn>
                     </div>
                   </PremiumTd>
                 </tr>
@@ -205,7 +235,11 @@ export default function UsersPage() {
             <input placeholder="เช่น สมชาย" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} style={panelInput(c.surface, c.border, c.ink)} />
           </label>
           <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
-            บทบาท (Role) *
+            Email *
+            <input type="email" placeholder="name@company.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} style={panelInput(c.surface, c.border, c.ink)} />
+          </label>
+          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
+            Role *
             <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value as UserRole }))} style={panelInput(c.surface, c.border, c.ink)}>
               {Object.entries(ROLE_LABELS).map(([k, v]) => (
                 <option key={k} value={k}>{v} ({k})</option>
@@ -237,7 +271,11 @@ export default function UsersPage() {
             <input placeholder="เช่น สมชาย" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} style={panelInput(c.surface, c.border, c.ink)} />
           </label>
           <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
-            บทบาท (Role) *
+            Email
+            <input type="email" placeholder="name@company.com" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} style={panelInput(c.surface, c.border, c.ink)} />
+          </label>
+          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
+            Role *
             <select value={editForm.role} onChange={e => setEditForm(f => ({ ...f, role: e.target.value as UserRole }))} style={panelInput(c.surface, c.border, c.ink)}>
               {Object.entries(ROLE_LABELS).map(([k, v]) => (
                 <option key={k} value={k}>{v} ({k})</option>

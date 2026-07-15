@@ -10,7 +10,7 @@ import { exportXlsx } from '@/lib/utils/exportUtil'
 // Import Sub-Components
 import SalesOrderStats from './components/SalesOrderStats'
 import SOActions from './components/SOActions'
-import SalesOrderFormPanel from './components/SalesOrderFormPanel'
+import SalesOrderFormPanel, { Line } from './components/SalesOrderFormPanel'
 
 const FILTERS: Array<{ key: 'all' | SalesOrderStatus; label: string }> = [
   { key: 'all', label: 'All' },
@@ -20,7 +20,6 @@ const FILTERS: Array<{ key: 'all' | SalesOrderStatus; label: string }> = [
   { key: 'Cancelled', label: 'Cancelled' },
 ]
 
-type Line = { sku: string; qty: number }
 const BLANK = { customer: '', date: new Date().toISOString().split('T')[0], channel: 'Manual', qtRef: '', lines: [{ sku: '', qty: 1 }] as Line[] }
 
 function formatDateShort(date: string) {
@@ -41,7 +40,13 @@ export default function SalesOrdersPage() {
   const updateSalesOrderStatus = useErpStore(state => state.updateSalesOrderStatus)
   
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState(BLANK)
+  const [form, setForm] = useState<{
+    customer: string;
+    date: string;
+    channel: string;
+    qtRef: string;
+    lines: Line[];
+  }>(BLANK)
   const [filter, setFilter] = useState<'all' | SalesOrderStatus>('all')
   const [search, setSearch] = useState('')
   const [toast, setToast] = useState('')
@@ -60,7 +65,7 @@ export default function SalesOrdersPage() {
   
   const lineTotal = form.lines.reduce((s, line) => {
     const product = products.find(p => p.sku === line.sku)
-    return s + (product ? product.price * line.qty : 0)
+    return s + (product ? product.price * Number(line.qty) : 0)
   }, 0)
 
   const itemsShipped = filtered.reduce((s, order) => s + order.items, 0)
@@ -73,7 +78,18 @@ export default function SalesOrdersPage() {
 
   function handleSubmit() {
     if (!form.customer) return
-    const validLines = form.lines.filter(line => line.sku)
+    const hasInvalidLine = form.lines.some(l => l.qty === "" || Number(l.qty) <= 0)
+    if (hasInvalidLine) {
+      showToast('กรุณากรอกจำนวนสินค้าให้ถูกต้อง (มากกว่า 0)')
+      return
+    }
+    const validLines = form.lines
+      .filter(line => line.sku)
+      .map(line => ({ ...line, qty: Number(line.qty) }))
+    if (validLines.length === 0) {
+      showToast('กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ')
+      return
+    }
     createSalesOrder({
       customer: form.customer,
       date: form.date,
