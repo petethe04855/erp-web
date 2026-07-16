@@ -2,6 +2,9 @@
 import { useState } from 'react'
 import { useTheme } from '@/lib/design/ThemeContext'
 import { Btn, Card, TopBar } from '@/components/ui'
+import { Switch } from '@/components/ui/switch'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { useErpStore } from '@/lib/store/useErpStore'
 import type { ModuleSettings } from '@/lib/store/erpTypes'
 
@@ -75,15 +78,8 @@ const MODULE_SECTIONS: Array<{
 ]
 
 function Toggle({ t, on, onToggle }: { t: ReturnType<typeof useTheme>['tokens']; on: boolean; onToggle: () => void }) {
-  const c = t.color
-  return (
-    <button
-      onClick={onToggle}
-      style={{ display: 'inline-flex', alignItems: 'center', width: 40, height: 22, borderRadius: 999, background: on ? c.accent : c.borderStrong, padding: 3, border: 'none', cursor: 'pointer', flexShrink: 0 }}
-    >
-      <span style={{ width: 16, height: 16, borderRadius: '50%', background: '#fff', transform: on ? 'translateX(18px)' : 'translateX(0)', transition: 'transform 160ms', boxShadow: '0 1px 2px rgba(0,0,0,0.25)', display: 'block' }} />
-    </button>
-  )
+  void t
+  return <Switch checked={on} onCheckedChange={onToggle} aria-label={on ? 'ปิดการตั้งค่า' : 'เปิดการตั้งค่า'} />
 }
 
 function Field({ t, label, sub, children }: { t: ReturnType<typeof useTheme>['tokens']; label: string; sub?: string; children: React.ReactNode }) {
@@ -226,11 +222,11 @@ export default function SettingsPage() {
                   { field: 'website', label: 'เว็บไซต์' },
                 ] as Array<{ field: keyof typeof company; label: string }>).map(({ field, label }) => (
                   <Field key={field} t={t} label={label}>
-                    <input value={String(company[field])} onChange={e => setCompany(p => ({ ...p, [field]: e.target.value }))} style={inp} />
+                    <Input value={String(company[field])} onChange={e => setCompany(p => ({ ...p, [field]: e.target.value }))} />
                   </Field>
                 ))}
                 <Field t={t} label="ที่อยู่">
-                  <textarea value={company.address} onChange={e => setCompany(p => ({ ...p, address: e.target.value }))} rows={2} style={{ ...inp, resize: 'vertical' }} />
+                  <Textarea value={company.address} onChange={e => setCompany(p => ({ ...p, address: e.target.value }))} rows={2} />
                 </Field>
               </div>
               <div style={{ fontSize: 14, fontWeight: 700, color: c.ink, marginBottom: 16, paddingTop: 16, borderTop: `1px solid ${c.border}` }}>ค่าระบบ</div>
@@ -241,10 +237,10 @@ export default function SettingsPage() {
                   </select>
                 </Field>
                 <Field t={t} label="VAT (%)">
-                  <input value={company.vatRate} onChange={e => setCompany(p => ({ ...p, vatRate: e.target.value }))} style={inp} />
+                  <Input value={company.vatRate} onChange={e => setCompany(p => ({ ...p, vatRate: e.target.value }))} />
                 </Field>
                 <Field t={t} label="Invoice Prefix">
-                  <input value={company.invoicePrefix} onChange={e => setCompany(p => ({ ...p, invoicePrefix: e.target.value }))} style={inp} />
+                  <Input value={company.invoicePrefix} onChange={e => setCompany(p => ({ ...p, invoicePrefix: e.target.value }))} />
                 </Field>
               </div>
             </div>

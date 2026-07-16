@@ -1,5 +1,11 @@
 "use client";
 import type { DesignTokens } from "@/lib/design/tokens";
+import { Button } from "@/components/ui/button";
+import { Card as CardPrimitive } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Textarea } from "@/components/ui/textarea";
 
 // ── TopBar ──────────────────────────────────────────────────────────────────
 
@@ -141,17 +147,15 @@ interface CardProps {
 
 export function Card({ t, children, style, pad = true }: CardProps) {
   return (
-    <div
+    <CardPrimitive
       style={{
-        background: t.color.surface,
-        border: `1px solid ${t.color.border}`,
         borderRadius: t.radius,
         padding: pad ? 20 : 0,
         ...style,
       }}
     >
       {children}
-    </div>
+    </CardPrimitive>
   );
 }
 
@@ -368,51 +372,29 @@ export function Btn({
   style,
   ...props
 }: BtnProps) {
-  const c = t.color;
-  const variants: Record<BtnVariant, React.CSSProperties> = {
-    primary: {
-      background: c.ink,
-      color: c.canvas,
-      border: `1px solid ${c.ink}`,
-    },
-    ghost: {
-      background: "transparent",
-      color: c.ink,
-      border: `1px solid ${c.border}`,
-    },
-    subtle: {
-      background: c.subtle,
-      color: c.ink2,
-      border: "1px solid transparent",
-    },
-    accent: {
-      background: c.accent,
-      color: t.isDark ? "#0B0E13" : "#FFFFFF",
-      border: `1px solid ${c.accent}`,
-    },
-  };
+  const mappedVariant = {
+    primary: "default",
+    ghost: "outline",
+    subtle: "secondary",
+    accent: "default",
+  }[variant] as "default" | "outline" | "secondary";
+
   return (
-    <button
+    <Button
       type={type}
       disabled={disabled}
+      variant={mappedVariant}
+      size="sm"
       {...props}
       style={{
-        padding: "6px 12px",
         borderRadius: Math.max(t.radius - 2, 0),
-        fontSize: 12,
-        fontWeight: 500,
         fontFamily: t.font.sans,
-        cursor: disabled ? "not-allowed" : "pointer",
-        letterSpacing: "-0.005em",
-        opacity: disabled ? 0.55 : 1,
-        transition:
-          "background 120ms, border-color 120ms, color 120ms, opacity 120ms",
-        ...variants[variant],
+        ...(variant === "primary" ? { background: t.color.ink, color: t.color.canvas } : null),
         ...style,
       }}
     >
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -719,9 +701,7 @@ interface FieldProps extends Omit<
 
 export function Field({ t, label, style, inputStyle, ...props }: FieldProps) {
   return (
-    <label
-      style={{ display: "grid", gap: 6, fontFamily: t.font.sans, ...style }}
-    >
+    <Label style={{ display: "grid", gap: 6, fontFamily: t.font.sans, ...style }}>
       {label && (
         <span
           style={{
@@ -735,8 +715,8 @@ export function Field({ t, label, style, inputStyle, ...props }: FieldProps) {
           {label}
         </span>
       )}
-      <input {...props} style={{ ...controlBase(t), ...inputStyle }} />
-    </label>
+      <Input {...props} style={inputStyle} />
+    </Label>
   );
 }
 
@@ -759,9 +739,7 @@ export function SelectField({
   ...props
 }: SelectFieldProps) {
   return (
-    <label
-      style={{ display: "grid", gap: 6, fontFamily: t.font.sans, ...style }}
-    >
+    <Label style={{ display: "grid", gap: 6, fontFamily: t.font.sans, ...style }}>
       {label && (
         <span
           style={{
@@ -775,10 +753,10 @@ export function SelectField({
           {label}
         </span>
       )}
-      <select {...props} style={{ ...controlBase(t), ...selectStyle }}>
+      <NativeSelect {...props} style={selectStyle}>
         {children}
-      </select>
-    </label>
+      </NativeSelect>
+    </Label>
   );
 }
 
@@ -800,9 +778,7 @@ export function TextAreaField({
   ...props
 }: TextAreaFieldProps) {
   return (
-    <label
-      style={{ display: "grid", gap: 6, fontFamily: t.font.sans, ...style }}
-    >
+    <Label style={{ display: "grid", gap: 6, fontFamily: t.font.sans, ...style }}>
       {label && (
         <span
           style={{
@@ -816,16 +792,13 @@ export function TextAreaField({
           {label}
         </span>
       )}
-      <textarea
+      <Textarea
         {...props}
         style={{
-          ...controlBase(t),
-          minHeight: 84,
-          resize: "vertical",
           ...textareaStyle,
         }}
       />
-    </label>
+    </Label>
   );
 }
 

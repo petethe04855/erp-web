@@ -37,3 +37,4 @@ next-env.d.ts
 .superpowers/
 
 *.md
+!UI_MIGRATION_CONTEXT.md
