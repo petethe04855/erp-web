@@ -2,37 +2,21 @@
 
 import { useState } from 'react'
 import { useTheme } from '@/lib/design/ThemeContext'
-import { Btn, Card, Mono, TopBar, fmtBaht } from '@/components/ui'
+import { Card, Mono, TopBar, fmtBaht } from '@/components/ui'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Table, TableHeader, TableBody, TableRow, TableCell, TableHead } from '@/components/ui/table'
 import { useErpStore } from '@/lib/store/useErpStore'
 import type { ExpenseCategory, ExpenseChannel, MonthBudget } from '@/lib/store/erpWorkflow'
 import { exportXlsx } from '@/lib/utils/exportUtil'
+import { MonthPicker } from './components/MonthPicker'
+import { AdjustBudgetDialog } from './components/AdjustBudgetDialog'
 
-const CATEGORIES: ExpenseCategory[] = ['ค่าโฆษณา', 'ค่าธรรมเนียมแพลตฟอร์ม', 'COGS/วัตถุดิบ', 'SG&A', 'ค่าขนส่ง', 'ค่าแรง', 'อื่นๆ']
-const CHANNELS: ExpenseChannel[] = ['TikTok', 'Shopee', 'LINE', 'Manual', 'ทั่วไป']
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
 function fmtMonth(key: string) {
   const [y, m] = key.split('-')
   return `${MONTH_NAMES[parseInt(m) - 1]} ${y}`
-}
-
-const MONTHS = (() => {
-  const year = new Date().getFullYear()
-  return Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`)
-})()
-
-function inputStyle(t: ReturnType<typeof useTheme>['tokens']): React.CSSProperties {
-  return {
-    width: '100%',
-    padding: '8px 12px',
-    border: `1px solid ${t.color.border}`,
-    borderRadius: 6,
-    fontSize: 13,
-    outline: 'none',
-    boxSizing: 'border-box',
-    background: t.color.surface,
-    color: t.color.ink,
-  }
 }
 
 export default function BudgetPage() {
@@ -43,12 +27,9 @@ export default function BudgetPage() {
   const upsertBudget = useErpStore(s => s.upsertBudget)
   const nowKey = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` })()
   const [selectedMonth, setSelectedMonth] = useState(nowKey)
-  const [showPicker, setShowPicker] = useState(false)
-  const [pickerYear, setPickerYear] = useState(() => new Date().getFullYear())
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
   const [addOpen, setAddOpen] = useState(false)
-  const [newBudget, setNewBudget] = useState({ category: 'ค่าโฆษณา' as ExpenseCategory, channel: 'TikTok' as ExpenseChannel, amount: '' })
   const [toast, setToast] = useState('')
 
   function showToast(msg: string) {
@@ -81,19 +62,15 @@ export default function BudgetPage() {
     setEditingId(null)
   }
 
-  function addBudget() {
-    const amount = parseFloat(newBudget.amount)
-    if (!amount || amount <= 0) return
+  function handleSaveBudget(category: ExpenseCategory, channel: ExpenseChannel, amount: number) {
     const now = new Date()
     upsertBudget({
       year: now.getFullYear(),
       month: now.getMonth() + 1,
-      category: newBudget.category,
-      channel: newBudget.channel,
+      category,
+      channel,
       budgetAmount: amount
     })
-    setNewBudget({ category: 'ค่าโฆษณา', channel: 'TikTok', amount: '' })
-    setAddOpen(false)
   }
 
   async function handleExport() {
@@ -106,74 +83,47 @@ export default function BudgetPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: c.canvas }}>
+    <div className="min-h-screen bg-canvas" style={{ background: c.canvas }}>
       <TopBar
         t={t}
         breadcrumb={['Chawy', 'Finance', 'Budget']}
         title="Budget"
         subtitle={`งบประมาณ · ${fmtMonth(selectedMonth)}`}
         right={
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {toast && <span style={{ fontSize: 12, color: c.pos, fontWeight: 600 }}>{toast}</span>}
-            <Btn t={t} variant="ghost" onClick={handleExport}>Export XLSX</Btn>
-            <Btn t={t} variant="primary" onClick={() => setAddOpen(true)}>Adjust Budget</Btn>
-            <div style={{ position: 'relative' }}>
-              <Btn t={t} variant="ghost" onClick={() => { setShowPicker(v => !v); setPickerYear(parseInt(selectedMonth.split('-')[0])) }}>
-                {fmtMonth(selectedMonth)} ▾
-              </Btn>
-              {showPicker && (
-                <>
-                  <div onClick={() => setShowPicker(false)} style={{ position: 'fixed', inset: 0, zIndex: 100 }} />
-                  <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, background: c.surface, border: `1px solid ${c.border}`, borderRadius: t.radius, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 101, padding: 16, width: 240 }}>
-                    {/* Year navigation */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                      <button onClick={() => setPickerYear(y => y - 1)} style={{ width: 28, height: 28, border: `1px solid ${c.border}`, borderRadius: 6, background: c.canvas, color: c.ink2, cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: c.ink }}>{pickerYear}</span>
-                      <button onClick={() => setPickerYear(y => y + 1)} disabled={pickerYear >= parseInt(nowKey.split('-')[0])} style={{ width: 28, height: 28, border: `1px solid ${c.border}`, borderRadius: 6, background: c.canvas, color: pickerYear >= parseInt(nowKey.split('-')[0]) ? c.ink4 : c.ink2, cursor: pickerYear >= parseInt(nowKey.split('-')[0]) ? 'default' : 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>
-                    </div>
-                    {/* Month grid 4×3 */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
-                      {MONTH_NAMES.map((name, i) => {
-                        const key = `${pickerYear}-${String(i + 1).padStart(2, '0')}`
-                        const isCurrent = key === selectedMonth
-                        const isFuture = key > nowKey
-                        return (
-                          <button key={key} disabled={isFuture} onClick={() => { setSelectedMonth(key); setShowPicker(false) }} style={{
-                            padding: '7px 0', border: 'none', borderRadius: 6, fontSize: 12, cursor: isFuture ? 'default' : 'pointer', fontFamily: t.font.sans, fontWeight: isCurrent ? 700 : 400,
-                            background: isCurrent ? c.accent : isFuture ? 'transparent' : c.canvas,
-                            color: isCurrent ? '#fff' : isFuture ? c.ink4 : c.ink2,
-                          }}>{name}</button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
+          <div className="flex gap-2 items-center">
+            {toast && <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-500 pr-2">{toast}</span>}
+            <Button variant="outline" size="sm" onClick={handleExport} className="cursor-pointer border-border" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)', color: '#374151' }}>Export XLSX</Button>
+            <Button variant="default" size="sm" onClick={() => setAddOpen(true)} className="cursor-pointer bg-[var(--erp-accent)] text-white hover:opacity-90 shadow-none border-none">Adjust Budget</Button>
+            
+            <MonthPicker
+              selectedMonth={selectedMonth}
+              onSelectMonth={setSelectedMonth}
+              nowKey={nowKey}
+              fmtMonth={fmtMonth}
+            />
           </div>
         }
       />
 
-      <div style={{ padding: '24px 32px 48px' }}>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
+      <div className="px-8 py-6 max-w-[1320px] mx-auto">
+        <div className="grid grid-cols-3 gap-3 mb-6">
           {[
             { label: 'Total budget', value: totalBudget, sub: 'allocated' },
             { label: 'Actual spend', value: totalActual, sub: `${usedPct.toFixed(1)}% used`, tone: usedPct > 100 ? c.neg : c.ink },
             { label: 'Remaining', value: totalBudget - totalActual, sub: 'available', tone: totalBudget - totalActual < 0 ? c.neg : c.pos },
           ].map(item => (
-            <div key={item.label} style={{ background: c.surface, border: `1px solid ${c.border}`, borderRadius: t.radius, padding: '18px 22px' }}>
-              <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.10em', textTransform: 'uppercase', color: c.ink3 }}>{item.label}</div>
+            <div key={item.label} className="bg-card border border-border rounded-lg p-[18px_22px]" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)' }}>
+              <div className="text-[10px] font-medium tracking-[0.10em] uppercase text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>{item.label}</div>
               <Mono t={t} size={24} weight={600} color={item.tone || c.ink} style={{ display: 'block', marginTop: 10 }}>{fmtBaht(item.value)}</Mono>
-              <div style={{ fontSize: 11, color: c.ink3, marginTop: 6 }}>{item.sub}</div>
+              <div className="text-xs text-muted-foreground mt-1.5" style={{ color: 'var(--erp-ink3)' }}>{item.sub}</div>
             </div>
           ))}
         </div>
 
-        <Card t={t} pad={false} style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', minWidth: 820, borderCollapse: 'collapse', fontFamily: t.font.sans }}>
-            <thead>
-              <tr>
+        <Card t={t} pad={false} className="overflow-hidden border border-border bg-card" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)' }}>
+          <Table className="w-full border-collapse">
+            <TableHeader className="bg-muted/50 border-b border-border" style={{ background: 'var(--erp-subtle)', borderColor: 'var(--erp-border)' }}>
+              <TableRow>
                 {[
                   { label: 'Category' },
                   { label: 'Channel' },
@@ -182,21 +132,17 @@ export default function BudgetPage() {
                   { label: 'Usage' },
                   { label: 'Variance', right: true },
                 ].map(h => (
-                  <th key={h.label} style={{
-                    textAlign: h.right ? 'right' : 'left',
-                    padding: '11px 24px',
-                    fontSize: 10,
-                    fontWeight: 500,
-                    color: c.ink3,
-                    letterSpacing: '0.10em',
-                    textTransform: 'uppercase',
-                    borderBottom: `1px solid ${c.border}`,
-                    background: c.canvas,
-                  }}>{h.label}</th>
+                  <TableHead 
+                    key={h.label} 
+                    className={`p-3 text-[10px] font-bold text-muted-foreground uppercase tracking-wider ${h.right ? 'text-right' : 'text-left'}`}
+                    style={{ color: 'var(--erp-ink3)' }}
+                  >
+                    {h.label}
+                  </TableHead>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {rows.map((row, i) => {
                 const pct = row.budgetAmount ? row.actual / row.budgetAmount * 100 : 0
                 const over = row.actual > row.budgetAmount
@@ -204,61 +150,57 @@ export default function BudgetPage() {
                 const barColor = over ? c.neg : pct > 90 ? c.warn : c.pos
                 const editing = editingId === row.id
                 return (
-                  <tr key={row.id}>
-                    <td style={{ padding: '14px 24px', borderBottom: i < rows.length - 1 ? `1px solid ${c.border}` : 'none' }}>
-                      <span style={{ fontSize: 13, fontWeight: 500, color: c.ink }}>{row.category}</span>
-                    </td>
-                    <td style={{ padding: '14px 24px', borderBottom: i < rows.length - 1 ? `1px solid ${c.border}` : 'none' }}>
-                      <span style={{ fontSize: 12, color: c.ink2 }}>{row.channel}</span>
-                    </td>
-                    <td style={{ padding: '14px 24px', borderBottom: i < rows.length - 1 ? `1px solid ${c.border}` : 'none', textAlign: 'right' }}>
+                  <TableRow key={row.id} className="border-b border-border" style={{ borderColor: 'var(--erp-subtle)' }}>
+                    <TableCell className="p-3">
+                      <span className="text-sm font-semibold text-foreground" style={{ color: 'var(--erp-ink)' }}>{row.category}</span>
+                    </TableCell>
+                    <TableCell className="p-3">
+                      <span className="text-xs text-muted-foreground" style={{ color: 'var(--erp-ink2)' }}>{row.channel}</span>
+                    </TableCell>
+                    <TableCell className="p-3 text-right">
                       {editing ? (
-                        <input value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={() => saveEdit(row)} onKeyDown={e => e.key === 'Enter' ? saveEdit(row) : null} autoFocus style={{ ...inputStyle(t), width: 120, textAlign: 'right' }} />
+                        <Input 
+                          value={editValue} 
+                          onChange={e => setEditValue(e.target.value)} 
+                          onBlur={() => saveEdit(row)} 
+                          onKeyDown={e => e.key === 'Enter' ? saveEdit(row) : null} 
+                          autoFocus 
+                          className="w-[120px] text-right inline-block h-8 px-2" 
+                        />
                       ) : (
-                        <button onClick={() => startEdit(row)} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}>
+                        <button onClick={() => startEdit(row)} className="border-none bg-transparent cursor-pointer p-0 inline-flex justify-end w-full">
                           <Mono t={t} size={12} color={c.ink2}>{fmtBaht(row.budgetAmount)}</Mono>
                         </button>
                       )}
-                    </td>
-                    <td style={{ padding: '14px 24px', borderBottom: i < rows.length - 1 ? `1px solid ${c.border}` : 'none', textAlign: 'right' }}>
+                    </TableCell>
+                    <TableCell className="p-3 text-right">
                       <Mono t={t} size={13} weight={600}>{fmtBaht(row.actual)}</Mono>
-                    </td>
-                    <td style={{ padding: '14px 24px', borderBottom: i < rows.length - 1 ? `1px solid ${c.border}` : 'none' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 160 }}>
-                        <div style={{ flex: 1, height: 6, background: c.subtle, borderRadius: 999, overflow: 'hidden' }}>
-                          <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: barColor }} />
+                    </TableCell>
+                    <TableCell className="p-3">
+                      <div className="flex items-center gap-2.5 min-w-[160px]">
+                        <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden" style={{ background: 'var(--erp-subtle)' }}>
+                          <div className="h-full rounded-full" style={{ width: `${Math.min(pct, 100)}%`, background: barColor }} />
                         </div>
                         <Mono t={t} size={11} weight={500} color={barColor} style={{ minWidth: 42, textAlign: 'right' }}>{pct.toFixed(0)}%</Mono>
                       </div>
-                    </td>
-                    <td style={{ padding: '14px 24px', borderBottom: i < rows.length - 1 ? `1px solid ${c.border}` : 'none', textAlign: 'right' }}>
+                    </TableCell>
+                    <TableCell className="p-3 text-right">
                       <Mono t={t} size={12} weight={500} color={variance >= 0 ? c.pos : c.neg}>{variance >= 0 ? '+' : '−'}{fmtBaht(Math.abs(variance))}</Mono>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )
               })}
-            </tbody>
-          </table>
-          {rows.length === 0 && <div style={{ padding: 60, textAlign: 'center', color: c.ink3, fontSize: 13 }}>ยังไม่มีงบประมาณสำหรับเดือนนี้</div>}
+            </TableBody>
+          </Table>
+          {rows.length === 0 && <div className="p-14 text-center text-muted-foreground text-sm" style={{ color: 'var(--erp-ink3)' }}>ยังไม่มีงบประมาณสำหรับเดือนนี้</div>}
         </Card>
       </div>
 
-      {addOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 120, background: 'rgba(0,0,0,0.20)', display: 'flex', justifyContent: 'flex-end' }}>
-          <div style={{ width: 380, background: c.surface, minHeight: '100%', padding: 24, boxShadow: '-8px 0 24px rgba(0,0,0,0.15)' }}>
-            <h2 style={{ margin: 0, fontSize: 20, color: c.ink }}>Adjust Budget</h2>
-            <div style={{ display: 'grid', gap: 14, marginTop: 24 }}>
-              <label style={{ display: 'grid', gap: 6, fontSize: 12, color: c.ink2, fontWeight: 600 }}>Category<select value={newBudget.category} onChange={e => setNewBudget(b => ({ ...b, category: e.target.value as ExpenseCategory }))} style={inputStyle(t)}>{CATEGORIES.map(cat => <option key={cat}>{cat}</option>)}</select></label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 12, color: c.ink2, fontWeight: 600 }}>Channel<select value={newBudget.channel} onChange={e => setNewBudget(b => ({ ...b, channel: e.target.value as ExpenseChannel }))} style={inputStyle(t)}>{CHANNELS.map(ch => <option key={ch}>{ch}</option>)}</select></label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 12, color: c.ink2, fontWeight: 600 }}>Amount<input value={newBudget.amount} onChange={e => setNewBudget(b => ({ ...b, amount: e.target.value }))} type="number" style={inputStyle(t)} /></label>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 12 }}>
-                <Btn t={t} variant="ghost" onClick={() => setAddOpen(false)}>Close</Btn>
-                <Btn t={t} variant="primary" onClick={addBudget}>Save</Btn>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <AdjustBudgetDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onSave={handleSaveBudget}
+      />
     </div>
   )
 }

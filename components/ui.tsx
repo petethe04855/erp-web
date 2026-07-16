@@ -7,6 +7,15 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+
+export { Badge } from "@/components/ui/badge";
+export { Checkbox } from "@/components/ui/checkbox";
+export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+
 // ── TopBar ──────────────────────────────────────────────────────────────────
 
 interface TopBarProps {
@@ -143,11 +152,13 @@ interface CardProps {
   children: React.ReactNode;
   style?: React.CSSProperties;
   pad?: boolean;
+  className?: string;
 }
 
-export function Card({ t, children, style, pad = true }: CardProps) {
+export function Card({ t, children, style, pad = true, className }: CardProps) {
   return (
     <CardPrimitive
+      className={className}
       style={{
         borderRadius: t.radius,
         padding: pad ? 20 : 0,
@@ -318,6 +329,7 @@ interface SectionLabelProps {
   children: React.ReactNode;
   action?: React.ReactNode;
   style?: React.CSSProperties;
+  className?: string;
 }
 
 export function SectionLabel({
@@ -325,10 +337,12 @@ export function SectionLabel({
   children,
   action,
   style,
+  className,
 }: SectionLabelProps) {
   const c = t.color;
   return (
     <div
+      className={className}
       style={{
         display: "flex",
         alignItems: "center",
@@ -503,25 +517,12 @@ interface DataTableProps {
 export function DataTable({ t, children, style }: DataTableProps) {
   return (
     <div
-      style={{
-        overflowX: "auto",
-        border: `1px solid ${t.color.border}`,
-        borderRadius: t.radius,
-        background: t.color.surface,
-        ...style,
-      }}
+      className="overflow-x-auto border border-border rounded-lg bg-card"
+      style={style}
     >
-      <table
-        style={{
-          width: "100%",
-          minWidth: 760,
-          borderCollapse: "collapse",
-          fontSize: 13,
-          fontFamily: t.font.sans,
-        }}
-      >
+      <Table className="w-full min-w-[760px] text-[13px] border-collapse">
         {children}
-      </table>
+      </Table>
     </div>
   );
 }
@@ -538,17 +539,10 @@ export function PremiumTable({
   style?: React.CSSProperties;
 }) {
   return (
-    <Card t={t} pad={false} style={{ overflow: "auto", ...style }}>
-      <table
-        style={{
-          width: "100%",
-          minWidth,
-          borderCollapse: "collapse",
-          fontFamily: t.font.sans,
-        }}
-      >
+    <Card t={t} pad={false} className="overflow-auto" style={style}>
+      <Table style={{ minWidth }} className="border-collapse">
         {children}
-      </table>
+      </Table>
     </Card>
   );
 }
@@ -565,23 +559,15 @@ export function PremiumTh({
   style?: React.CSSProperties;
 }) {
   return (
-    <th
-      style={{
-        textAlign: right ? "right" : "left",
-        padding: "11px 22px",
-        fontSize: 10,
-        fontWeight: 500,
-        color: t.color.ink3,
-        letterSpacing: "0.10em",
-        textTransform: "uppercase",
-        borderBottom: `1px solid ${t.color.border}`,
-        background: t.color.canvas,
-        whiteSpace: "nowrap",
-        ...style,
-      }}
+    <TableHead
+      className={cn(
+        "px-[22px] py-[11px] text-[10px] font-medium tracking-[0.10em] uppercase border-b border-border bg-muted/30 whitespace-nowrap text-muted-foreground",
+        right ? "text-right" : "text-left"
+      )}
+      style={style}
     >
       {children}
-    </th>
+    </TableHead>
   );
 }
 
@@ -601,18 +587,17 @@ export function PremiumTd({
   style?: React.CSSProperties;
 } & Pick<React.TdHTMLAttributes<HTMLTableCellElement>, "colSpan">) {
   return (
-    <td
+    <TableCell
       colSpan={colSpan}
-      style={{
-        padding: "14px 22px",
-        borderBottom: last ? "none" : `1px solid ${t.color.border}`,
-        textAlign: right ? "right" : "left",
-        verticalAlign: "middle",
-        ...style,
-      }}
+      className={cn(
+        "px-[22px] py-3.5 align-middle text-sm text-foreground",
+        last ? "border-b-0" : "border-b border-border",
+        right ? "text-right" : "text-left"
+      )}
+      style={style}
     >
       {children}
-    </td>
+    </TableCell>
   );
 }
 
@@ -626,23 +611,12 @@ export function Th({
   style?: React.CSSProperties;
 }) {
   return (
-    <th
-      style={{
-        textAlign: "left",
-        padding: "10px 14px",
-        background: t.color.subtle,
-        fontSize: 10,
-        fontWeight: 600,
-        textTransform: "uppercase",
-        letterSpacing: "0.06em",
-        color: t.color.ink3,
-        borderBottom: `1px solid ${t.color.border}`,
-        whiteSpace: "nowrap",
-        ...style,
-      }}
+    <TableHead
+      className="px-3.5 py-2.5 bg-muted text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground border-b border-border whitespace-nowrap"
+      style={style}
     >
       {children}
-    </th>
+    </TableHead>
   );
 }
 
@@ -658,19 +632,15 @@ export function Td({
   style?: React.CSSProperties;
 }) {
   return (
-    <td
-      style={{
-        padding: "11px 14px",
-        borderBottom: `1px solid ${t.color.border}`,
-        verticalAlign: "middle",
-        color: t.color.ink2,
-        fontFamily: mono ? t.font.mono : t.font.sans,
-        fontVariantNumeric: mono ? "tabular-nums" : undefined,
-        ...style,
-      }}
+    <TableCell
+      className={cn(
+        "px-3.5 py-[11px] border-b border-border align-middle text-muted-foreground",
+        mono ? "font-mono tabular-nums text-xs" : "font-sans text-sm"
+      )}
+      style={style}
     >
       {children}
-    </td>
+    </TableCell>
   );
 }
 
@@ -816,31 +786,20 @@ export function CheckboxRow({
   sub?: string;
 }) {
   return (
-    <label
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: "10px 0",
-        cursor: "pointer",
-        fontFamily: t.font.sans,
-      }}
-    >
-      <input
-        type="checkbox"
+    <div className="flex items-center gap-2.5 py-2.5 cursor-pointer select-none">
+      <Checkbox
+        id={`checkbox-row-${label}`}
         checked={checked}
-        onChange={(e) => onChange(e.currentTarget.checked)}
-        style={{ accentColor: t.color.accent }}
+        onCheckedChange={(checkedState) => onChange(Boolean(checkedState))}
       />
-      <span style={{ display: "grid", gap: 1 }}>
-        <span style={{ fontSize: 13, color: t.color.ink, fontWeight: 500 }}>
-          {label}
-        </span>
-        {sub && (
-          <span style={{ fontSize: 11, color: t.color.ink3 }}>{sub}</span>
-        )}
-      </span>
-    </label>
+      <Label
+        htmlFor={`checkbox-row-${label}`}
+        className="grid gap-0.5 cursor-pointer"
+      >
+        <span className="text-sm font-medium text-foreground">{label}</span>
+        {sub && <span className="text-xs text-muted-foreground">{sub}</span>}
+      </Label>
+    </div>
   );
 }
 
@@ -882,19 +841,11 @@ const CATEGORY_LABELS: Record<
 
 export function CategoryBadge({ type }: { type: ProductCategory }) {
   const c = CATEGORY_LABELS[type];
+  const variant = type.toLowerCase() as "cat" | "dog" | "bundle" | "other";
   return (
-    <span
-      style={{
-        padding: "2px 10px",
-        borderRadius: 20,
-        background: c.bg,
-        color: c.color,
-        fontSize: 11,
-        fontWeight: 600,
-      }}
-    >
+    <Badge variant={variant} className="px-2.5 py-0.5 text-[11px] font-semibold">
       {c.label}
-    </span>
+    </Badge>
   );
 }
 
@@ -907,63 +858,14 @@ export function StockBadge({
   reorder: number;
   isBundle: boolean;
 }) {
-  if (isBundle)
-    return (
-      <span
-        style={{
-          padding: "2px 10px",
-          borderRadius: 20,
-          background: "var(--erp-subtle)",
-          color: "var(--erp-ink3)",
-          fontSize: 11,
-          fontWeight: 600,
-        }}
-      >
-        Virtual
-      </span>
-    );
-  if (stock === 0)
-    return (
-      <span
-        style={{
-          padding: "2px 10px",
-          borderRadius: 20,
-          background: "#FEE2E2",
-          color: "#EF4444",
-          fontSize: 11,
-          fontWeight: 600,
-        }}
-      >
-        หมด
-      </span>
-    );
-  if (stock < reorder)
-    return (
-      <span
-        style={{
-          padding: "2px 10px",
-          borderRadius: 20,
-          background: "#FEF3C7",
-          color: "#D97706",
-          fontSize: 11,
-          fontWeight: 600,
-        }}
-      >
-        ใกล้หมด
-      </span>
-    );
-  return (
-    <span
-      style={{
-        padding: "2px 10px",
-        borderRadius: 20,
-        background: "#D1FAE5",
-        color: "#059669",
-        fontSize: 11,
-        fontWeight: 600,
-      }}
-    >
-      ปกติ
-    </span>
-  );
+  if (isBundle) {
+    return <Badge variant="virtual" className="px-2.5 py-0.5 text-[11px] font-semibold">Virtual</Badge>;
+  }
+  if (stock === 0) {
+    return <Badge variant="empty" className="px-2.5 py-0.5 text-[11px] font-semibold">หมด</Badge>;
+  }
+  if (stock < reorder) {
+    return <Badge variant="low" className="px-2.5 py-0.5 text-[11px] font-semibold">ใกล้หมด</Badge>;
+  }
+  return <Badge variant="normal" className="px-2.5 py-0.5 text-[11px] font-semibold">ปกติ</Badge>;
 }

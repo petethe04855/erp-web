@@ -1,196 +1,272 @@
-'use client'
-import { useMemo, useState } from 'react'
-import { formatBaht } from '@/lib/mockData'
-import SlidePanel from '@/components/SlidePanel'
-import { useErpStore } from '@/lib/store/useErpStore'
-import type { PurchaseOrderStatus } from '@/lib/store/erpWorkflow'
-import { exportXlsx } from '@/lib/utils/exportUtil'
-import { useTheme } from '@/lib/design/ThemeContext'
-import { Btn, Field, Mono, PremiumTable, PremiumTd, PremiumTh, SelectField, StatStrip, StatusPill, TopBar } from '@/components/ui'
+"use client";
 
-type ItemLine = { sku: string; name: string; qty: number | ""; unitCost: number | "" }
-const BLANK_LINE: ItemLine = { sku: '', name: '', qty: 1, unitCost: 0 }
-const BLANK = { supplier: '', etaDate: '', items: [{ ...BLANK_LINE }] }
+import { useMemo, useState } from "react";
+import { formatBaht } from "@/lib/mockData";
+import { useErpStore } from "@/lib/store/useErpStore";
+import type { PurchaseOrderStatus } from "@/lib/store/erpWorkflow";
+import { exportXlsx } from "@/lib/utils/exportUtil";
+import { useTheme } from "@/lib/design/ThemeContext";
+import { Card, Mono, StatusPill, TopBar } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import { CreatePOSheet } from "./components/CreatePOSheet";
+
 const statusMap: Record<PurchaseOrderStatus, string> = {
-  Draft: 'draft',
-  Sent: 'sent',
-  'Partial Received': 'pending',
-  Completed: 'completed',
-}
+  Draft: "draft",
+  Sent: "sent",
+  "Partial Received": "pending",
+  Completed: "completed",
+};
 
 export default function PurchaseOrderPage() {
-  const { tokens: t } = useTheme()
-  const c = t.color
-  const list = useErpStore(s => s.purchaseOrders)
-  const products = useErpStore(s => s.products)
-  const createPO = useErpStore(s => s.createPurchaseOrder)
-  const updatePOStatus = useErpStore(s => s.updatePOStatus)
-  const [open, setOpen] = useState(false)
-  const [form, setForm] = useState<{
-    supplier: string;
-    etaDate: string;
-    items: ItemLine[];
-  }>(BLANK)
-  const [toast, setToast] = useState('')
+  const { tokens: t } = useTheme();
+  const c = t.color;
+  const list = useErpStore((s) => s.purchaseOrders);
+  const products = useErpStore((s) => s.products);
+  const createPO = useErpStore((s) => s.createPurchaseOrder);
+  const updatePOStatus = useErpStore((s) => s.updatePOStatus);
 
-  const rows = useMemo(() => list.map(po => ({
-    ...po,
-    openValue: po.status === 'Completed' ? 0 : po.totalCost,
-  })), [list])
-  const total = rows.reduce((s, p) => s + p.totalCost, 0)
-  const openValue = rows.reduce((s, p) => s + p.openValue, 0)
-  const lineTotal = form.items.reduce((s, line) => s + Number(line.qty) * Number(line.unitCost), 0)
+  const [open, setOpen] = useState(false);
+  const [toast, setToast] = useState("");
 
-  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 3000) }
-  function addLine() { setForm(f => ({ ...f, items: [...f.items, { ...BLANK_LINE }] })) }
-  function removeLine(i: number) { setForm(f => ({ ...f, items: f.items.filter((_, idx) => idx !== i) })) }
-  function updateLine(i: number, field: keyof ItemLine, val: string | number) {
-    setForm(f => ({ ...f, items: f.items.map((line, idx) => {
-      if (idx !== i) return line
-      if (field === 'sku') {
-        const prod = products.find(p => p.sku === val)
-        return { ...line, sku: val as string, name: prod?.name ?? '', unitCost: prod?.cost ?? 0 }
-      }
-      return { ...line, [field]: val }
-    }) }))
+  const rows = useMemo(() => {
+    return list.map((po) => ({
+      ...po,
+      openValue: po.status === "Completed" ? 0 : po.totalCost,
+    }));
+  }, [list]);
+
+  const total = rows.reduce((s, p) => s + p.totalCost, 0);
+  const openValue = rows.reduce((s, p) => s + p.openValue, 0);
+
+  function showToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(""), 3000);
   }
 
-  function handleSubmit() {
-    const hasInvalidItem = form.items.some(i => i.qty === "" || Number(i.qty) <= 0 || i.unitCost === "" || Number(i.unitCost) < 0)
-    if (hasInvalidItem) {
-      showToast('กรุณากรอกจำนวนและราคาสินค้าให้ถูกต้อง')
-      return
-    }
-    const validItems = form.items
-      .filter(i => i.sku || i.name)
-      .map(i => ({ ...i, qty: Number(i.qty), unitCost: Number(i.unitCost) }))
-    if (!form.supplier || !form.etaDate || validItems.length === 0) {
-      showToast('กรุณากรอกซัพพลายเออร์ วัน ETA และรายการ')
-      return
-    }
-    const po = createPO({ supplier: form.supplier, etaDate: form.etaDate, items: validItems })
-    setForm(BLANK)
-    setOpen(false)
-    showToast(`สร้าง ${po.id} แล้ว`)
+  function handleCreatePO(data: {
+    supplier: string;
+    etaDate: string;
+    items: { sku: string; name: string; qty: number; unitCost: number }[];
+  }) {
+    const po = createPO(data);
+    showToast(`สร้าง ${po.id} แล้ว`);
   }
 
   function handleStatusChange(poId: string, status: PurchaseOrderStatus) {
-    const updated = updatePOStatus(poId, status)
-    if (updated) showToast(`${poId} → ${status}`)
+    const updated = updatePOStatus(poId, status);
+    if (updated) showToast(`${poId} → ${status}`);
   }
 
   async function handleExport() {
     try {
-      await exportXlsx('purchase-orders', `purchase-orders-export-${new Date().toISOString().slice(0, 10)}.xlsx`)
-      showToast('Export สำเร็จ')
+      await exportXlsx(
+        "purchase-orders",
+        `purchase-orders-export-${new Date()
+          .toISOString()
+          .slice(0, 10)}.xlsx`
+      );
+      showToast("Export สำเร็จ");
     } catch (err: any) {
-      showToast('Export ล้มเหลว: ' + err.message)
+      showToast("Export ล้มเหลว: " + err.message);
     }
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: c.canvas }}>
+    <div className="min-h-screen bg-canvas pb-16" style={{ background: c.canvas }}>
       <TopBar
         t={t}
-        breadcrumb={['Chawy', 'Purchasing', 'Purchase Orders']}
+        breadcrumb={["Chawy", "Purchasing", "Purchase Orders"]}
         title="Purchase Orders"
-        subtitle={`ใบสั่งซื้อ · ${rows.length} รายการ · ${formatBaht(openValue)} ค้างรับ`}
+        subtitle={`ใบสั่งซื้อ · ${rows.length} รายการ · ${formatBaht(
+          openValue
+        )} ค้างรับ`}
         right={
-          <>
-            {toast && <span style={{ fontSize: 12, fontWeight: 600, color: toast.includes('กรุณา') ? c.neg : c.pos }}>{toast}</span>}
-            <Btn t={t} variant="ghost" onClick={handleExport}>Export</Btn>
-            <Btn t={t} variant="primary" onClick={() => { setForm(BLANK); setOpen(true) }}>+ New PO</Btn>
-          </>
+          <div className="flex items-center gap-2">
+            {toast && (
+              <span
+                className="text-xs font-semibold pr-2"
+                style={{
+                  color: toast.includes("กรุณา") ? c.neg : c.pos,
+                }}
+              >
+                {toast}
+              </span>
+            )}
+            <Button variant="outline" onClick={handleExport} className="cursor-pointer">
+              Export
+            </Button>
+            <Button
+              onClick={() => setOpen(true)}
+              className="cursor-pointer bg-[var(--erp-accent)] text-white hover:opacity-90 border-none shadow-none"
+            >
+              + New PO
+            </Button>
+          </div>
         }
       />
 
-      <div style={{ padding: '24px 32px 48px' }}>
-        <StatStrip
-          t={t}
-          tiles={[
-            { label: 'Total ordered', value: formatBaht(total), sub: 'this month' },
-            { label: 'Open value', value: formatBaht(openValue), sub: 'awaiting receipt' },
-            { label: 'Overdue POs', value: '0', sub: 'past ETA', tone: c.neg },
-            { label: 'Suppliers', value: String(new Set(rows.map(p => p.supplier)).size), sub: 'active' },
-          ]}
-        />
+      <div className="p-6 md:p-8 max-w-[1320px] mx-auto grid gap-6">
+        {/* KPI Strip */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            {
+              label: "Total ordered",
+              value: formatBaht(total),
+              sub: "this month",
+            },
+            {
+              label: "Open value",
+              value: formatBaht(openValue),
+              sub: "awaiting receipt",
+            },
+            {
+              label: "Overdue POs",
+              value: "0",
+              sub: "past ETA",
+              tone: c.neg,
+            },
+            {
+              label: "Suppliers",
+              value: String(new Set(rows.map((p) => p.supplier)).size),
+              sub: "active",
+            },
+          ].map((tile) => (
+            <Card
+              t={t}
+              key={tile.label}
+              className="border border-border bg-card p-5"
+              style={{
+                borderColor: "var(--erp-border)",
+                background: "var(--erp-surface)",
+              }}
+            >
+              <div
+                className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground"
+                style={{ color: "var(--erp-ink3)" }}
+              >
+                {tile.label}
+              </div>
+              <span className="block mt-2">
+                <Mono
+                  t={t}
+                  size={22}
+                  weight={600}
+                  color={tile.tone ? tile.tone : c.ink}
+                >
+                  {tile.value}
+                </Mono>
+              </span>
+              <div
+                className="text-xs text-muted-foreground mt-1"
+                style={{ color: "var(--erp-ink3)" }}
+              >
+                {tile.sub}
+              </div>
+            </Card>
+          ))}
+        </div>
 
-        <PremiumTable t={t} minWidth={940}>
-          <thead>
-            <tr>
-              {['PO', 'Supplier', 'Order date', 'ETA'].map(h => <PremiumTh key={h} t={t}>{h}</PremiumTh>)}
-              <PremiumTh t={t} right>Items</PremiumTh>
-              <PremiumTh t={t} right>Amount</PremiumTh>
-              <PremiumTh t={t}>Status</PremiumTh>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((po, i) => {
-              const last = i === rows.length - 1
-              return (
-                <tr key={po.id}>
-                  <PremiumTd t={t} last={last}>
-                    <Mono t={t} size={12} weight={500}>{po.id}</Mono>
-                    {po.status === 'Draft' && <Btn t={t} variant="ghost" onClick={() => handleStatusChange(po.id, 'Sent')} style={{ marginLeft: 8, padding: '3px 8px', fontSize: 10 }}>Send</Btn>}
-                  </PremiumTd>
-                  <PremiumTd t={t} last={last}><span style={{ fontSize: 13, fontWeight: 500, color: c.ink }}>{po.supplier}</span></PremiumTd>
-                  <PremiumTd t={t} last={last}><Mono t={t} size={12} color={c.ink2}>{po.date}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last}><Mono t={t} size={12} color={c.ink2}>{po.etaDate}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last} right><Mono t={t} size={12} color={c.ink2}>{po.items.length}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last} right><Mono t={t} size={13} weight={600}>{formatBaht(po.totalCost)}</Mono></PremiumTd>
-                  <PremiumTd t={t} last={last}><StatusPill t={t} status={statusMap[po.status]} /></PremiumTd>
-                </tr>
-              )
-            })}
-          </tbody>
-        </PremiumTable>
+        {/* PO Table */}
+        <Card
+          t={t}
+          pad={false}
+          className="overflow-hidden border border-border bg-card"
+          style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+        >
+          <div className="overflow-x-auto">
+            <Table className="w-full border-collapse">
+              <TableHeader
+                className="bg-muted/50 border-b border-border"
+                style={{ background: "var(--erp-subtle)", borderColor: "var(--erp-border)" }}
+              >
+                <TableRow>
+                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>PO</TableHead>
+                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Supplier</TableHead>
+                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Order date</TableHead>
+                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>ETA</TableHead>
+                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>Items</TableHead>
+                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>Amount</TableHead>
+                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((po) => (
+                  <TableRow
+                    key={po.id}
+                    className="border-b border-border hover:bg-muted/50 transition-colors"
+                    style={{ borderColor: "var(--erp-border)" }}
+                  >
+                    <TableCell className="p-4 px-5 align-middle">
+                      <div className="flex items-center gap-2">
+                        <Mono t={t} size={12} weight={500}>
+                          {po.id}
+                        </Mono>
+                        {po.status === "Draft" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleStatusChange(po.id, "Sent")}
+                            className="h-6 text-[10px] px-2.5 cursor-pointer"
+                          >
+                            Send
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="p-4 px-5 align-middle">
+                      <span
+                        className="text-sm font-medium"
+                        style={{ color: "var(--erp-ink)" }}
+                      >
+                        {po.supplier}
+                      </span>
+                    </TableCell>
+                    <TableCell className="p-4 px-5 align-middle">
+                      <Mono t={t} size={12} color={c.ink2}>
+                        {po.date}
+                      </Mono>
+                    </TableCell>
+                    <TableCell className="p-4 px-5 align-middle">
+                      <Mono t={t} size={12} color={c.ink2}>
+                        {po.etaDate}
+                      </Mono>
+                    </TableCell>
+                    <TableCell className="p-4 px-5 align-middle text-right">
+                      <Mono t={t} size={12} color={c.ink2}>
+                        {po.items.length}
+                      </Mono>
+                    </TableCell>
+                    <TableCell className="p-4 px-5 align-middle text-right">
+                      <Mono t={t} size={13} weight={600}>
+                        {formatBaht(po.totalCost)}
+                      </Mono>
+                    </TableCell>
+                    <TableCell className="p-4 px-5 align-middle">
+                      <StatusPill t={t} status={statusMap[po.status]} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
       </div>
 
-      <SlidePanel open={open} onClose={() => setOpen(false)} title="New Purchase Order" subtitle={`Total ${formatBaht(lineTotal)}`}
-        footer={
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', alignItems: 'center' }}>
-            <Mono t={t} size={14} weight={600}>{formatBaht(lineTotal)}</Mono>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <Btn t={t} variant="ghost" onClick={() => setOpen(false)}>Cancel</Btn>
-              <Btn t={t} variant="accent" onClick={handleSubmit}>Save PO</Btn>
-            </div>
-          </div>
-        }
-      >
-        <div style={{ display: 'grid', gap: 16 }}>
-          <Field t={t} label="Supplier" value={form.supplier} onChange={e => setForm(f => ({ ...f, supplier: e.target.value }))} />
-          <Field t={t} label="ETA" type="date" value={form.etaDate} onChange={e => setForm(f => ({ ...f, etaDate: e.target.value }))} />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: c.ink2 }}>Items</span>
-            <Btn t={t} variant="ghost" onClick={addLine}>+ Add item</Btn>
-          </div>
-          <div style={{ border: `1px solid ${c.border}`, borderRadius: t.radius, overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <tbody>
-                {form.items.map((line, i) => (
-                  <tr key={i} style={{ borderBottom: i === form.items.length - 1 ? 'none' : `1px solid ${c.border}` }}>
-                    <td style={{ padding: 10 }}>
-                      <SelectField t={t} value={line.sku} onChange={e => updateLine(i, 'sku', e.target.value)}>
-                        <option value="">Select product</option>
-                        {products.map(p => <option key={p.sku} value={p.sku}>{p.name} ({p.sku})</option>)}
-                      </SelectField>
-                    </td>
-                    <td style={{ padding: 10, width: 84 }}>
-                      <Field t={t} type="number" min={1} value={line.qty} onChange={e => updateLine(i, 'qty', e.target.value === '' ? '' : parseInt(e.target.value) || 0)} inputStyle={{ textAlign: 'center' }} />
-                    </td>
-                    <td style={{ padding: 10, width: 106 }}>
-                      <Field t={t} type="number" min={0} value={line.unitCost} onChange={e => updateLine(i, 'unitCost', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)} inputStyle={{ textAlign: 'right' }} />
-                    </td>
-                    <td style={{ padding: 10, width: 42 }}>
-                      {form.items.length > 1 && <Btn t={t} variant="ghost" onClick={() => removeLine(i)} style={{ padding: '6px 9px' }}>×</Btn>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </SlidePanel>
+      <CreatePOSheet
+        open={open}
+        onOpenChange={setOpen}
+        products={products}
+        onSubmit={handleCreatePO}
+        showToast={showToast}
+      />
     </div>
-  )
+  );
 }

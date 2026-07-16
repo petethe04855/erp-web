@@ -1,6 +1,8 @@
 'use client'
 import { useTheme } from '@/lib/design/ThemeContext'
 import { TopBar, CategoryBadge, StockBadge } from '@/components/ui'
+import { Button } from '@/components/ui/button'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { useState } from 'react'
 import { useErpStore } from '@/lib/store/useErpStore'
 import type { Product, ProductCategory, CreateProductInput, UpdateProductInput } from '@/lib/store/erpWorkflow'
@@ -122,23 +124,19 @@ export default function SkuPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: c.canvas }}>
+    <div className="min-h-screen bg-canvas" style={{ background: c.canvas }}>
       <TopBar t={t} title="SKU Master" subtitle="ข้อมูลสินค้า" />
-      <div style={{ padding: '24px 32px' }}>
+      <div className="px-8 py-6">
         
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+        <div className="flex justify-between items-start mb-6">
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--erp-ink)', margin: 0 }}>SKU Master</h1>
-            <p style={{ fontSize: 13, color: 'var(--erp-ink3)', marginTop: 4 }}>จัดการข้อมูลสินค้า (Master Data)</p>
+            <h1 className="text-xl font-bold text-foreground m-0" style={{ color: 'var(--erp-ink)' }}>SKU Master</h1>
+            <p className="text-xs text-muted-foreground mt-1" style={{ color: 'var(--erp-ink3)' }}>จัดการข้อมูลสินค้า (Master Data)</p>
           </div>
-          <button onClick={openAdd} style={{
-            background: 'var(--erp-accent)', color: '#fff', border: 'none',
-            borderRadius: 8, padding: '9px 18px', fontSize: 13,
-            fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-          }}>
+          <Button onClick={openAdd} className="bg-[var(--erp-accent)] text-white gap-1.5 h-9 px-4 text-xs font-semibold rounded-lg shadow-none cursor-pointer">
             + เพิ่มสินค้า
-          </button>
+          </Button>
         </div>
 
         {/* Stats */}
@@ -160,44 +158,44 @@ export default function SkuPage() {
         />
 
         {/* Table */}
-        <div style={{ background: 'var(--erp-surface)', borderRadius: 10, border: '1px solid var(--erp-border)', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: 'var(--erp-subtle)', borderBottom: '1px solid var(--erp-border)' }}>
+        <div className="bg-card rounded-lg border border-border overflow-hidden" style={{ background: 'var(--erp-surface)', borderColor: 'var(--erp-border)' }}>
+          <Table className="w-full border-collapse">
+            <TableHeader className="bg-muted/50 border-b border-border" style={{ background: 'var(--erp-subtle)', borderColor: 'var(--erp-border)' }}>
+              <TableRow>
                 {['SKU', 'ชื่อสินค้า', 'ประเภท', 'ต้นทุน', 'ราคาขาย B2C', 'ราคา B2B', 'น้ำหนัก', 'สต็อก', 'Reorder', 'สถานะ', ''].map(h => (
-                  <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--erp-ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>{h}</th>
+                  <TableHead key={h} className="p-3 text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap" style={{ color: 'var(--erp-ink3)' }}>{h}</TableHead>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={11} style={{ padding: 40, textAlign: 'center', color: '#9CA3AF', fontSize: 14 }}>
+                <TableRow>
+                  <TableCell colSpan={11} className="p-10 text-center text-muted-foreground text-sm">
                     ไม่พบสินค้า
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )}
               {filtered.map((p, i) => (
-                <tr key={p.sku} style={{
-                  borderBottom: i < filtered.length - 1 ? '1px solid var(--erp-subtle)' : 'none',
+                <TableRow key={p.sku} className="hover:bg-muted/30 border-b border-border" style={{
+                  borderColor: 'var(--erp-subtle)',
                   opacity: p.isActive ? 1 : 0.5,
                 }}>
-                  <td style={{ padding: '10px 12px' }}>
-                    <span style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: 'var(--erp-accent)', cursor: 'pointer' }}
+                  <TableCell className="p-3">
+                    <span className="font-mono text-xs font-bold text-[var(--erp-accent)] cursor-pointer"
                       onClick={() => openView(p)}>{p.sku}</span>
-                  </td>
-                  <td style={{ padding: '10px 12px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--erp-ink)' }}>{p.name}</div>
-                    {p.barcode && <div style={{ fontSize: 11, color: 'var(--erp-ink3)' }}>{p.barcode}</div>}
-                  </td>
-                  <td style={{ padding: '10px 12px' }}><CategoryBadge type={p.type} /></td>
-                  <td style={{ padding: '10px 12px', fontSize: 13, color: 'var(--erp-ink)' }}>{formatBaht(p.cost)}</td>
-                  <td style={{ padding: '10px 12px', fontSize: 13, fontWeight: 600, color: '#059669' }}>{formatBaht(p.retailPrice)}</td>
-                  <td style={{ padding: '10px 12px', fontSize: 13, color: 'var(--erp-ink3)' }}>{formatBaht(p.wholesalePrice)}</td>
-                  <td style={{ padding: '10px 12px', fontSize: 12, color: 'var(--erp-ink3)' }}>{p.weightGrams > 0 ? `${p.weightGrams}g` : '-'}</td>
-                  <td style={{ padding: '10px 12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--erp-ink)' }}>
+                  </TableCell>
+                  <TableCell className="p-3">
+                    <div className="text-sm font-semibold text-foreground" style={{ color: 'var(--erp-ink)' }}>{p.name}</div>
+                    {p.barcode && <div className="text-xs text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>{p.barcode}</div>}
+                  </TableCell>
+                  <TableCell className="p-3"><CategoryBadge type={p.type} /></TableCell>
+                  <TableCell className="p-3 text-sm text-foreground" style={{ color: 'var(--erp-ink)' }}>{formatBaht(p.cost)}</TableCell>
+                  <TableCell className="p-3 text-sm font-semibold text-emerald-600 dark:text-emerald-500">{formatBaht(p.retailPrice)}</TableCell>
+                  <TableCell className="p-3 text-sm text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>{formatBaht(p.wholesalePrice)}</TableCell>
+                  <TableCell className="p-3 text-xs text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>{p.weightGrams > 0 ? `${p.weightGrams}g` : '-'}</TableCell>
+                  <TableCell className="p-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-semibold text-foreground" style={{ color: 'var(--erp-ink)' }}>
                         {p.isBundle ? calcBundleVirtualStock(p.sku) : p.stock.toLocaleString()}
                       </span>
                       <StockBadge
@@ -206,37 +204,31 @@ export default function SkuPage() {
                         isBundle={p.isBundle}
                       />
                     </div>
-                  </td>
-                  <td style={{ padding: '10px 12px', fontSize: 13, color: 'var(--erp-ink3)' }}>{p.reorder || '—'}</td>
-                  <td style={{ padding: '10px 12px' }}>
-                    <button onClick={() => handleToggleActive(p)} style={{
-                      padding: '3px 10px', borderRadius: 20, border: '1px solid',
-                      borderColor: p.isActive ? '#D1FAE5' : 'var(--erp-border)',
-                      background: p.isActive ? '#D1FAE5' : 'var(--erp-subtle)',
-                      color: p.isActive ? '#059669' : '#9CA3AF',
-                      fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                    }}>
+                  </TableCell>
+                  <TableCell className="p-3 text-sm text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>{p.reorder || '—'}</TableCell>
+                  <TableCell className="p-3">
+                    <button onClick={() => handleToggleActive(p)} className={`
+                      px-2.5 py-1 rounded-full border text-[11px] font-semibold cursor-pointer transition-colors
+                      ${p.isActive 
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-400' 
+                        : 'border-border bg-muted text-muted-foreground'
+                      }
+                    `} style={!p.isActive ? { borderColor: 'var(--erp-border)', background: 'var(--erp-subtle)', color: '#9CA3AF' } : undefined}>
                       {p.isActive ? 'Active' : 'Inactive'}
                     </button>
-                  </td>
-                  <td style={{ padding: '10px 12px' }}>
-                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                      <button onClick={() => openEdit(p)} style={{
-                        padding: '4px 10px', borderRadius: 6, border: '1px solid var(--erp-border)',
-                        background: 'var(--erp-surface)', color: '#374151', fontSize: 12, cursor: 'pointer',
-                      }}>แก้ไข</button>
-                      <button onClick={() => setDeleteConfirm(p.sku)} style={{
-                        padding: '4px 10px', borderRadius: 6, border: '1px solid #FEE2E2',
-                        background: '#FFF5F5', color: '#EF4444', fontSize: 12, cursor: 'pointer',
-                      }}>ลบ</button>
+                  </TableCell>
+                  <TableCell className="p-3">
+                    <div className="flex gap-1 flex-wrap">
+                      <Button onClick={() => openEdit(p)} variant="outline" size="xs" className="cursor-pointer border-border" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)', color: '#374151' }}>แก้ไข</Button>
+                      <Button onClick={() => setDeleteConfirm(p.sku)} variant="destructive" size="xs" className="cursor-pointer bg-[#FFF5F5] border-[#FEE2E2] hover:bg-destructive/10 text-destructive border" style={{ borderColor: '#FEE2E2' }}>ลบ</Button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
-        <div style={{ marginTop: 8, fontSize: 12, color: 'var(--erp-ink3)' }}>แสดง {filtered.length} จาก {products.length} รายการ</div>
+        <div className="mt-2 text-xs text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>แสดง {filtered.length} จาก {products.length} รายการ</div>
 
         {/* Modals */}
         {(modalMode === 'add' || modalMode === 'edit') && (

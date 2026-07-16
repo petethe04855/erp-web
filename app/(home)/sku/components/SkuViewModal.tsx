@@ -1,6 +1,7 @@
 'use client'
 import React from 'react'
 import { CategoryBadge, StockBadge } from '@/components/ui'
+import { Button } from '@/components/ui/button'
 import type { Product, BundleComponent } from '@/lib/store/erpWorkflow'
 
 interface SkuViewModalProps {
@@ -25,27 +26,25 @@ export default function SkuViewModal({
   const virtualQty = calcBundleVirtualStock(selected.sku)
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200,
-    }} onClick={onClose}>
-      <div style={{
-        background: 'var(--erp-surface)', borderRadius: 12, padding: 28, width: 480,
-        boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
-      }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div 
+        className="bg-card rounded-xl p-7 w-full max-w-[480px] shadow-2xl border border-border"
+        style={{ background: 'var(--erp-surface)', borderColor: 'var(--erp-border)' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-start mb-5">
           <div>
-            <div style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 700, color: 'var(--erp-accent)' }}>{selected.sku}</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--erp-ink)', marginTop: 2 }}>{selected.name}</div>
-            <div style={{ marginTop: 6, display: 'flex', gap: 6 }}>
+            <div className="font-mono text-sm font-bold text-[var(--erp-accent)]">{selected.sku}</div>
+            <div className="text-lg font-bold text-foreground mt-0.5" style={{ color: 'var(--erp-ink)' }}>{selected.name}</div>
+            <div className="mt-1.5 flex gap-1.5">
               <CategoryBadge type={selected.type} />
               <StockBadge stock={selected.stock} reorder={selected.reorder} isBundle={selected.isBundle} />
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#9CA3AF' }}>Close</button>
+          <Button variant="ghost" size="xs" onClick={onClose} className="text-muted-foreground hover:text-foreground cursor-pointer">Close</Button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div className="grid grid-cols-2 gap-3">
           {[
             { label: 'บาร์โค้ด', value: selected.barcode || '—' },
             { label: 'น้ำหนัก', value: selected.weightGrams ? `${selected.weightGrams}g` : '—' },
@@ -58,31 +57,31 @@ export default function SkuViewModal({
             { label: 'Reorder Point', value: selected.reorder || '—' },
             { label: 'สต็อกพร้อมขาย', value: selected.isBundle ? 'Virtual' : (selected.stock - selected.reservedQty).toLocaleString() },
           ].map(row => (
-            <div key={row.label} style={{ background: 'var(--erp-subtle)', borderRadius: 8, padding: '10px 12px' }}>
-              <div style={{ fontSize: 11, color: 'var(--erp-ink3)', marginBottom: 2 }}>{row.label}</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--erp-ink)' }}>{row.value}</div>
+            <div key={row.label} className="rounded-lg p-2.5" style={{ background: 'var(--erp-subtle)' }}>
+              <div className="text-[11px] text-muted-foreground mb-0.5" style={{ color: 'var(--erp-ink3)' }}>{row.label}</div>
+              <div className="text-sm font-semibold text-foreground" style={{ color: 'var(--erp-ink)' }}>{row.value}</div>
             </div>
           ))}
         </div>
 
         {selected.note && (
-          <div style={{ marginTop: 12, padding: '10px 12px', background: '#FFFBEB', borderRadius: 8, border: '1px solid #FDE68A', fontSize: 13, color: '#92400E' }}>
+          <div className="mt-3 p-2.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 rounded-lg text-xs text-amber-800 dark:text-amber-400">
             {selected.note}
           </div>
         )}
 
         {selected.isBundle && (
-          <div style={{ marginTop: 12, padding: '12px 14px', background: '#F0FDF4', borderRadius: 8, border: '1px solid #BBF7D0' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#065F46', marginBottom: 8 }}>🧩 BOM — ส่วนประกอบ</div>
+          <div className="mt-3 p-3 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 rounded-lg">
+            <div className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-2">🧩 BOM — ส่วนประกอบ</div>
             {comps.length === 0
-              ? <div style={{ fontSize: 12, color: '#9CA3AF' }}>ยังไม่ได้กำหนด BOM — กด BOM เพื่อตั้งค่า</div>
+              ? <div className="text-xs text-muted-foreground">ยังไม่ได้กำหนด BOM — กด BOM เพื่อตั้งค่า</div>
               : <>
                 {comps.map(c => {
                   const cp = products.find(p => p.sku === c.componentSku)
                   return (
-                    <div key={c.componentSku} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4, color: '#374151' }}>
+                    <div key={c.componentSku} className="flex justify-between text-xs mb-1 text-muted-foreground">
                       <span>• {c.componentSku} ({cp?.name ?? '?'})</span>
-                      <span style={{ fontWeight: 600 }}>
+                      <span className="font-semibold text-foreground">
                         × {c.qty} {c.unit ?? 'piece'} · ฿{(c.componentType === 'expense'
                           ? c.qty * (c.unitCostOverride ?? 0)
                           : c.qty * (cp?.cost ?? 0)).toLocaleString('th-TH', { maximumFractionDigits: 2 })}
@@ -90,7 +89,7 @@ export default function SkuViewModal({
                     </div>
                   )
                 })}
-                <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #BBF7D0', fontSize: 13, fontWeight: 700, color: '#059669' }}>
+                <div className="mt-2 pt-2 border-t border-emerald-200/50 text-sm font-bold text-emerald-600 dark:text-emerald-400">
                   สต็อกพร้อมขาย: {virtualQty} ชุด
                 </div>
               </>
@@ -98,10 +97,10 @@ export default function SkuViewModal({
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
-          <button onClick={onEdit} style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid var(--erp-border)', background: 'var(--erp-surface)', color: '#374151', fontSize: 13, cursor: 'pointer' }}>
+        <div className="flex justify-end gap-2 mt-5">
+          <Button onClick={onEdit} variant="outline" size="sm" className="cursor-pointer border-border" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)', color: '#374151' }}>
             แก้ไข
-          </button>
+          </Button>
         </div>
       </div>
     </div>

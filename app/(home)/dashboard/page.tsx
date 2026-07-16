@@ -8,7 +8,6 @@ import {
   PageBody,
   Card,
   SectionLabel,
-  Btn,
   Mono,
   Dot,
   MetricTile,
@@ -16,35 +15,14 @@ import {
   fmtBahtK,
   fmtNum,
 } from "@/components/ui";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-  LineController,
-  BarController,
-} from "chart.js";
-import { Bar, Chart } from "react-chartjs-2";
+import { Button } from "@/components/ui/button";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Label } from "@/components/ui/label";
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-  LineController,
-  BarController,
-);
+import { CashFlowChart } from "./components/CashFlowChart";
+import { ChannelBar } from "./components/ChannelBar";
+import { AlertRow } from "./components/AlertRow";
+import { PnlBars } from "./components/PnlBars";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -84,392 +62,6 @@ const MONTH_SHORT = [
 function monthShort(key: string) {
   const m = parseInt(key.slice(5, 7), 10) - 1;
   return MONTH_SHORT[m] ?? key;
-}
-
-// ── Cash Flow SVG Chart ───────────────────────────────────────────────────────
-
-function CashFlowChart({
-  t,
-  data,
-  height = 280,
-}: {
-  t: ReturnType<typeof useTheme>["tokens"];
-  data: { d: number; rev: number; exp: number }[];
-  height?: number;
-}) {
-  const c = t.color;
-  const labels = data.map((d) => `Day ${d.d}`);
-
-  const ma = data.map((_, i) => {
-    const lo = Math.max(0, i - 3),
-      hi = Math.min(data.length - 1, i + 3);
-    let s = 0,
-      n = 0;
-    for (let k = lo; k <= hi; k++) {
-      s += data[k].rev - data[k].exp;
-      n++;
-    }
-    return s / n;
-  });
-
-  const chartData = {
-    labels,
-    datasets: [
-      {
-        type: "line" as const,
-        label: "ค่าเฉลี่ยกำไร 7 วัน",
-        borderColor: c.ink2,
-        borderWidth: 1.5,
-        fill: false,
-        data: ma,
-        tension: 0.4,
-        pointRadius: 0,
-        pointHoverRadius: 4,
-      },
-      {
-        type: "bar" as const,
-        label: "รายรับ",
-        backgroundColor: c.accent,
-        data: data.map((d) => d.rev),
-        borderRadius: 2,
-      },
-      {
-        type: "bar" as const,
-        label: "รายจ่าย",
-        backgroundColor: c.expense,
-        data: data.map((d) => d.exp),
-        borderRadius: 2,
-      },
-    ],
-  };
-
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: false,
-      },
-      tooltip: {
-        mode: "index" as const,
-        intersect: false,
-        backgroundColor: c.surface,
-        titleColor: c.ink,
-        bodyColor: c.ink2,
-        borderColor: c.border,
-        borderWidth: 1,
-        titleFont: { family: t.font.sans, size: 12, weight: "bold" as const },
-        bodyFont: { family: t.font.sans, size: 12 },
-        callbacks: {
-          label: (context: any) => {
-            let label = context.dataset.label || "";
-            if (label) {
-              label += ": ";
-            }
-            if (context.parsed.y !== null) {
-              label += new Intl.NumberFormat("th-TH", {
-                style: "currency",
-                currency: "THB",
-                maximumFractionDigits: 0,
-              }).format(context.parsed.y);
-            }
-            return label;
-          },
-        },
-      },
-    },
-    scales: {
-      x: {
-        grid: {
-          display: false,
-        },
-        ticks: {
-          color: c.ink3,
-          font: { family: t.font.mono, size: 10 },
-          maxTicksLimit: 5,
-        },
-      },
-      y: {
-        grid: {
-          color: c.border,
-          lineWidth: 0.6,
-        },
-        border: {
-          dash: [2, 5],
-        },
-        ticks: {
-          color: c.ink3,
-          font: { family: t.font.mono, size: 10 },
-          callback: (value: any) => {
-            if (value >= 1_000_000)
-              return `฿${(value / 1_000_000).toFixed(1)}M`;
-            if (value >= 1000) return `฿${Math.round(value / 1000)}K`;
-            return `฿${value}`;
-          },
-        },
-      },
-    },
-  };
-
-  return (
-    <div style={{ height, position: "relative", width: "100%" }}>
-      <Chart type="bar" data={chartData} options={options} />
-    </div>
-  );
-}
-
-// ── Channel Bar ───────────────────────────────────────────────────────────────
-
-function ChannelBar({
-  t,
-  name,
-  rev,
-  delta,
-  max,
-}: {
-  t: ReturnType<typeof useTheme>["tokens"];
-  name: string;
-  rev: number;
-  delta: number;
-  max: number;
-}) {
-  const c = t.color;
-  const pct = max > 0 ? (rev / max) * 100 : 0;
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "130px 1fr 100px 70px",
-        alignItems: "center",
-        gap: 14,
-        padding: "10px 0",
-      }}
-    >
-      <div
-        style={{
-          fontSize: 13,
-          color: c.ink,
-          fontWeight: 500,
-          letterSpacing: "-0.005em",
-          fontFamily: t.font.sans,
-        }}
-      >
-        {name}
-      </div>
-      <div
-        style={{
-          height: 8,
-          background: c.subtle,
-          borderRadius: 999,
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            width: `${pct}%`,
-            height: "100%",
-            background: c.accent,
-            borderRadius: 999,
-          }}
-        />
-      </div>
-      <Mono t={t} size={13} weight={500}>
-        {fmtBaht(rev)}
-      </Mono>
-      <Mono
-        t={t}
-        size={11}
-        weight={500}
-        color={delta >= 0 ? c.pos : c.neg}
-        style={{ textAlign: "right" }}
-      >
-        {delta >= 0 ? "+" : "−"}
-        {Math.abs(delta).toFixed(1)}%
-      </Mono>
-    </div>
-  );
-}
-
-// ── Alert Row ─────────────────────────────────────────────────────────────────
-
-function AlertRow({
-  t,
-  sev,
-  title,
-  meta,
-  age,
-  divider,
-}: {
-  t: ReturnType<typeof useTheme>["tokens"];
-  sev: "high" | "med" | "low";
-  title: string;
-  meta: string;
-  age: string;
-  divider?: boolean;
-}) {
-  const c = t.color;
-  const color = sev === "high" ? c.neg : sev === "med" ? c.warn : c.ink3;
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "auto 1fr auto",
-        alignItems: "center",
-        gap: 14,
-        padding: "14px 0",
-        borderTop: divider ? `1px solid ${c.border}` : "none",
-      }}
-    >
-      <div
-        style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 76 }}
-      >
-        <Dot color={color} size={6} />
-        <span
-          style={{
-            fontSize: 10,
-            color,
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-            fontWeight: 500,
-            fontFamily: t.font.sans,
-          }}
-        >
-          {sev === "high" ? "Critical" : sev === "med" ? "Warning" : "Notice"}
-        </span>
-      </div>
-      <div>
-        <div
-          style={{
-            fontSize: 13,
-            color: c.ink,
-            fontWeight: 500,
-            letterSpacing: "-0.005em",
-            fontFamily: t.font.sans,
-          }}
-        >
-          {title}
-        </div>
-        <div
-          style={{
-            fontSize: 12,
-            color: c.ink3,
-            marginTop: 2,
-            fontFamily: t.font.sans,
-          }}
-        >
-          {meta}
-        </div>
-      </div>
-      <Mono t={t} size={11} color={c.ink3}>
-        {age}
-      </Mono>
-    </div>
-  );
-}
-
-// ── P&L Mini Bars ─────────────────────────────────────────────────────────────
-
-function PnlBars({
-  t,
-  data,
-}: {
-  t: ReturnType<typeof useTheme>["tokens"];
-  data: { month: string; rev: number; net: number }[];
-}) {
-  const c = t.color;
-  const labels = data.map((d) => d.month);
-  const chartData = {
-    labels,
-    datasets: [
-      {
-        label: "Revenue",
-        backgroundColor: c.subtle,
-        borderColor: c.border,
-        borderWidth: 1,
-        borderRadius: 2,
-        data: data.map((d) => d.rev),
-      },
-      {
-        label: "Net profit",
-        backgroundColor: c.accent,
-        borderRadius: 2,
-        data: data.map((d) => d.net),
-      },
-    ],
-  };
-
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: false,
-      },
-      tooltip: {
-        mode: "index" as const,
-        intersect: false,
-        backgroundColor: c.surface,
-        titleColor: c.ink,
-        bodyColor: c.ink2,
-        borderColor: c.border,
-        borderWidth: 1,
-        titleFont: { family: t.font.sans, size: 11, weight: "bold" as const },
-        bodyFont: { family: t.font.sans, size: 11 },
-        callbacks: {
-          label: (context: any) => {
-            let label = context.dataset.label || "";
-            if (label) {
-              label += ": ";
-            }
-            if (context.parsed.y !== null) {
-              label += new Intl.NumberFormat("th-TH", {
-                style: "currency",
-                currency: "THB",
-                maximumFractionDigits: 0,
-              }).format(context.parsed.y);
-            }
-            return label;
-          },
-        },
-      },
-    },
-    scales: {
-      x: {
-        grid: {
-          display: false,
-        },
-        ticks: {
-          color: c.ink3,
-          font: { family: t.font.sans, size: 11 },
-        },
-      },
-      y: {
-        grid: {
-          color: c.border,
-          lineWidth: 0.6,
-        },
-        border: {
-          dash: [2, 5],
-        },
-        ticks: {
-          color: c.ink3,
-          font: { family: t.font.mono, size: 10 },
-          callback: (value: any) => {
-            if (value >= 1_000_000)
-              return `฿${(value / 1_000_000).toFixed(1)}M`;
-            if (value >= 1000) return `฿${Math.round(value / 1000)}K`;
-            return `฿${value}`;
-          },
-        },
-      },
-    },
-  };
-
-  return (
-    <div style={{ height: 140, position: "relative", marginTop: 10 }}>
-      <Bar data={chartData} options={options} />
-    </div>
-  );
 }
 
 // ── Dashboard Page ────────────────────────────────────────────────────────────
@@ -677,59 +269,43 @@ export default function DashboardPage() {
   }
 
   return (
-    <div>
+    <div className="min-h-screen bg-canvas" style={{ background: c.canvas }}>
       <TopBar
         t={t}
         breadcrumb={["Chawy", "Dashboard"]}
         title={`Good morning, ${(currentUser?.name || "Guest").split(" ")[0]}`}
         subtitle={`${dateStr} · ภาพรวมระบบ Chawy ERP`}
         right={
-          <>
-            <Btn t={t} variant="ghost" onClick={handleExport}>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleExport} className="cursor-pointer border-border" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)', color: '#374151' }}>
               Export
-            </Btn>
+            </Button>
             <Link href="/sales-orders">
-              <Btn t={t} variant="primary">
+              <Button size="sm" className="cursor-pointer bg-[var(--erp-accent)] text-white hover:opacity-90 shadow-none border-none">
                 + New Order
-              </Btn>
+              </Button>
             </Link>
-          </>
+          </div>
         }
       />
 
-      <PageBody t={t} maxWidth="none" style={{ paddingBottom: 48 }}>
-        <Card t={t} style={{ marginBottom: 16, padding: "14px 18px" }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-end",
-              gap: 12,
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ flex: 1, minWidth: 180 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: c.ink }}>
+      <PageBody t={t} maxWidth={1320}>
+        <Card t={t} className="mb-4 p-[14px_18px] border border-border bg-card" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)' }}>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex-1 min-w-[180px]">
+              <div className="text-xs font-semibold text-foreground" style={{ color: 'var(--erp-ink)' }}>
                 ค้นหาข้อมูลตามช่วงเวลา
               </div>
-              <div style={{ fontSize: 11, color: c.ink3, marginTop: 3 }}>
+              <div className="text-[11px] text-muted-foreground mt-1" style={{ color: 'var(--erp-ink3)' }}>
                 กำลังแสดงข้อมูลเดือน {periodLabel}
               </div>
             </div>
-            <label
-              style={{ display: "grid", gap: 5, fontSize: 11, color: c.ink3 }}
-            >
-              เดือน
-              <select
+            <div className="grid gap-1">
+              <Label className="text-[11px] text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>เดือน</Label>
+              <NativeSelect
                 value={filterMonth}
                 onChange={(e) => setFilterMonth(Number(e.target.value))}
-                style={{
-                  minWidth: 140,
-                  padding: "8px 10px",
-                  border: `1px solid ${c.border}`,
-                  borderRadius: t.radius,
-                  background: c.surface,
-                  color: c.ink,
-                }}
+                className="min-w-[140px] cursor-pointer"
               >
                 {Array.from({ length: 12 }, (_, i) => (
                   <option key={i + 1} value={i + 1}>
@@ -738,44 +314,35 @@ export default function DashboardPage() {
                     )}
                   </option>
                 ))}
-              </select>
-            </label>
-            <label
-              style={{ display: "grid", gap: 5, fontSize: 11, color: c.ink3 }}
-            >
-              ปี
-              <select
+              </NativeSelect>
+            </div>
+            <div className="grid gap-1">
+              <Label className="text-[11px] text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>ปี</Label>
+              <NativeSelect
                 value={filterYear}
                 onChange={(e) => setFilterYear(Number(e.target.value))}
-                style={{
-                  minWidth: 110,
-                  padding: "8px 10px",
-                  border: `1px solid ${c.border}`,
-                  borderRadius: t.radius,
-                  background: c.surface,
-                  color: c.ink,
-                }}
+                className="min-w-[110px] cursor-pointer"
               >
                 {yearOptions.map((year) => (
                   <option key={year} value={year}>
                     {year + 543}
                   </option>
                 ))}
-              </select>
-            </label>
-            <Btn
-              t={t}
-              variant="primary"
+              </NativeSelect>
+            </div>
+            <Button
               onClick={() => {
                 setSelectedMonth(filterMonth);
                 setSelectedYear(filterYear);
               }}
+              className="bg-[var(--erp-accent)] text-white hover:opacity-90 shadow-none border-none cursor-pointer"
+              size="sm"
             >
               Search
-            </Btn>
-            <Btn
-              t={t}
-              variant="ghost"
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => {
                 const currentMonth = now.getMonth() + 1;
                 const currentYear = now.getFullYear();
@@ -784,21 +351,16 @@ export default function DashboardPage() {
                 setSelectedMonth(currentMonth);
                 setSelectedYear(currentYear);
               }}
+              className="cursor-pointer border-border"
+              style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)', color: '#374151' }}
             >
               เดือนปัจจุบัน
-            </Btn>
+            </Button>
           </div>
         </Card>
 
         {/* KPI Tiles */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 12,
-            marginBottom: 24,
-          }}
-        >
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <MetricTile
             t={t}
             primary
@@ -831,37 +393,21 @@ export default function DashboardPage() {
         </div>
 
         {/* Cash Flow Card */}
-        <Card t={t} style={{ marginBottom: 24, padding: 0 }}>
+        <Card t={t} pad={false} className="mb-6 overflow-hidden border border-border bg-card" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)' }}>
           {/* Header */}
-          <div
-            style={{
-              padding: "22px 24px 18px",
-              display: "flex",
-              alignItems: "flex-end",
-              justifyContent: "space-between",
-              borderBottom: `1px solid ${c.border}`,
-            }}
-          >
+          <div className="p-[22px_24px_18px] flex items-end justify-between border-b border-border" style={{ borderColor: 'var(--erp-border)' }}>
             <div>
-              <SectionLabel t={t} style={{ marginBottom: 4 }}>
+              <SectionLabel t={t} className="mb-1">
                 Cash Flow · {periodLabel}
               </SectionLabel>
-              <div
-                style={{ fontSize: 13, color: c.ink3, fontFamily: t.font.sans }}
-              >
+              <div className="text-xs text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>
                 รายรับและรายจ่ายรายวันของเดือนที่เลือก
               </div>
             </div>
           </div>
 
           {/* Stat tiles */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              borderBottom: `1px solid ${c.border}`,
-            }}
-          >
+          <div className="grid grid-cols-3 border-b border-border" style={{ borderColor: 'var(--erp-border)' }}>
             {[
               {
                 label: "Revenue · Period",
@@ -890,40 +436,17 @@ export default function DashboardPage() {
             ].map((s, i) => (
               <div
                 key={s.label}
-                style={{
-                  padding: "20px 24px 22px",
-                  borderRight: i < 2 ? `1px solid ${c.border}` : "none",
-                }}
+                className="p-[20px_24px_22px] border-r border-border last:border-r-0"
+                style={{ borderColor: 'var(--erp-border)' }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    marginBottom: 10,
-                  }}
-                >
+                <div className="flex items-center gap-2 mb-2.5">
                   {s.swatch && (
                     <span
-                      style={{
-                        width: 10,
-                        height: 10,
-                        background: s.swatch,
-                        borderRadius: 2,
-                        display: "inline-block",
-                      }}
+                      className="w-2.5 h-2.5 rounded-sm inline-block"
+                      style={{ background: s.swatch }}
                     />
                   )}
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 500,
-                      letterSpacing: "0.10em",
-                      textTransform: "uppercase",
-                      color: c.ink3,
-                      fontFamily: t.font.sans,
-                    }}
-                  >
+                  <span className="text-[11px] font-medium tracking-[0.10em] uppercase text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>
                     {s.label}
                   </span>
                 </div>
@@ -935,14 +458,7 @@ export default function DashboardPage() {
                 >
                   {s.value}
                 </Mono>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: c.ink3,
-                    marginTop: 8,
-                    fontFamily: t.font.sans,
-                  }}
-                >
+                <div className="text-xs text-muted-foreground mt-2" style={{ color: 'var(--erp-ink3)' }}>
                   {s.sub}
                 </div>
               </div>
@@ -950,75 +466,23 @@ export default function DashboardPage() {
           </div>
 
           {/* Legend + Chart */}
-          <div style={{ padding: "12px 16px 4px" }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 20,
-                padding: "4px 8px 8px 40px",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span
-                  style={{
-                    width: 8,
-                    height: 16,
-                    background: c.accent,
-                    borderRadius: 2,
-                    display: "inline-block",
-                  }}
-                />
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: c.ink,
-                    fontWeight: 500,
-                    fontFamily: t.font.sans,
-                  }}
-                >
+          <div className="p-[12px_16px_4px]">
+            <div className="flex items-center gap-5 p-[4px_8px_8px_40px]">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-4 rounded-sm inline-block" style={{ background: c.accent }} />
+                <span className="text-xs font-semibold text-foreground" style={{ color: 'var(--erp-ink)' }}>
                   รายรับ
                 </span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span
-                  style={{
-                    width: 8,
-                    height: 16,
-                    background: c.expense,
-                    borderRadius: 2,
-                    display: "inline-block",
-                  }}
-                />
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: c.ink,
-                    fontWeight: 500,
-                    fontFamily: t.font.sans,
-                  }}
-                >
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-4 rounded-sm inline-block" style={{ background: c.expense }} />
+                <span className="text-xs font-semibold text-foreground" style={{ color: 'var(--erp-ink)' }}>
                   รายจ่าย
                 </span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span
-                  style={{
-                    width: 16,
-                    height: 2,
-                    background: c.ink2,
-                    opacity: 0.5,
-                    borderRadius: 2,
-                    display: "inline-block",
-                  }}
-                />
-                <span
-                  style={{
-                    fontSize: 11,
-                    color: c.ink3,
-                    fontFamily: t.font.sans,
-                  }}
-                >
+              <div className="flex items-center gap-2">
+                <span className="w-4 h-0.5 opacity-50 rounded-sm inline-block" style={{ background: c.ink2 }} />
+                <span className="text-[11px] text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>
                   ค่าเฉลี่ยกำไร 7 วัน
                 </span>
               </div>
@@ -1027,55 +491,24 @@ export default function DashboardPage() {
           </div>
 
           {/* Weekly breakdown */}
-          <div
-            style={{
-              borderTop: `1px solid ${c.border}`,
-              padding: "14px 24px",
-              display: "grid",
-              gridTemplateColumns: `repeat(${weeks.length}, 1fr)`,
-              gap: 0,
-            }}
-          >
+          <div className="border-t border-border p-[14px_24px] grid grid-cols-4" style={{ borderColor: 'var(--erp-border)' }}>
             {weeks.map((w, i) => (
               <div
                 key={w.label}
+                className="pr-4 border-r border-border last:border-r-0"
                 style={{
-                  paddingRight: 16,
-                  borderRight:
-                    i < weeks.length - 1 ? `1px solid ${c.border}` : "none",
-                  paddingLeft: i === 0 ? 0 : 16,
+                  borderColor: 'var(--erp-border)',
+                  paddingLeft: i === 0 ? 0 : '16px',
                 }}
               >
-                <div
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 500,
-                    letterSpacing: "0.08em",
-                    textTransform: "uppercase",
-                    color: c.ink3,
-                    fontFamily: t.font.sans,
-                  }}
-                >
+                <div className="text-[10px] font-medium tracking-[0.08em] uppercase text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>
                   {w.label}
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    gap: 8,
-                    marginTop: 8,
-                  }}
-                >
+                <div className="flex items-baseline gap-2 mt-2">
                   <Mono t={t} size={14} weight={600}>
                     {fmtBahtK(w.rev - w.exp)}
                   </Mono>
-                  <span
-                    style={{
-                      fontSize: 10,
-                      color: c.ink3,
-                      fontFamily: t.font.sans,
-                    }}
-                  >
+                  <span className="text-[10px] text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>
                     net
                   </span>
                 </div>
@@ -1085,28 +518,16 @@ export default function DashboardPage() {
         </Card>
 
         {/* Channels + Alerts */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: channels.length > 0 ? "1.4fr 1fr" : "1fr",
-            gap: 24,
-            marginBottom: 24,
-          }}
-        >
+        <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-6 mb-6">
           {channels.length > 0 && (
-            <Card t={t}>
+            <Card t={t} className="border border-border bg-card" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)' }}>
               <SectionLabel
                 t={t}
                 action={
                   <Link
                     href="/sales-orders"
-                    style={{
-                      fontSize: 11,
-                      color: c.accent,
-                      textDecoration: "none",
-                      fontFamily: t.font.sans,
-                      fontWeight: 500,
-                    }}
+                    className="text-[11px] text-primary font-medium hover:underline"
+                    style={{ color: 'var(--erp-accent)' }}
                   >
                     View all →
                   </Link>
@@ -1127,7 +548,7 @@ export default function DashboardPage() {
             </Card>
           )}
           {alerts.length > 0 && (
-            <Card t={t}>
+            <Card t={t} className="border border-border bg-card" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)' }}>
               <SectionLabel
                 t={t}
                 action={
@@ -1154,27 +575,14 @@ export default function DashboardPage() {
         </div>
 
         {/* P&L 6-month */}
-        <Card t={t}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-end",
-              justifyContent: "space-between",
-              marginBottom: 12,
-            }}
-          >
+        <Card t={t} className="border border-border bg-card" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)' }}>
+          <div className="flex flex-wrap items-end justify-between gap-4 mb-3">
             <div>
-              <SectionLabel t={t} style={{ marginBottom: 6 }}>
+              <SectionLabel t={t} className="mb-1.5">
                 Profit & Loss · 6 Months ending {periodLabel}
               </SectionLabel>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 18 }}>
-                <span
-                  style={{
-                    fontSize: 11,
-                    color: c.ink3,
-                    fontFamily: t.font.sans,
-                  }}
-                >
+              <div className="flex items-baseline gap-2">
+                <span className="text-[11px] text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>
                   Net margin
                 </span>
                 <Mono t={t} size={20} weight={600} style={{ marginLeft: 10 }}>
@@ -1182,86 +590,36 @@ export default function DashboardPage() {
                 </Mono>
               </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span
-                  style={{
-                    width: 10,
-                    height: 10,
-                    background: c.subtle,
-                    border: `1px solid ${c.border}`,
-                    display: "inline-block",
-                    borderRadius: 2,
-                  }}
-                />
-                <span
-                  style={{
-                    fontSize: 11,
-                    color: c.ink2,
-                    fontFamily: t.font.sans,
-                  }}
-                >
+            <div className="flex items-center gap-[18px]">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 border border-border inline-block rounded-sm" style={{ background: c.subtle, borderColor: 'var(--erp-border)' }} />
+                <span className="text-[11px] text-muted-foreground" style={{ color: 'var(--erp-ink2)' }}>
                   Revenue
                 </span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span
-                  style={{
-                    width: 10,
-                    height: 10,
-                    background: c.accent,
-                    display: "inline-block",
-                    borderRadius: 2,
-                  }}
-                />
-                <span
-                  style={{
-                    fontSize: 11,
-                    color: c.ink2,
-                    fontFamily: t.font.sans,
-                  }}
-                >
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 inline-block rounded-sm" style={{ background: c.accent }} />
+                <span className="text-[11px] text-muted-foreground" style={{ color: 'var(--erp-ink2)' }}>
                   Net profit
                 </span>
               </div>
               <Link
                 href="/pl"
-                style={{
-                  fontSize: 11,
-                  color: c.accent,
-                  textDecoration: "none",
-                  fontFamily: t.font.sans,
-                  fontWeight: 500,
-                }}
+                className="text-[11px] text-primary font-medium hover:underline"
+                style={{ color: 'var(--erp-accent)' }}
               >
                 Open P&L →
               </Link>
             </div>
           </div>
           <PnlBars t={t} data={pnl6} />
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(6, 1fr)",
-              gap: 14,
-              marginTop: 14,
-              paddingTop: 14,
-              borderTop: `1px solid ${c.border}`,
-            }}
-          >
+          <div className="grid grid-cols-6 gap-3.5 mt-3.5 pt-3.5 border-t border-border" style={{ borderColor: 'var(--erp-border)' }}>
             {pnl6.map((d) => (
-              <div key={d.month} style={{ textAlign: "left" }}>
+              <div key={d.month} className="text-left">
                 <Mono t={t} size={13} weight={600}>
                   {fmtBahtK(d.net)}
                 </Mono>
-                <div
-                  style={{
-                    fontSize: 10,
-                    color: c.ink3,
-                    marginTop: 2,
-                    fontFamily: t.font.mono,
-                  }}
-                >
+                <div className="text-[10px] text-muted-foreground mt-0.5 font-mono" style={{ color: 'var(--erp-ink3)' }}>
                   {d.mPct.toFixed(1)}% margin
                 </div>
               </div>
