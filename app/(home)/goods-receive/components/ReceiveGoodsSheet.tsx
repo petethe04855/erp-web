@@ -59,7 +59,12 @@ interface ReceiveGoodsSheetProps {
   onSubmit: (data: {
     poRef: string;
     receiveDate: string;
-    items: { sku: string; qtyReceived: number; lot: string; expiryDate: string }[];
+    items: {
+      sku: string;
+      qtyReceived: number;
+      lot: string;
+      expiryDate: string;
+    }[];
     landedCosts: LandedCostLine[];
   }) => boolean;
   showToast: (msg: string) => void;
@@ -77,7 +82,7 @@ export function ReceiveGoodsSheet({
 
   const [selectedPO, setSelectedPO] = useState("");
   const [receiveDate, setReceiveDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
   const [lines, setLines] = useState<ReceiveLine[]>([]);
   const [landedCosts, setLandedCosts] = useState<LandedCostLine[]>([]);
@@ -98,14 +103,14 @@ export function ReceiveGoodsSheet({
               expiryDate: "",
             }))
             .filter((line) => line.qtyRemaining > 0)
-        : []
+        : [],
     );
   }
 
   function updateReceiveLine(
     i: number,
     field: "qtyReceived" | "lot" | "expiryDate",
-    val: string | number
+    val: string | number,
   ) {
     setLines((ls) =>
       ls.map((line, idx) => {
@@ -115,7 +120,7 @@ export function ReceiveGoodsSheet({
           return { ...line, qtyReceived: v };
         }
         return { ...line, [field]: String(val) };
-      })
+      }),
     );
   }
 
@@ -133,10 +138,10 @@ export function ReceiveGoodsSheet({
   function updateLandedCostLine<K extends keyof LandedCostLine>(
     idx: number,
     field: K,
-    val: LandedCostLine[K]
+    val: LandedCostLine[K],
   ) {
     setLandedCosts((prev) =>
-      prev.map((item, i) => (i === idx ? { ...item, [field]: val } : item))
+      prev.map((item, i) => (i === idx ? { ...item, [field]: val } : item)),
     );
   }
 
@@ -170,13 +175,19 @@ export function ReceiveGoodsSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex h-full w-[min(640px,100vw)] flex-col border-l bg-card text-card-foreground shadow-2xl outline-none">
         <SheetHeader className="mb-4">
-          <SheetTitle className="text-base font-bold text-foreground" style={{ color: "var(--erp-ink)" }}>
+          <SheetTitle
+            className="text-base font-bold text-foreground"
+            style={{ color: "var(--erp-ink)" }}
+          >
             Receive Goods
           </SheetTitle>
         </SheetHeader>
-        <SheetBody className="grid gap-4 overflow-y-auto">
+        <SheetBody className="space-y-4">
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               Purchase Order *
             </Label>
             <NativeSelect
@@ -194,7 +205,10 @@ export function ReceiveGoodsSheet({
           </div>
 
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               Receive date *
             </Label>
             <Input
@@ -210,10 +224,18 @@ export function ReceiveGoodsSheet({
             style={{ borderColor: "var(--erp-border)" }}
           >
             <div className="flex justify-between items-center">
-              <span className="text-sm font-semibold text-foreground" style={{ color: "var(--erp-ink)" }}>
+              <span
+                className="text-sm font-semibold text-foreground"
+                style={{ color: "var(--erp-ink)" }}
+              >
                 ค่าใช้จ่ายแฝงนำเข้า (Landed Cost)
               </span>
-              <Button variant="outline" size="sm" onClick={addLandedCostLine} className="cursor-pointer">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={addLandedCostLine}
+                className="cursor-pointer"
+              >
                 + เพิ่มค่าใช้จ่าย
               </Button>
             </div>
@@ -221,7 +243,10 @@ export function ReceiveGoodsSheet({
             {landedCosts.length > 0 && (
               <div className="grid gap-2">
                 {landedCosts.map((lc, idx) => (
-                  <div key={idx} className="flex gap-2 items-center flex-wrap sm:flex-nowrap">
+                  <div
+                    key={idx}
+                    className="flex gap-2 items-center flex-wrap sm:flex-nowrap"
+                  >
                     <select
                       value={lc.type}
                       onChange={(e) =>
@@ -241,17 +266,28 @@ export function ReceiveGoodsSheet({
                       placeholder="จำนวน (บาท)"
                       value={lc.amount || ""}
                       onChange={(e) =>
-                        updateLandedCostLine(idx, "amount", Number(e.target.value) || 0)
+                        updateLandedCostLine(
+                          idx,
+                          "amount",
+                          Number(e.target.value) || 0,
+                        )
                       }
                       className="w-24 text-xs font-mono"
                     />
 
-                    <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none text-muted-foreground" style={{ color: "var(--erp-ink2)" }}>
+                    <label
+                      className="flex items-center gap-1.5 text-xs cursor-pointer select-none text-muted-foreground"
+                      style={{ color: "var(--erp-ink2)" }}
+                    >
                       <input
                         type="checkbox"
                         checked={lc.allocatable}
                         onChange={(e) =>
-                          updateLandedCostLine(idx, "allocatable", e.target.checked)
+                          updateLandedCostLine(
+                            idx,
+                            "allocatable",
+                            e.target.checked,
+                          )
                         }
                       />
                       ปันทุน
@@ -283,22 +319,63 @@ export function ReceiveGoodsSheet({
           </div>
 
           {lines.length > 0 && (
-            <div className="border border-border rounded-lg overflow-hidden mt-2" style={{ borderColor: "var(--erp-border)" }}>
+            <div
+              className="border border-border rounded-lg overflow-hidden mt-2"
+              style={{ borderColor: "var(--erp-border)" }}
+            >
               <Table className="w-full border-collapse">
-                <TableHeader className="bg-muted/50 border-b border-border" style={{ background: "var(--erp-subtle)", borderColor: "var(--erp-border)" }}>
+                <TableHeader
+                  className="bg-muted/50 border-b border-border"
+                  style={{
+                    background: "var(--erp-subtle)",
+                    borderColor: "var(--erp-border)",
+                  }}
+                >
                   <TableRow>
-                    <TableHead className="p-3 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Item</TableHead>
-                    <TableHead className="p-3 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Remain</TableHead>
-                    <TableHead className="p-3 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Receive</TableHead>
-                    <TableHead className="p-3 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Lot</TableHead>
-                    <TableHead className="p-3 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Expiry</TableHead>
+                    <TableHead
+                      className="p-3 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      Item
+                    </TableHead>
+                    <TableHead
+                      className="p-3 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      Remain
+                    </TableHead>
+                    <TableHead
+                      className="p-3 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      Receive
+                    </TableHead>
+                    <TableHead
+                      className="p-3 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      Lot
+                    </TableHead>
+                    <TableHead
+                      className="p-3 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      Expiry
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {lines.map((line, i) => (
-                    <TableRow key={line.sku} className="border-b border-border" style={{ borderColor: "var(--erp-border)" }}>
+                    <TableRow
+                      key={line.sku}
+                      className="border-b border-border"
+                      style={{ borderColor: "var(--erp-border)" }}
+                    >
                       <TableCell className="p-3 align-middle">
-                        <span className="text-xs font-semibold text-foreground" style={{ color: "var(--erp-ink)" }}>
+                        <span
+                          className="text-xs font-semibold text-foreground"
+                          style={{ color: "var(--erp-ink)" }}
+                        >
                           {line.name}
                         </span>
                         <div>
@@ -356,11 +433,18 @@ export function ReceiveGoodsSheet({
             variant="outline"
             onClick={() => onOpenChange(false)}
             className="cursor-pointer border-border"
-            style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)", color: "#374151" }}
+            style={{
+              borderColor: "var(--erp-border)",
+              background: "var(--erp-surface)",
+              color: "#374151",
+            }}
           >
             Cancel
           </Button>
-          <Button onClick={handleSubmit} className="bg-[var(--erp-accent)] text-white hover:opacity-90 border-none shadow-none cursor-pointer">
+          <Button
+            onClick={handleSubmit}
+            className="bg-[var(--erp-accent)] text-white hover:opacity-90 border-none shadow-none cursor-pointer"
+          >
             Save Receipt
           </Button>
         </SheetFooter>

@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Dialog } from "@base-ui/react/dialog"
-import { X } from "lucide-react"
+import * as React from "react";
+import { Dialog } from "@base-ui/react/dialog";
+import { X } from "lucide-react";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 function Sheet(props: Dialog.Root.Props) {
-  return <Dialog.Root {...props} />
+  return <Dialog.Root {...props} />;
 }
 
 function SheetContent({ className, children, ...props }: Dialog.Popup.Props) {
@@ -28,39 +28,77 @@ function SheetContent({ className, children, ...props }: Dialog.Popup.Props) {
         </Dialog.Popup>
       </Dialog.Viewport>
     </Dialog.Portal>
-  )
+  );
 }
 
 function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
-  return <div className={cn("flex shrink-0 items-start justify-between gap-4 border-b p-6", className)} {...props} />
+  const { children, ...rest } = props;
+  return (
+    <div
+      className={cn(
+        "relative flex shrink-0 items-start justify-between gap-4 border-b p-6 pr-16",
+        className,
+      )}
+      {...rest}
+    >
+      {children}
+      <SheetClose className="absolute right-5 top-5" />
+    </div>
+  );
 }
 
 function SheetTitle({ className, ...props }: Dialog.Title.Props) {
-  return <Dialog.Title className={cn("text-base font-semibold text-foreground", className)} {...props} />
+  return (
+    <Dialog.Title
+      className={cn("text-base font-semibold text-foreground", className)}
+      {...props}
+    />
+  );
 }
 
 function SheetDescription({ className, ...props }: Dialog.Description.Props) {
-  return <Dialog.Description className={cn("mt-1 text-xs text-muted-foreground", className)} {...props} />
+  return (
+    <Dialog.Description
+      className={cn("mt-1 text-xs text-muted-foreground", className)}
+      {...props}
+    />
+  );
 }
 
 function SheetClose({ className, ...props }: Dialog.Close.Props) {
   return (
     <Dialog.Close
       aria-label="ปิด"
-      className={cn("inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40", className)}
+      className={cn(
+        "inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40",
+        className,
+      )}
       {...props}
     >
       <X className="size-4" />
     </Dialog.Close>
-  )
+  );
 }
 
 function SheetBody({ className, ...props }: React.ComponentProps<"div">) {
-  return <div className={cn("flex-1 overflow-y-auto p-6", className)} {...props} />
+  return (
+    <div className={cn("flex-1 overflow-y-auto p-6", className)} {...props} />
+  );
 }
 
 function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
-  return <div className={cn("shrink-0 border-t p-4 px-6", className)} {...props} />
+  return (
+    <div className={cn("shrink-0 border-t p-4 px-6", className)} {...props} />
+  );
 }
 
-export { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose, SheetBody, SheetFooter }
+export {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetClose,
+  SheetBody,
+  SheetFooter,
+};

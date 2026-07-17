@@ -1,6 +1,6 @@
 # UI Migration Context
 
-Last updated: 2026-07-16
+Last updated: 2026-07-17
 
 ## Goal
 
@@ -57,6 +57,14 @@ The native select is intentionally retained as a styled primitive because replac
 - `app/(home)/settings/page.tsx`
 - Company inputs and textarea use the new primitives.
 - Settings toggles use the accessible Base UI Switch.
+
+### Visual audit fixes
+
+- `SheetHeader` now renders one close button automatically, covering every current and future Sheet without repeating imports in each feature component.
+- Removed the duplicate visible `SKU Master` heading.
+- Added an `Invoice` fallback so the invoice page never renders an empty primary heading.
+- Migrated the login card, labels, inputs, and submit action to shadcn primitives.
+- Browser verification confirmed one visible close button in the Quotation Sheet, one visible SKU heading, one non-empty Invoice heading, and no page-level horizontal overflow on those repaired screens.
 
 ## Verification
 

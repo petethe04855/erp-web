@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useErpStore } from '@/lib/store/useErpStore'
 import { readApiResponse } from '@/lib/apiResponse'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 export default function LoginPage() {
 	const [username, setUsername] = useState('')
@@ -66,47 +70,18 @@ export default function LoginPage() {
 	}
 
 	return (
-		<div style={{
-			display: 'flex',
-			alignItems: 'center',
-			justifyContent: 'center',
-			minHeight: '100vh',
-			width: '100vw',
-			flex: 1,
-			backgroundColor: '#F3F4F6',
-			fontFamily: 'system-ui, -apple-system, sans-serif'
-		}}>
-			<div style={{
-				width: '100%',
-				maxWidth: 420,
-				backgroundColor: '#FFFFFF',
-				borderRadius: 12,
-				boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
-				border: '1px solid #E5E7EB',
-				padding: 36,
-			}}>
-				<div style={{ textAlign: 'center', marginBottom: 28 }}>
-					<span style={{
-						display: 'inline-block',
-						padding: '8px 16px',
-						backgroundColor: '#EEF2FF',
-						color: '#4F46E5',
-						borderRadius: 20,
-						fontSize: 12,
-						fontWeight: 600,
-						textTransform: 'uppercase',
-						letterSpacing: '0.05em',
-						marginBottom: 12
-					}}>
+		<div className="flex min-h-screen w-full flex-1 items-center justify-center bg-background p-4">
+			<Card className="w-full max-w-[420px] shadow-sm">
+				<CardHeader className="items-center px-9 pt-9 text-center">
+					<span className="mb-2 inline-flex rounded-full bg-primary/10 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-primary">
 						Chawy Pet Food
 					</span>
-					<h2 style={{ fontSize: 24, fontWeight: 700, color: '#111827', margin: 0 }}>
-						Sign in to ERP System
-					</h2>
-					<p style={{ fontSize: 14, color: '#6B7280', marginTop: 8, marginBottom: 0 }}>
+					<CardTitle className="text-2xl">Sign in to ERP System</CardTitle>
+					<CardDescription>
 						Enter admin details to manage your store
-					</p>
-				</div>
+					</CardDescription>
+				</CardHeader>
+				<CardContent className="px-9 pb-9">
 
 				{error && (
 					<div style={{
@@ -123,94 +98,45 @@ export default function LoginPage() {
 					</div>
 				)}
 
-				<form onSubmit={handleSubmit}>
-					<div style={{ marginBottom: 18 }}>
-						<label style={{
-							display: 'block',
-							fontSize: 12,
-							fontWeight: 600,
-							color: '#374151',
-							marginBottom: 6,
-							textTransform: 'uppercase',
-							letterSpacing: '0.02em'
-						}}>
+				<form onSubmit={handleSubmit} className="grid gap-5">
+					<div className="grid gap-2">
+						<Label htmlFor="username" className="text-xs uppercase tracking-wide">
 							Username / User ID
-						</label>
-						<input
+						</Label>
+						<Input
+							id="username"
 							type="text"
 							value={username}
 							onChange={e => setUsername(e.target.value)}
 							required
 							placeholder="e.g. admin"
-							style={{
-								width: '100%',
-								padding: '10px 14px',
-								border: '1px solid #D1D5DB',
-								borderRadius: 6,
-								fontSize: 14,
-								outline: 'none',
-								transition: 'border-color 0.2s',
-								color: '#000000',
-								backgroundColor: '#FFFFFF'
-							}}
 						/>
 					</div>
 
-					<div style={{ marginBottom: 24 }}>
-						<label style={{
-							display: 'block',
-							fontSize: 12,
-							fontWeight: 600,
-							color: '#374151',
-							marginBottom: 6,
-							textTransform: 'uppercase',
-							letterSpacing: '0.02em'
-						}}>
+					<div className="grid gap-2">
+						<Label htmlFor="password" className="text-xs uppercase tracking-wide">
 							Password
-						</label>
-						<input
+						</Label>
+						<Input
+							id="password"
 							type="password"
 							value={password}
 							onChange={e => setPassword(e.target.value)}
 							required
 							placeholder="••••••••"
-							style={{
-								width: '100%',
-								padding: '10px 14px',
-								border: '1px solid #D1D5DB',
-								borderRadius: 6,
-								fontSize: 14,
-								outline: 'none',
-								transition: 'border-color 0.2s',
-								color: '#000000',
-								backgroundColor: '#FFFFFF'
-							}}
 						/>
 					</div>
 
-					<button
+					<Button
 						type="submit"
 						disabled={loading}
-						style={{
-							width: '100%',
-							padding: '12px',
-							backgroundColor: '#4F46E5',
-							color: '#FFFFFF',
-							border: 'none',
-							borderRadius: 6,
-							fontSize: 14,
-							fontWeight: 600,
-							cursor: loading ? 'not-allowed' : 'pointer',
-							transition: 'background-color 0.2s',
-							opacity: loading ? 0.7 : 1
-						}}
+						className="mt-1 h-10 w-full"
 					>
 						{loading ? 'Signing in...' : 'Sign In'}
-					</button>
+					</Button>
 				</form>
-
-				
-			</div>
+				</CardContent>
+			</Card>
 		</div>
 	)
 }

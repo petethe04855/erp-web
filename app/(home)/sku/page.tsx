@@ -125,15 +125,9 @@ export default function SkuPage() {
 
   return (
     <div className="min-h-screen bg-canvas" style={{ background: c.canvas }}>
-      <TopBar t={t} title="SKU Master" subtitle="ข้อมูลสินค้า" />
+      <TopBar t={t} title="SKU Master" subtitle="จัดการข้อมูลสินค้า (Master Data)" />
       <div className="px-8 py-6">
-        
-        {/* Header */}
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <h1 className="text-xl font-bold text-foreground m-0" style={{ color: 'var(--erp-ink)' }}>SKU Master</h1>
-            <p className="text-xs text-muted-foreground mt-1" style={{ color: 'var(--erp-ink3)' }}>จัดการข้อมูลสินค้า (Master Data)</p>
-          </div>
+        <div className="flex justify-end mb-6">
           <Button onClick={openAdd} className="bg-[var(--erp-accent)] text-white gap-1.5 h-9 px-4 text-xs font-semibold rounded-lg shadow-none cursor-pointer">
             + เพิ่มสินค้า
           </Button>

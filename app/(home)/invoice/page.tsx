@@ -378,7 +378,7 @@ export default function InvoicePage() {
         <TopBar
           t={t}
           breadcrumb={["Chawy", "Sales", "Invoices", selected.id]}
-          title={selected.id}
+          title={selected.id || "Invoice"}
           subtitle={
             <span>
               Reference{" "}

@@ -2,7 +2,6 @@
 import {
   Sheet,
   SheetBody,
-  SheetClose,
   SheetContent,
   SheetDescription,
   SheetFooter,
@@ -28,7 +27,6 @@ export default function SlidePanel({ open, onClose, title, subtitle, children, f
             <SheetTitle>{title}</SheetTitle>
             {subtitle && <SheetDescription>{subtitle}</SheetDescription>}
           </div>
-          <SheetClose />
         </SheetHeader>
         <SheetBody>{children}</SheetBody>
         {footer && <SheetFooter>{footer}</SheetFooter>}
