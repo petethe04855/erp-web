@@ -69,9 +69,7 @@ export default function PurchaseOrderPage() {
     try {
       await exportXlsx(
         "purchase-orders",
-        `purchase-orders-export-${new Date()
-          .toISOString()
-          .slice(0, 10)}.xlsx`
+        `purchase-orders-export-${new Date().toISOString().slice(0, 10)}.xlsx`,
       );
       showToast("Export สำเร็จ");
     } catch (err: any) {
@@ -80,13 +78,16 @@ export default function PurchaseOrderPage() {
   }
 
   return (
-    <div className="min-h-screen bg-canvas pb-16" style={{ background: c.canvas }}>
+    <div
+      className="min-h-screen bg-canvas pb-16"
+      style={{ background: c.canvas }}
+    >
       <TopBar
         t={t}
         breadcrumb={["Chawy", "Purchasing", "Purchase Orders"]}
         title="Purchase Orders"
         subtitle={`ใบสั่งซื้อ · ${rows.length} รายการ · ${formatBaht(
-          openValue
+          openValue,
         )} ค้างรับ`}
         right={
           <div className="flex items-center gap-2">
@@ -100,7 +101,11 @@ export default function PurchaseOrderPage() {
                 {toast}
               </span>
             )}
-            <Button variant="outline" onClick={handleExport} className="cursor-pointer">
+            <Button
+              variant="outline"
+              onClick={handleExport}
+              className="cursor-pointer"
+            >
               Export
             </Button>
             <Button
@@ -113,7 +118,7 @@ export default function PurchaseOrderPage() {
         }
       />
 
-      <div className="p-6 md:p-8 max-w-[1320px] mx-auto grid gap-6">
+      <div className="p-6 md:p-8 max-w-full mx-auto grid gap-6">
         {/* KPI Strip */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
@@ -179,22 +184,63 @@ export default function PurchaseOrderPage() {
           t={t}
           pad={false}
           className="overflow-hidden border border-border bg-card"
-          style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+          style={{
+            borderColor: "var(--erp-border)",
+            background: "var(--erp-surface)",
+          }}
         >
           <div className="overflow-x-auto">
             <Table className="w-full border-collapse">
               <TableHeader
                 className="bg-muted/50 border-b border-border"
-                style={{ background: "var(--erp-subtle)", borderColor: "var(--erp-border)" }}
+                style={{
+                  background: "var(--erp-subtle)",
+                  borderColor: "var(--erp-border)",
+                }}
               >
                 <TableRow>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>PO</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Supplier</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Order date</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>ETA</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>Items</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>Amount</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Status</TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    PO
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Supplier
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Order date
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    ETA
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Items
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Amount
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Status
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

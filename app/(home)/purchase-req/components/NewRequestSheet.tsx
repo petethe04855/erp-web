@@ -19,7 +19,12 @@ import { useTheme } from "@/lib/design/ThemeContext";
 
 type ItemLine = { sku: string; name: string; qty: number | ""; note: string };
 const BLANK_LINE: ItemLine = { sku: "", name: "", qty: 1, note: "" };
-const BLANK = { requester: "", reason: "", neededDate: "", items: [{ ...BLANK_LINE }] };
+const BLANK = {
+  requester: "",
+  reason: "",
+  neededDate: "",
+  items: [{ ...BLANK_LINE }],
+};
 
 interface Product {
   sku: string;
@@ -38,7 +43,12 @@ interface NewRequestSheetProps {
   onOpenChange: (open: boolean) => void;
   products: Product[];
   bomsList: BOM[];
-  onSubmit: (pr: { requester: string; reason: string; neededDate: string; items: { sku: string; name: string; qty: number; note: string }[] }) => void;
+  onSubmit: (pr: {
+    requester: string;
+    reason: string;
+    neededDate: string;
+    items: { sku: string; name: string; qty: number; note: string }[];
+  }) => void;
   showToast: (msg: string) => void;
 }
 
@@ -83,7 +93,9 @@ export function NewRequestSheet({
   }
 
   function handleSubmit() {
-    const hasInvalidItem = form.items.some((i) => i.qty === "" || Number(i.qty) <= 0);
+    const hasInvalidItem = form.items.some(
+      (i) => i.qty === "" || Number(i.qty) <= 0,
+    );
     if (hasInvalidItem) {
       showToast("กรุณากรอกจำนวนในรายการให้ถูกต้อง (มากกว่า 0)");
       return;
@@ -114,47 +126,68 @@ export function NewRequestSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex h-full w-[min(540px,100vw)] flex-col border-l bg-card text-card-foreground shadow-2xl outline-none">
         <SheetHeader className="mb-4">
-          <SheetTitle className="text-base font-bold text-foreground" style={{ color: "var(--erp-ink)" }}>
+          <SheetTitle
+            className="text-base font-bold text-foreground"
+            style={{ color: "var(--erp-ink)" }}
+          >
             New Purchase Request
           </SheetTitle>
         </SheetHeader>
-        <SheetBody className="grid gap-4 overflow-y-auto">
+        <SheetBody className="space-y-3">
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               Requester
             </Label>
             <Input
               value={form.requester}
-              onChange={(e) => setForm((f) => ({ ...f, requester: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, requester: e.target.value }))
+              }
               placeholder="Requester name"
             />
           </div>
 
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               Reason
             </Label>
             <Textarea
               value={form.reason}
-              onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, reason: e.target.value }))
+              }
               placeholder="Reason for request"
             />
           </div>
 
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               Needed date
             </Label>
             <Input
               type="date"
               value={form.neededDate}
-              onChange={(e) => setForm((f) => ({ ...f, neededDate: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, neededDate: e.target.value }))
+              }
             />
           </div>
 
           <div>
             <div className="flex justify-between items-center mb-2">
-              <span className="text-xs font-bold text-foreground" style={{ color: "var(--erp-ink2)" }}>
+              <span
+                className="text-xs font-bold text-foreground"
+                style={{ color: "var(--erp-ink2)" }}
+              >
                 Items
               </span>
               <Button
@@ -167,7 +200,10 @@ export function NewRequestSheet({
               </Button>
             </div>
 
-            <div className="border border-border rounded-lg overflow-hidden" style={{ borderColor: "var(--erp-border)" }}>
+            <div
+              className="border border-border rounded-lg overflow-hidden"
+              style={{ borderColor: "var(--erp-border)" }}
+            >
               <Table className="w-full border-collapse">
                 <TableBody>
                   {form.items.map((line, i) => (
@@ -210,7 +246,7 @@ export function NewRequestSheet({
                               "qty",
                               e.target.value === ""
                                 ? ""
-                                : parseInt(e.target.value) || 0
+                                : parseInt(e.target.value) || 0,
                             )
                           }
                           className="h-9 text-xs p-1 text-center font-mono"
@@ -239,7 +275,11 @@ export function NewRequestSheet({
             variant="outline"
             onClick={() => onOpenChange(false)}
             className="cursor-pointer border-border"
-            style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)", color: "#374151" }}
+            style={{
+              borderColor: "var(--erp-border)",
+              background: "var(--erp-surface)",
+              color: "#374151",
+            }}
           >
             Cancel
           </Button>

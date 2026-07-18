@@ -17,7 +17,13 @@ import {
 } from "@/components/ui/table";
 import { NewReturnSheet } from "./components/NewReturnSheet";
 
-const REASONS: ReturnReason[] = ["สินค้าชำรุด", "ผิดสินค้า", "ลูกค้าเปลี่ยนใจ", "ผิดขนาด/รุ่น", "อื่นๆ"];
+const REASONS: ReturnReason[] = [
+  "สินค้าชำรุด",
+  "ผิดสินค้า",
+  "ลูกค้าเปลี่ยนใจ",
+  "ผิดขนาด/รุ่น",
+  "อื่นๆ",
+];
 
 export default function ReturnsPage() {
   const { tokens: t } = useTheme();
@@ -44,8 +50,8 @@ export default function ReturnsPage() {
       const status = ret.status
         ? ret.status.toLowerCase()
         : ret.refunded
-        ? "completed"
-        : "pending";
+          ? "completed"
+          : "pending";
       return {
         ...ret,
         customer: so?.customer ?? "Walk-in / Manual",
@@ -57,7 +63,7 @@ export default function ReturnsPage() {
 
   const total = rows.reduce((s, r) => s + r.amount, 0);
   const openCount = rows.filter(
-    (r) => r.status !== "completed" && r.status !== "cancelled"
+    (r) => r.status !== "completed" && r.status !== "cancelled",
   ).length;
 
   const topReason = useMemo(() => {
@@ -80,10 +86,13 @@ export default function ReturnsPage() {
     showToast(`รับคืน ${result.id} แล้ว · สถานะ: รอดำเนินการ`);
   }
 
-  function handleUpdateStatus(id: string, newStatus: "Completed" | "Cancelled") {
+  function handleUpdateStatus(
+    id: string,
+    newStatus: "Completed" | "Cancelled",
+  ) {
     updateStockReturnStatus(id, newStatus);
     showToast(
-      `อัปเดต ${id} เป็น ${newStatus === "Completed" ? "ของกลับมาแล้ว" : "ยกเลิก"} สำเร็จ`
+      `อัปเดต ${id} เป็น ${newStatus === "Completed" ? "ของกลับมาแล้ว" : "ยกเลิก"} สำเร็จ`,
     );
   }
 
@@ -91,7 +100,7 @@ export default function ReturnsPage() {
     try {
       await exportXlsx(
         "returns",
-        `returns-export-${new Date().toISOString().slice(0, 10)}.xlsx`
+        `returns-export-${new Date().toISOString().slice(0, 10)}.xlsx`,
       );
       showToast("Export สำเร็จ");
     } catch (err: any) {
@@ -100,7 +109,10 @@ export default function ReturnsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-canvas pb-16" style={{ background: c.canvas }}>
+    <div
+      className="min-h-screen bg-canvas pb-16"
+      style={{ background: c.canvas }}
+    >
       <TopBar
         t={t}
         breadcrumb={["Chawy", "Sales", "Returns"]}
@@ -116,7 +128,11 @@ export default function ReturnsPage() {
                 {toast}
               </span>
             )}
-            <Button variant="outline" onClick={handleExport} className="cursor-pointer">
+            <Button
+              variant="outline"
+              onClick={handleExport}
+              className="cursor-pointer"
+            >
               Export
             </Button>
             <Button
@@ -129,7 +145,7 @@ export default function ReturnsPage() {
         }
       />
 
-      <div className="p-6 md:p-8 max-w-[1320px] mx-auto grid gap-6">
+      <div className="p-6 md:p-8 max-w-full mx-auto grid gap-6">
         {/* KPI Strip */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
@@ -195,25 +211,81 @@ export default function ReturnsPage() {
           t={t}
           pad={false}
           className="overflow-hidden border border-border bg-card"
-          style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+          style={{
+            borderColor: "var(--erp-border)",
+            background: "var(--erp-surface)",
+          }}
         >
           <div className="overflow-x-auto">
             <Table className="w-full border-collapse">
               <TableHeader
                 className="bg-muted/50 border-b border-border"
-                style={{ background: "var(--erp-subtle)", borderColor: "var(--erp-border)" }}
+                style={{
+                  background: "var(--erp-subtle)",
+                  borderColor: "var(--erp-border)",
+                }}
               >
                 <TableRow>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>RMA</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>SO Ref</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Customer</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Channel</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Date</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Reason</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>Qty</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>Amount</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Status</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Actions</TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    RMA
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    SO Ref
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Customer
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Channel
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Date
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Reason
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Qty
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Amount
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Status
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -234,12 +306,18 @@ export default function ReturnsPage() {
                       </Mono>
                     </TableCell>
                     <TableCell className="p-4 px-5 align-middle">
-                      <span className="text-sm font-medium" style={{ color: "var(--erp-ink)" }}>
+                      <span
+                        className="text-sm font-medium"
+                        style={{ color: "var(--erp-ink)" }}
+                      >
                         {r.customer}
                       </span>
                     </TableCell>
                     <TableCell className="p-4 px-5 align-middle">
-                      <span className="text-sm font-medium" style={{ color: "var(--erp-ink2)" }}>
+                      <span
+                        className="text-sm font-medium"
+                        style={{ color: "var(--erp-ink2)" }}
+                      >
                         {r.channel}
                       </span>
                     </TableCell>
@@ -250,10 +328,16 @@ export default function ReturnsPage() {
                     </TableCell>
                     <TableCell className="p-4 px-5 align-middle">
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium" style={{ color: "var(--erp-ink)" }}>
+                        <span
+                          className="text-sm font-medium"
+                          style={{ color: "var(--erp-ink)" }}
+                        >
                           {r.reason}
                         </span>
-                        <span className="text-xs" style={{ color: "var(--erp-ink3)" }}>
+                        <span
+                          className="text-xs"
+                          style={{ color: "var(--erp-ink3)" }}
+                        >
                           {r.condition}
                         </span>
                       </div>
@@ -275,14 +359,18 @@ export default function ReturnsPage() {
                       {r.status === "pending" && (
                         <div className="flex gap-2">
                           <Button
-                            onClick={() => handleUpdateStatus(r.id, "Completed")}
+                            onClick={() =>
+                              handleUpdateStatus(r.id, "Completed")
+                            }
                             className="h-7 text-xs px-2.5 cursor-pointer bg-[var(--erp-accent)] text-white border-none"
                           >
                             ของกลับมาแล้ว
                           </Button>
                           <Button
                             variant="outline"
-                            onClick={() => handleUpdateStatus(r.id, "Cancelled")}
+                            onClick={() =>
+                              handleUpdateStatus(r.id, "Cancelled")
+                            }
                             className="h-7 text-xs px-2.5 cursor-pointer"
                           >
                             ยกเลิก

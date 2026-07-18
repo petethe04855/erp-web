@@ -22,7 +22,8 @@ export default function SamplingPage() {
 
   const [open, setOpen] = useState(false);
   const [recipientOpen, setRecipientOpen] = useState(false);
-  const [selectedCampaign, setSelectedCampaign] = useState<SamplingCampaign | null>(null);
+  const [selectedCampaign, setSelectedCampaign] =
+    useState<SamplingCampaign | null>(null);
   const [toast, setToast] = useState("");
 
   function showToast(msg: string) {
@@ -64,14 +65,22 @@ export default function SamplingPage() {
     setRecipientOpen(true);
   }
 
-  const totalGiven = campaigns.reduce((s, cCampaign) => s + cCampaign.givenQty, 0);
+  const totalGiven = campaigns.reduce(
+    (s, cCampaign) => s + cCampaign.givenQty,
+    0,
+  );
   const converted = campaigns
     .flatMap((cCampaign) => cCampaign.recipients)
     .filter((r) => r.converted).length;
-  const activeCampaigns = campaigns.filter((cCampaign) => cCampaign.status === "Active").length;
+  const activeCampaigns = campaigns.filter(
+    (cCampaign) => cCampaign.status === "Active",
+  ).length;
 
   return (
-    <div className="min-h-screen bg-canvas pb-16" style={{ background: c.canvas }}>
+    <div
+      className="min-h-screen bg-canvas pb-16"
+      style={{ background: c.canvas }}
+    >
       <TopBar
         t={t}
         breadcrumb={["Chawy", "Marketing", "Sampling"]}
@@ -97,7 +106,7 @@ export default function SamplingPage() {
         }
       />
 
-      <div className="p-6 md:p-8 max-w-[1320px] mx-auto grid gap-6">
+      <div className="p-6 md:p-8 max-w-full mx-auto grid gap-6">
         {/* Summary KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
@@ -145,12 +154,7 @@ export default function SamplingPage() {
                 {tile.label}
               </div>
               <span className="block mt-2">
-                <Mono
-                  t={t}
-                  size={22}
-                  weight={600}
-                  color={tile.tone}
-                >
+                <Mono t={t} size={22} weight={600} color={tile.tone}>
                   {tile.value}
                 </Mono>
               </span>
@@ -169,7 +173,10 @@ export default function SamplingPage() {
           <Card
             t={t}
             className="flex flex-col items-center justify-center p-12 text-center border border-border bg-card"
-            style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+            style={{
+              borderColor: "var(--erp-border)",
+              background: "var(--erp-surface)",
+            }}
           >
             <div
               className="text-[10px] font-bold tracking-[0.15em] uppercase mb-2"
@@ -177,7 +184,10 @@ export default function SamplingPage() {
             >
               SAMPLE
             </div>
-            <span className="text-sm font-semibold mb-1" style={{ color: "var(--erp-ink)" }}>
+            <span
+              className="text-sm font-semibold mb-1"
+              style={{ color: "var(--erp-ink)" }}
+            >
               ยังไม่มีแคมเปญ Sampling
             </span>
             <span className="text-xs" style={{ color: "var(--erp-ink3)" }}>

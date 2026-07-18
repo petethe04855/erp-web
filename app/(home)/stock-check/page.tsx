@@ -54,7 +54,8 @@ export default function StockCheckPage() {
     sku: p.sku,
     name: p.name,
     systemQty: p.stock,
-    actual: counts[p.sku] !== undefined ? parseInt(counts[p.sku]) || 0 : p.stock,
+    actual:
+      counts[p.sku] !== undefined ? parseInt(counts[p.sku]) || 0 : p.stock,
     variance: (parseInt(counts[p.sku]) || 0) - p.stock,
   }));
   const totalVariance = variances.reduce((s, v) => s + v.variance, 0);
@@ -72,7 +73,10 @@ export default function StockCheckPage() {
   }
 
   return (
-    <div className="min-h-screen bg-canvas pb-16" style={{ background: c.canvas }}>
+    <div
+      className="min-h-screen bg-canvas pb-16"
+      style={{ background: c.canvas }}
+    >
       <TopBar
         t={t}
         breadcrumb={["Chawy", "Inventory", "Stock Checking"]}
@@ -92,7 +96,10 @@ export default function StockCheckPage() {
               variant="outline"
               onClick={() => setHistOpen(true)}
               className="cursor-pointer border-border"
-              style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+              style={{
+                borderColor: "var(--erp-border)",
+                background: "var(--erp-surface)",
+              }}
             >
               ประวัติ ({stockAdjustments.length})
             </Button>
@@ -108,7 +115,7 @@ export default function StockCheckPage() {
         }
       />
 
-      <div className="p-6 md:p-8 max-w-[1320px] mx-auto grid gap-6">
+      <div className="p-6 md:p-8 max-w-full mx-auto grid gap-6">
         {/* KPI Strip */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
@@ -126,15 +133,22 @@ export default function StockCheckPage() {
             },
             {
               label: "มี Variance",
-              value: counting ? variances.filter((v) => v.variance !== 0).length : "—",
+              value: counting
+                ? variances.filter((v) => v.variance !== 0).length
+                : "—",
               sub: "รายการ",
               tone: c.warn,
             },
             {
               label: "Variance รวม",
-              value: counting ? (totalVariance >= 0 ? `+${totalVariance}` : totalVariance) : "—",
+              value: counting
+                ? totalVariance >= 0
+                  ? `+${totalVariance}`
+                  : totalVariance
+                : "—",
               sub: "ชิ้น",
-              tone: totalVariance > 0 ? c.pos : totalVariance < 0 ? c.neg : c.ink3,
+              tone:
+                totalVariance > 0 ? c.pos : totalVariance < 0 ? c.neg : c.ink3,
             },
           ].map((item) => (
             <Card
@@ -153,12 +167,7 @@ export default function StockCheckPage() {
                 {item.label}
               </div>
               <span className="block mt-2">
-                <Mono
-                  t={t}
-                  size={22}
-                  weight={600}
-                  color={item.tone}
-                >
+                <Mono t={t} size={22} weight={600} color={item.tone}>
                   {item.value}
                 </Mono>
               </span>
@@ -177,11 +186,17 @@ export default function StockCheckPage() {
             t={t}
             pad={false}
             className="overflow-hidden border border-border bg-card"
-            style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+            style={{
+              borderColor: "var(--erp-border)",
+              background: "var(--erp-surface)",
+            }}
           >
             <div
               className="p-4 px-5 border-b border-border text-sm font-bold text-foreground"
-              style={{ borderColor: "var(--erp-border)", color: "var(--erp-ink)" }}
+              style={{
+                borderColor: "var(--erp-border)",
+                color: "var(--erp-ink)",
+              }}
             >
               สต๊อกปัจจุบัน (ระบบ)
             </div>
@@ -189,15 +204,48 @@ export default function StockCheckPage() {
               <Table className="w-full border-collapse">
                 <TableHeader
                   className="bg-muted/50 border-b border-border"
-                  style={{ background: "var(--erp-subtle)", borderColor: "var(--erp-border)" }}
+                  style={{
+                    background: "var(--erp-subtle)",
+                    borderColor: "var(--erp-border)",
+                  }}
                 >
                   <TableRow>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>สินค้า</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>SKU</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>สต๊อกระบบ</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>จอง</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>พร้อมขาย</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>Reorder</TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      สินค้า
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      SKU
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      สต๊อกระบบ
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      จอง
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      พร้อมขาย
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      Reorder
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -209,7 +257,10 @@ export default function StockCheckPage() {
                         className="border-b border-border hover:bg-muted/50 transition-colors"
                         style={{ borderColor: "var(--erp-border)" }}
                       >
-                        <TableCell className="p-4 px-5 align-middle text-sm font-semibold" style={{ color: "var(--erp-ink)" }}>
+                        <TableCell
+                          className="p-4 px-5 align-middle text-sm font-semibold"
+                          style={{ color: "var(--erp-ink)" }}
+                        >
                           {p.name}
                         </TableCell>
                         <TableCell className="p-4 px-5 align-middle">
@@ -234,7 +285,9 @@ export default function StockCheckPage() {
                         <TableCell className="p-4 px-5 align-middle text-right">
                           <span
                             className="text-sm font-bold font-mono"
-                            style={{ color: avail <= p.reorder ? c.neg : c.pos }}
+                            style={{
+                              color: avail <= p.reorder ? c.neg : c.pos,
+                            }}
                           >
                             {avail}
                           </span>
@@ -243,7 +296,10 @@ export default function StockCheckPage() {
                           <span
                             className="text-sm font-mono"
                             style={{
-                              color: p.stock <= p.reorder ? c.neg : "var(--erp-ink3)",
+                              color:
+                                p.stock <= p.reorder
+                                  ? c.neg
+                                  : "var(--erp-ink3)",
                               fontWeight: p.stock <= p.reorder ? 700 : 400,
                             }}
                           >
@@ -263,7 +319,8 @@ export default function StockCheckPage() {
                 color: "var(--erp-ink3)",
               }}
             >
-              กด <strong>&ldquo;เริ่มนับสต๊อก&rdquo;</strong> เพื่อเริ่มการตรวจนับและปรับปรุงยอด
+              กด <strong>&ldquo;เริ่มนับสต๊อก&rdquo;</strong>{" "}
+              เพื่อเริ่มการตรวจนับและปรับปรุงยอด
             </div>
           </Card>
         ) : (
@@ -271,18 +328,24 @@ export default function StockCheckPage() {
             t={t}
             pad={false}
             className="overflow-hidden border border-border bg-card"
-            style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+            style={{
+              borderColor: "var(--erp-border)",
+              background: "var(--erp-surface)",
+            }}
           >
             <div
               className="p-4 px-5 border-b border-border flex items-center justify-between gap-4 flex-wrap"
-              style={{ borderColor: "var(--erp-border)", background: "var(--erp-warnBg)" }}
+              style={{
+                borderColor: "var(--erp-border)",
+                background: "var(--erp-warnBg)",
+              }}
             >
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full" style={{ background: c.warn }} />
                 <span
-                  className="text-sm font-bold"
-                  style={{ color: c.warn }}
-                >
+                  className="w-2 h-2 rounded-full"
+                  style={{ background: c.warn }}
+                />
+                <span className="text-sm font-bold" style={{ color: c.warn }}>
                   กำลังนับสต๊อก — กรอกยอดจริงที่นับได้
                 </span>
               </div>
@@ -291,7 +354,11 @@ export default function StockCheckPage() {
                   variant="outline"
                   onClick={cancelCount}
                   className="h-8 text-xs px-3.5 cursor-pointer border-border"
-                  style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)", color: "#374151" }}
+                  style={{
+                    borderColor: "var(--erp-border)",
+                    background: "var(--erp-surface)",
+                    color: "#374151",
+                  }}
                 >
                   ยกเลิก
                 </Button>
@@ -308,14 +375,42 @@ export default function StockCheckPage() {
               <Table className="w-full border-collapse">
                 <TableHeader
                   className="bg-muted/50 border-b border-border"
-                  style={{ background: "var(--erp-subtle)", borderColor: "var(--erp-border)" }}
+                  style={{
+                    background: "var(--erp-subtle)",
+                    borderColor: "var(--erp-border)",
+                  }}
                 >
                   <TableRow>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>สินค้า</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-center w-32" style={{ color: "var(--erp-ink3)" }}>ยอดระบบ</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-center w-36" style={{ color: "var(--erp-ink3)" }}>ยอดนับจริง</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-center w-32" style={{ color: "var(--erp-ink3)" }}>Variance</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left w-32" style={{ color: "var(--erp-ink3)" }}>สถานะ</TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      สินค้า
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-center w-32"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      ยอดระบบ
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-center w-36"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      ยอดนับจริง
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-center w-32"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      Variance
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left w-32"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      สถานะ
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -334,7 +429,10 @@ export default function StockCheckPage() {
                         className={`border-b border-border hover:bg-muted/50 transition-colors ${rowBg}`}
                         style={{ borderColor: "var(--erp-border)" }}
                       >
-                        <TableCell className="p-4 px-5 align-middle text-sm font-semibold" style={{ color: "var(--erp-ink)" }}>
+                        <TableCell
+                          className="p-4 px-5 align-middle text-sm font-semibold"
+                          style={{ color: "var(--erp-ink)" }}
+                        >
                           {v.name}
                         </TableCell>
                         <TableCell className="p-4 px-5 align-middle text-center">
@@ -348,11 +446,19 @@ export default function StockCheckPage() {
                             min={0}
                             value={counts[v.sku] ?? String(v.systemQty)}
                             onChange={(e) =>
-                              setCounts((prev) => ({ ...prev, [v.sku]: e.target.value }))
+                              setCounts((prev) => ({
+                                ...prev,
+                                [v.sku]: e.target.value,
+                              }))
                             }
                             className="h-9 w-24 text-center font-mono font-bold text-sm mx-auto"
                             style={{
-                              borderColor: diff !== 0 ? (diff > 0 ? c.pos : c.neg) : "var(--erp-border)",
+                              borderColor:
+                                diff !== 0
+                                  ? diff > 0
+                                    ? c.pos
+                                    : c.neg
+                                  : "var(--erp-border)",
                             }}
                           />
                         </TableCell>
@@ -360,7 +466,12 @@ export default function StockCheckPage() {
                           <span
                             className="text-sm font-bold font-mono"
                             style={{
-                              color: diff > 0 ? c.pos : diff < 0 ? c.neg : "var(--erp-ink3)",
+                              color:
+                                diff > 0
+                                  ? c.pos
+                                  : diff < 0
+                                    ? c.neg
+                                    : "var(--erp-ink3)",
                             }}
                           >
                             {diff > 0 ? `+${diff}` : diff === 0 ? "—" : diff}
@@ -368,7 +479,10 @@ export default function StockCheckPage() {
                         </TableCell>
                         <TableCell className="p-4 px-5 align-middle">
                           {diff === 0 ? (
-                            <span className="text-[11px] font-bold" style={{ color: c.pos }}>
+                            <span
+                              className="text-[11px] font-bold"
+                              style={{ color: c.pos }}
+                            >
                               ตรง
                             </span>
                           ) : (
@@ -388,9 +502,15 @@ export default function StockCheckPage() {
             </div>
             <div
               className="p-5 border-t border-border flex flex-col gap-1.5"
-              style={{ borderColor: "var(--erp-border)", background: "var(--erp-subtle)" }}
+              style={{
+                borderColor: "var(--erp-border)",
+                background: "var(--erp-subtle)",
+              }}
             >
-              <Label className="text-xs font-bold text-foreground" style={{ color: "var(--erp-ink2)" }}>
+              <Label
+                className="text-xs font-bold text-foreground"
+                style={{ color: "var(--erp-ink2)" }}
+              >
                 บันทึกรอบนับ (หมายเหตุ)
               </Label>
               <Input

@@ -68,8 +68,8 @@ function calcDuration(start: string, end: string): string | null {
   return h > 0 && m > 0
     ? `${h} ชม. ${m} นาที`
     : h > 0
-    ? `${h} ชม.`
-    : `${m} นาที`;
+      ? `${h} ชม.`
+      : `${m} นาที`;
 }
 
 export default function LiveSessionsPage() {
@@ -82,7 +82,7 @@ export default function LiveSessionsPage() {
   const contentSchedule = useErpStore((s) => s.contentSchedule);
   const addContentSchedule = useErpStore((s) => s.addContentSchedule);
   const updateContentScheduleStatus = useErpStore(
-    (s) => s.updateContentScheduleStatus
+    (s) => s.updateContentScheduleStatus,
   );
   const livePayroll = useErpStore((s) => s.settings.livePayroll);
   const currentUser = useErpStore((s) => s.currentUser);
@@ -92,21 +92,21 @@ export default function LiveSessionsPage() {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
-  const [roundingPolicy, setRoundingPolicy] = useState<RoundingPolicy>("actual");
+  const [roundingPolicy, setRoundingPolicy] =
+    useState<RoundingPolicy>("actual");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [toast, setToast] = useState("");
 
   const analytics = useMemo(() => {
     const active = sessions.filter(
-      (s) => getLiveNetMinutes(s) > 0 && s.status !== "Rejected"
+      (s) => getLiveNetMinutes(s) > 0 && s.status !== "Rejected",
     );
     const clips = active.filter((s) => s.has_clip).length;
     const revenue = active.reduce((sum, s) => sum + s.revenue_generated, 0);
     const mins = active.reduce(
       (sum, s) =>
-        sum +
-        getRoundedLiveMinutes(getLiveNetMinutes(s), roundingPolicy),
-      0
+        sum + getRoundedLiveMinutes(getLiveNetMinutes(s), roundingPolicy),
+      0,
     );
     return {
       active,
@@ -124,13 +124,12 @@ export default function LiveSessionsPage() {
   const payrollRows = useMemo(() => {
     return liveStaff.map((staff) => {
       const rows = sessions.filter(
-        (s) => s.staff_id === staff.id && s.status !== "Rejected"
+        (s) => s.staff_id === staff.id && s.status !== "Rejected",
       );
       const minutes = rows.reduce(
         (sum, s) =>
-          sum +
-          getRoundedLiveMinutes(getLiveNetMinutes(s), roundingPolicy),
-        0
+          sum + getRoundedLiveMinutes(getLiveNetMinutes(s), roundingPolicy),
+        0,
       );
       const revenue = rows.reduce((sum, s) => sum + s.revenue_generated, 0);
       const clips = rows.filter((s) => s.has_clip).length;
@@ -212,11 +211,14 @@ export default function LiveSessionsPage() {
     contentPosts.reduce((s, p) => s + p.eng, 0) / contentPosts.length;
   const maxReach = Math.max(...contentPosts.map((p) => p.reach));
   const scheduledCount = contentSchedule.filter(
-    (s) => s.status === "scheduled"
+    (s) => s.status === "scheduled",
   ).length;
 
   return (
-    <div className="min-h-screen bg-canvas pb-16" style={{ background: c.canvas }}>
+    <div
+      className="min-h-screen bg-canvas pb-16"
+      style={{ background: c.canvas }}
+    >
       <TopBar
         t={t}
         breadcrumb={["Chawy", "Channels", "Live & Content"]}
@@ -246,7 +248,7 @@ export default function LiveSessionsPage() {
         }
       />
 
-      <div className="p-6 md:p-8 max-w-[1320px] mx-auto grid gap-6">
+      <div className="p-6 md:p-8 max-w-full mx-auto grid gap-6">
         {/* KPI Tiles */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
@@ -308,11 +310,17 @@ export default function LiveSessionsPage() {
             t={t}
             pad={false}
             className="overflow-hidden border border-border bg-card"
-            style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+            style={{
+              borderColor: "var(--erp-border)",
+              background: "var(--erp-surface)",
+            }}
           >
             <div
               className="p-4 px-5 border-b border-border text-sm font-semibold text-foreground"
-              style={{ borderColor: "var(--erp-border)", color: "var(--erp-ink)" }}
+              style={{
+                borderColor: "var(--erp-border)",
+                color: "var(--erp-ink)",
+              }}
             >
               Content Calendar
             </div>
@@ -320,16 +328,52 @@ export default function LiveSessionsPage() {
               <Table className="w-full border-collapse">
                 <TableHeader
                   className="bg-muted/50 border-b border-border"
-                  style={{ background: "var(--erp-subtle)", borderColor: "var(--erp-border)" }}
+                  style={{
+                    background: "var(--erp-subtle)",
+                    borderColor: "var(--erp-border)",
+                  }}
                 >
                   <TableRow>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>วันที่</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>เวลา</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>แพลตฟอร์ม</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>หัวข้อ</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Host</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Status</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}></TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      วันที่
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      เวลา
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      แพลตฟอร์ม
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      หัวข้อ
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      Host
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      Status
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    ></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -351,10 +395,16 @@ export default function LiveSessionsPage() {
                             {s.startTime}–{s.endTime}
                           </Mono>
                         </TableCell>
-                        <TableCell className="p-4 px-5 align-middle text-sm font-semibold text-[var(--erp-accent)]" style={{ color: c.accent }}>
+                        <TableCell
+                          className="p-4 px-5 align-middle text-sm font-semibold text-[var(--erp-accent)]"
+                          style={{ color: c.accent }}
+                        >
                           {s.platform}
                         </TableCell>
-                        <TableCell className="p-4 px-5 align-middle text-sm font-medium text-foreground" style={{ color: "var(--erp-ink)" }}>
+                        <TableCell
+                          className="p-4 px-5 align-middle text-sm font-medium text-foreground"
+                          style={{ color: "var(--erp-ink)" }}
+                        >
                           {s.topic}
                         </TableCell>
                         <TableCell className="p-4 px-5 align-middle">
@@ -363,7 +413,11 @@ export default function LiveSessionsPage() {
                           </Mono>
                         </TableCell>
                         <TableCell className="p-4 px-5 align-middle">
-                          <Badge variant={s.status === "scheduled" ? "bundle" : "outline"}>
+                          <Badge
+                            variant={
+                              s.status === "scheduled" ? "bundle" : "outline"
+                            }
+                          >
                             {s.status}
                           </Badge>
                         </TableCell>
@@ -405,7 +459,10 @@ export default function LiveSessionsPage() {
 
         {/* Upcoming Live Schedule */}
         <div className="grid gap-3">
-          <div className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground" style={{ color: "var(--erp-ink3)" }}>
+          <div
+            className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground"
+            style={{ color: "var(--erp-ink3)" }}
+          >
             Upcoming Live Schedule
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -417,24 +474,43 @@ export default function LiveSessionsPage() {
                   t={t}
                   key={s.id}
                   className="border border-border bg-card p-5 flex flex-col justify-between"
-                  style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+                  style={{
+                    borderColor: "var(--erp-border)",
+                    background: "var(--erp-surface)",
+                  }}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-[11px] font-semibold tracking-wider text-[var(--erp-accent)]" style={{ color: c.accent }}>
+                      <span
+                        className="text-[11px] font-semibold tracking-wider text-[var(--erp-accent)]"
+                        style={{ color: c.accent }}
+                      >
                         {s.platform}
                       </span>
-                      <Badge variant={s.status === "scheduled" ? "bundle" : "outline"}>
+                      <Badge
+                        variant={
+                          s.status === "scheduled" ? "bundle" : "outline"
+                        }
+                      >
                         {s.status}
                       </Badge>
                     </div>
-                    <div className="text-sm font-semibold text-foreground leading-snug min-h-[40px]" style={{ color: "var(--erp-ink)" }}>
+                    <div
+                      className="text-sm font-semibold text-foreground leading-snug min-h-[40px]"
+                      style={{ color: "var(--erp-ink)" }}
+                    >
                       {s.topic}
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 mt-4 pt-3 border-t border-border" style={{ borderColor: "var(--erp-border)" }}>
+                  <div
+                    className="flex items-center gap-4 mt-4 pt-3 border-t border-border"
+                    style={{ borderColor: "var(--erp-border)" }}
+                  >
                     <div>
-                      <div className="text-[9px] text-muted-foreground uppercase tracking-wider" style={{ color: "var(--erp-ink3)" }}>
+                      <div
+                        className="text-[9px] text-muted-foreground uppercase tracking-wider"
+                        style={{ color: "var(--erp-ink3)" }}
+                      >
                         วันเวลา
                       </div>
                       <span className="block mt-0.5">
@@ -444,7 +520,10 @@ export default function LiveSessionsPage() {
                       </span>
                     </div>
                     <div className="ml-auto text-right">
-                      <div className="text-[9px] text-muted-foreground uppercase tracking-wider" style={{ color: "var(--erp-ink3)" }}>
+                      <div
+                        className="text-[9px] text-muted-foreground uppercase tracking-wider"
+                        style={{ color: "var(--erp-ink3)" }}
+                      >
                         ช่อง
                       </div>
                       <span className="block mt-0.5">
@@ -461,27 +540,61 @@ export default function LiveSessionsPage() {
 
         {/* Content Performance */}
         <div className="grid gap-3">
-          <div className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground" style={{ color: "var(--erp-ink3)" }}>
+          <div
+            className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground"
+            style={{ color: "var(--erp-ink3)" }}
+          >
             Content Performance
           </div>
           <Card
             t={t}
             pad={false}
             className="overflow-hidden border border-border bg-card"
-            style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+            style={{
+              borderColor: "var(--erp-border)",
+              background: "var(--erp-surface)",
+            }}
           >
             <div className="overflow-x-auto">
               <Table className="w-full border-collapse">
                 <TableHeader
                   className="bg-muted/50 border-b border-border"
-                  style={{ background: "var(--erp-subtle)", borderColor: "var(--erp-border)" }}
+                  style={{
+                    background: "var(--erp-subtle)",
+                    borderColor: "var(--erp-border)",
+                  }}
                 >
                   <TableRow>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Content</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Platform</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>Reach</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>Engagement</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>Posted</TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      Content
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      Platform
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      Reach
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      Engagement
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      Posted
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -491,15 +604,24 @@ export default function LiveSessionsPage() {
                       className="hover:bg-muted/50 transition-colors border-b border-border"
                       style={{ borderColor: "var(--erp-border)" }}
                     >
-                      <TableCell className="p-4 px-5 align-middle text-sm font-semibold text-foreground" style={{ color: "var(--erp-ink)" }}>
+                      <TableCell
+                        className="p-4 px-5 align-middle text-sm font-semibold text-foreground"
+                        style={{ color: "var(--erp-ink)" }}
+                      >
                         {p.title}
                       </TableCell>
-                      <TableCell className="p-4 px-5 align-middle text-sm text-muted-foreground" style={{ color: "var(--erp-ink2)" }}>
+                      <TableCell
+                        className="p-4 px-5 align-middle text-sm text-muted-foreground"
+                        style={{ color: "var(--erp-ink2)" }}
+                      >
                         {p.platform}
                       </TableCell>
                       <TableCell className="p-4 px-5 align-middle text-right">
                         <div className="flex items-center gap-3 justify-end">
-                          <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden" style={{ background: "var(--erp-subtle)" }}>
+                          <div
+                            className="w-16 h-1.5 bg-muted rounded-full overflow-hidden"
+                            style={{ background: "var(--erp-subtle)" }}
+                          >
                             <div
                               className="h-full rounded-full bg-[var(--erp-accent)]"
                               style={{
@@ -516,7 +638,12 @@ export default function LiveSessionsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="p-4 px-5 align-middle text-right">
-                        <Mono t={t} size={12} weight={500} color={p.eng >= 6 ? c.pos : c.ink2}>
+                        <Mono
+                          t={t}
+                          size={12}
+                          weight={500}
+                          color={p.eng >= 6 ? c.pos : c.ink2}
+                        >
                           {p.eng.toFixed(1)}%
                         </Mono>
                       </TableCell>
@@ -534,18 +661,33 @@ export default function LiveSessionsPage() {
         </div>
 
         {/* Live Operations divider */}
-        <div className="border-t border-border pt-6 mt-4" style={{ borderColor: "var(--erp-border)" }}>
-          <div className="text-base font-bold text-foreground" style={{ color: "var(--erp-ink)" }}>
+        <div
+          className="border-t border-border pt-6 mt-4"
+          style={{ borderColor: "var(--erp-border)" }}
+        >
+          <div
+            className="text-base font-bold text-foreground"
+            style={{ color: "var(--erp-ink)" }}
+          >
             Live Operations
           </div>
-          <div className="text-xs text-muted-foreground mt-1" style={{ color: "var(--erp-ink3)" }}>
+          <div
+            className="text-xs text-muted-foreground mt-1"
+            style={{ color: "var(--erp-ink3)" }}
+          >
             บันทึกเวลา ยอดขาย คลิป และ Payroll Export
           </div>
         </div>
 
         {/* Rounding toggle + export buttons */}
         <div className="flex gap-2 items-center justify-end flex-wrap">
-          <div className="inline-flex p-1 bg-muted rounded-lg border border-border" style={{ background: "var(--erp-subtle)", borderColor: "var(--erp-border)" }}>
+          <div
+            className="inline-flex p-1 bg-muted rounded-lg border border-border"
+            style={{
+              background: "var(--erp-subtle)",
+              borderColor: "var(--erp-border)",
+            }}
+          >
             {[
               { key: "actual", label: "Actual" },
               { key: "quarter_up", label: "15m Up" },
@@ -555,8 +697,12 @@ export default function LiveSessionsPage() {
                 onClick={() => setRoundingPolicy(item.key as RoundingPolicy)}
                 className="px-3 py-1.5 border-none rounded-md text-xs font-bold cursor-pointer transition-all"
                 style={{
-                  background: roundingPolicy === item.key ? "var(--erp-surface)" : "transparent",
-                  color: roundingPolicy === item.key ? c.accent : "var(--erp-ink3)",
+                  background:
+                    roundingPolicy === item.key
+                      ? "var(--erp-surface)"
+                      : "transparent",
+                  color:
+                    roundingPolicy === item.key ? c.accent : "var(--erp-ink3)",
                   boxShadow:
                     roundingPolicy === item.key
                       ? "0 1px 2px rgba(0,0,0,0.08)"
@@ -567,10 +713,18 @@ export default function LiveSessionsPage() {
               </button>
             ))}
           </div>
-          <Button variant="outline" onClick={exportPayrollCsv} className="cursor-pointer gap-1.5 h-9">
+          <Button
+            variant="outline"
+            onClick={exportPayrollCsv}
+            className="cursor-pointer gap-1.5 h-9"
+          >
             <Download className="size-4" /> CSV
           </Button>
-          <Button variant="outline" onClick={() => window.print()} className="cursor-pointer gap-1.5 h-9">
+          <Button
+            variant="outline"
+            onClick={() => window.print()}
+            className="cursor-pointer gap-1.5 h-9"
+          >
             <Printer className="size-4" /> PDF
           </Button>
         </div>
@@ -580,14 +734,26 @@ export default function LiveSessionsPage() {
           t={t}
           pad={false}
           className="overflow-hidden border border-border bg-card"
-          style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+          style={{
+            borderColor: "var(--erp-border)",
+            background: "var(--erp-surface)",
+          }}
         >
-          <div className="p-4 px-5 border-b border-border flex items-center justify-between gap-4 flex-wrap" style={{ borderColor: "var(--erp-border)" }}>
+          <div
+            className="p-4 px-5 border-b border-border flex items-center justify-between gap-4 flex-wrap"
+            style={{ borderColor: "var(--erp-border)" }}
+          >
             <div>
-              <div className="text-sm font-bold text-foreground" style={{ color: "var(--erp-ink)" }}>
+              <div
+                className="text-sm font-bold text-foreground"
+                style={{ color: "var(--erp-ink)" }}
+              >
                 Control Tower · Review Queue
               </div>
-              <div className="text-xs text-muted-foreground mt-1" style={{ color: "var(--erp-ink3)" }}>
+              <div
+                className="text-xs text-muted-foreground mt-1"
+                style={{ color: "var(--erp-ink3)" }}
+              >
                 {analytics.pending.length} รายการรอตรวจ
               </div>
             </div>
@@ -608,7 +774,8 @@ export default function LiveSessionsPage() {
                   opacity: selectedIds.length ? 1 : 0.5,
                 }}
               >
-                <CheckSquare className="size-4" /> Bulk Approve ({selectedIds.length})
+                <CheckSquare className="size-4" /> Bulk Approve (
+                {selectedIds.length})
               </Button>
             </div>
           </div>
@@ -616,16 +783,49 @@ export default function LiveSessionsPage() {
             <Table className="w-full border-collapse">
               <TableHeader
                 className="bg-muted/50 border-b border-border"
-                style={{ background: "var(--erp-subtle)", borderColor: "var(--erp-border)" }}
+                style={{
+                  background: "var(--erp-subtle)",
+                  borderColor: "var(--erp-border)",
+                }}
               >
                 <TableRow>
                   <TableHead className="p-3 px-5 text-left w-10"></TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Live</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>เวลา</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>Revenue</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Content</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Note</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Action</TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Live
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    เวลา
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Revenue
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Content
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Note
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Action
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -633,7 +833,7 @@ export default function LiveSessionsPage() {
                   const selected = selectedIds.includes(session.id);
                   const minutes = getRoundedLiveMinutes(
                     getLiveNetMinutes(session),
-                    roundingPolicy
+                    roundingPolicy,
                   );
                   return (
                     <TableRow
@@ -648,11 +848,13 @@ export default function LiveSessionsPage() {
                             setSelectedIds((ids) =>
                               ids.includes(session.id)
                                 ? ids.filter((r) => r !== session.id)
-                                : [...ids, session.id]
+                                : [...ids, session.id],
                             )
                           }
                           className="border-none bg-transparent cursor-pointer p-0 text-muted-foreground"
-                          style={{ color: selected ? c.accent : "var(--erp-ink4)" }}
+                          style={{
+                            color: selected ? c.accent : "var(--erp-ink4)",
+                          }}
                         >
                           {selected ? (
                             <CheckSquare className="size-[17px]" />
@@ -662,24 +864,39 @@ export default function LiveSessionsPage() {
                         </button>
                       </TableCell>
                       <TableCell className="p-4 px-5 align-middle">
-                        <div className="text-sm font-bold text-foreground" style={{ color: "var(--erp-ink)" }}>
+                        <div
+                          className="text-sm font-bold text-foreground"
+                          style={{ color: "var(--erp-ink)" }}
+                        >
                           {getStaffName(session.staff_id)}
                         </div>
-                        <div className="text-xs text-muted-foreground mt-1" style={{ color: "var(--erp-ink3)" }}>
+                        <div
+                          className="text-xs text-muted-foreground mt-1"
+                          style={{ color: "var(--erp-ink3)" }}
+                        >
                           {dateLabel(session.live_date)} · {session.platform}
                         </div>
                       </TableCell>
                       <TableCell className="p-4 px-5 align-middle">
-                        <div className="text-sm font-semibold text-foreground" style={{ color: "var(--erp-ink)" }}>
+                        <div
+                          className="text-sm font-semibold text-foreground"
+                          style={{ color: "var(--erp-ink)" }}
+                        >
                           {timeLabel(session.start_datetime)} -{" "}
                           {timeLabel(session.end_datetime)}
                         </div>
-                        <div className="text-xs text-muted-foreground mt-1" style={{ color: "var(--erp-ink3)" }}>
-                          {minutes} นาที · {getLiveDecimalHours(minutes).toFixed(2)}{" "}
-                          ชม.
+                        <div
+                          className="text-xs text-muted-foreground mt-1"
+                          style={{ color: "var(--erp-ink3)" }}
+                        >
+                          {minutes} นาที ·{" "}
+                          {getLiveDecimalHours(minutes).toFixed(2)} ชม.
                         </div>
                       </TableCell>
-                      <TableCell className="p-4 px-5 align-middle text-right text-sm font-bold text-foreground" style={{ color: "var(--erp-ink)" }}>
+                      <TableCell
+                        className="p-4 px-5 align-middle text-right text-sm font-bold text-foreground"
+                        style={{ color: "var(--erp-ink)" }}
+                      >
                         {formatBaht(session.revenue_generated)}
                       </TableCell>
                       <TableCell className="p-4 px-5 align-middle text-sm font-bold">
@@ -687,7 +904,10 @@ export default function LiveSessionsPage() {
                           {session.has_clip ? "มีคลิป" : "ไม่มีคลิป"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="p-4 px-5 align-middle text-xs text-muted-foreground max-w-[180px] truncate" style={{ color: "var(--erp-ink2)" }}>
+                      <TableCell
+                        className="p-4 px-5 align-middle text-xs text-muted-foreground max-w-[180px] truncate"
+                        style={{ color: "var(--erp-ink2)" }}
+                      >
                         {session.host_notes}
                       </TableCell>
                       <TableCell className="p-4 px-5 align-middle">
@@ -737,40 +957,95 @@ export default function LiveSessionsPage() {
             t={t}
             pad={false}
             className="overflow-hidden border border-border bg-card"
-            style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+            style={{
+              borderColor: "var(--erp-border)",
+              background: "var(--erp-surface)",
+            }}
           >
-            <div className="p-4 px-5 border-b border-border flex items-center justify-between gap-4" style={{ borderColor: "var(--erp-border)" }}>
+            <div
+              className="p-4 px-5 border-b border-border flex items-center justify-between gap-4"
+              style={{ borderColor: "var(--erp-border)" }}
+            >
               <div>
-                <div className="text-sm font-bold text-foreground" style={{ color: "var(--erp-ink)" }}>
+                <div
+                  className="text-sm font-bold text-foreground"
+                  style={{ color: "var(--erp-ink)" }}
+                >
                   Payroll Export Preview
                 </div>
-                <div className="text-xs text-muted-foreground mt-1" style={{ color: "var(--erp-ink3)" }}>
+                <div
+                  className="text-xs text-muted-foreground mt-1"
+                  style={{ color: "var(--erp-ink3)" }}
+                >
                   (Total Hours × ฿{livePayroll.hourlyRate}/ชม.) + (Clips × ฿
                   {livePayroll.clipBonus}/คลิป)
                 </div>
               </div>
-              <FileText className="size-5 text-muted-foreground" style={{ color: "var(--erp-ink4)" }} />
+              <FileText
+                className="size-5 text-muted-foreground"
+                style={{ color: "var(--erp-ink4)" }}
+              />
             </div>
             <div className="overflow-x-auto">
               <Table className="w-full border-collapse">
                 <TableHeader
                   className="bg-muted/50 border-b border-border"
-                  style={{ background: "var(--erp-subtle)", borderColor: "var(--erp-border)" }}
+                  style={{
+                    background: "var(--erp-subtle)",
+                    borderColor: "var(--erp-border)",
+                  }}
                 >
                   <TableRow>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>พนักงาน</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>ชั่วโมง</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>ยอดขาย</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>คลิป</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>Hourly</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>Clip Bonus</TableHead>
-                    <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>ยอดจ่าย</TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      พนักงาน
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      ชั่วโมง
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      ยอดขาย
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      คลิป
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      Hourly
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      Clip Bonus
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      ยอดจ่าย
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(canSeeAllPayroll
                     ? payrollRows
-                    : payrollRows.filter((r) => r.staff.name === currentUser.name)
+                    : payrollRows.filter(
+                        (r) => r.staff.name === currentUser.name,
+                      )
                   ).map((row) => (
                     <TableRow
                       key={row.staff.id}
@@ -778,10 +1053,16 @@ export default function LiveSessionsPage() {
                       style={{ borderColor: "var(--erp-border)" }}
                     >
                       <TableCell className="p-4 px-5 align-middle">
-                        <div className="text-sm font-bold text-foreground" style={{ color: "var(--erp-ink)" }}>
+                        <div
+                          className="text-sm font-bold text-foreground"
+                          style={{ color: "var(--erp-ink)" }}
+                        >
                           {row.staff.name}
                         </div>
-                        <div className="text-xs text-muted-foreground mt-1" style={{ color: "var(--erp-ink3)" }}>
+                        <div
+                          className="text-xs text-muted-foreground mt-1"
+                          style={{ color: "var(--erp-ink3)" }}
+                        >
                           {row.staff.role}
                         </div>
                       </TableCell>
@@ -816,11 +1097,17 @@ export default function LiveSessionsPage() {
           <Card
             t={t}
             className="border border-border bg-card p-5"
-            style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+            style={{
+              borderColor: "var(--erp-border)",
+              background: "var(--erp-surface)",
+            }}
           >
             <div
               className="text-sm font-bold text-foreground pb-4 border-b border-border"
-              style={{ borderColor: "var(--erp-border)", color: "var(--erp-ink)" }}
+              style={{
+                borderColor: "var(--erp-border)",
+                color: "var(--erp-ink)",
+              }}
             >
               Content Gap Report
             </div>
@@ -836,8 +1123,8 @@ export default function LiveSessionsPage() {
                   session.status === "Manager_Approved"
                     ? "normal"
                     : session.status === "Rejected"
-                    ? "empty"
-                    : "low";
+                      ? "empty"
+                      : "low";
                 return (
                   <div
                     key={session.id}
@@ -848,14 +1135,21 @@ export default function LiveSessionsPage() {
                     }}
                   >
                     <div className="flex justify-between items-center gap-2">
-                      <div className="text-sm font-bold text-foreground" style={{ color: "var(--erp-ink)" }}>
+                      <div
+                        className="text-sm font-bold text-foreground"
+                        style={{ color: "var(--erp-ink)" }}
+                      >
                         {dateLabel(session.live_date)} ·{" "}
                         {getStaffName(session.staff_id)}
                       </div>
                       <Badge variant={statusStyle}>{session.status}</Badge>
                     </div>
-                    <div className="text-xs text-muted-foreground" style={{ color: "var(--erp-ink3)" }}>
-                      {session.platform} · {formatBaht(session.revenue_generated)}
+                    <div
+                      className="text-xs text-muted-foreground"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      {session.platform} ·{" "}
+                      {formatBaht(session.revenue_generated)}
                     </div>
                   </div>
                 );
@@ -877,11 +1171,17 @@ export default function LiveSessionsPage() {
           t={t}
           pad={false}
           className="overflow-hidden border border-border bg-card"
-          style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+          style={{
+            borderColor: "var(--erp-border)",
+            background: "var(--erp-surface)",
+          }}
         >
           <div
             className="p-4 px-5 border-b border-border text-sm font-bold text-foreground"
-            style={{ borderColor: "var(--erp-border)", color: "var(--erp-ink)" }}
+            style={{
+              borderColor: "var(--erp-border)",
+              color: "var(--erp-ink)",
+            }}
           >
             Live Session Ledger
           </div>
@@ -889,31 +1189,74 @@ export default function LiveSessionsPage() {
             <Table className="w-full border-collapse">
               <TableHeader
                 className="bg-muted/50 border-b border-border"
-                style={{ background: "var(--erp-subtle)", borderColor: "var(--erp-border)" }}
+                style={{
+                  background: "var(--erp-subtle)",
+                  borderColor: "var(--erp-border)",
+                }}
               >
                 <TableRow>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Session</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>บัญชี</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>เวลา</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>Net</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>Revenue</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Content</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Status</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Audit</TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Session
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    บัญชี
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    เวลา
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Net
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Revenue
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Content
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Status
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Audit
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sessions.map((session) => {
                   const minutes = getRoundedLiveMinutes(
                     getLiveNetMinutes(session),
-                    roundingPolicy
+                    roundingPolicy,
                   );
                   const statusStyle =
                     session.status === "Manager_Approved"
                       ? "normal"
                       : session.status === "Rejected"
-                      ? "empty"
-                      : "low";
+                        ? "empty"
+                        : "low";
                   return (
                     <TableRow
                       key={session.id}
@@ -921,10 +1264,16 @@ export default function LiveSessionsPage() {
                       style={{ borderColor: "var(--erp-border)" }}
                     >
                       <TableCell className="p-4 px-5 align-middle">
-                        <div className="font-mono text-sm font-bold text-[var(--erp-accent)]" style={{ color: c.accent }}>
+                        <div
+                          className="font-mono text-sm font-bold text-[var(--erp-accent)]"
+                          style={{ color: c.accent }}
+                        >
                           {session.id}
                         </div>
-                        <div className="text-xs text-muted-foreground mt-1" style={{ color: "var(--erp-ink3)" }}>
+                        <div
+                          className="text-xs text-muted-foreground mt-1"
+                          style={{ color: "var(--erp-ink3)" }}
+                        >
                           {getStaffName(session.staff_id)} ·{" "}
                           {dateLabel(session.live_date)}
                         </div>
@@ -949,7 +1298,10 @@ export default function LiveSessionsPage() {
                       <TableCell className="p-4 px-5 align-middle">
                         <Badge variant={statusStyle}>{session.status}</Badge>
                       </TableCell>
-                      <TableCell className="p-4 px-5 align-middle text-xs text-muted-foreground" style={{ color: "var(--erp-ink3)" }}>
+                      <TableCell
+                        className="p-4 px-5 align-middle text-xs text-muted-foreground"
+                        style={{ color: "var(--erp-ink3)" }}
+                      >
                         <div>
                           {adminUsers.find((a) => a.id === session.approved_by)
                             ?.name ?? session.updatedBy}

@@ -19,7 +19,10 @@ import { useErpStore } from "@/lib/store/useErpStore";
 import { CreateOrderSheet } from "./components/CreateOrderSheet";
 import { ImportOrderSheet } from "./components/ImportOrderSheet";
 
-const STATUS_STYLE: Record<string, { variant: "low" | "secondary" | "normal" | "empty"; label: string }> = {
+const STATUS_STYLE: Record<
+  string,
+  { variant: "low" | "secondary" | "normal" | "empty"; label: string }
+> = {
   Pending: { variant: "low", label: "รอยืนยัน" },
   Confirmed: { variant: "secondary", label: "ยืนยันแล้ว" },
   Completed: { variant: "normal", label: "สำเร็จ" },
@@ -54,7 +57,7 @@ export default function ManualOrderPage() {
       (activeTab === "ทั้งหมด" || o.status === activeTab) &&
       (o.customer.toLowerCase().includes(search.toLowerCase()) ||
         o.id.toLowerCase().includes(search.toLowerCase()) ||
-        o.phone.includes(search))
+        o.phone.includes(search)),
   );
 
   const totalAmount = list.reduce((s, o) => s + o.amount, 0);
@@ -81,12 +84,15 @@ export default function ManualOrderPage() {
         amount: parseFloat(row.amount) || 0,
         items: 1,
         notes: row.notes || "",
-      })
+      }),
     );
   }
 
   return (
-    <div className="min-h-screen bg-canvas pb-16" style={{ background: c.canvas }}>
+    <div
+      className="min-h-screen bg-canvas pb-16"
+      style={{ background: c.canvas }}
+    >
       <TopBar
         t={t}
         breadcrumb={["Chawy", "Sales", "Manual Orders"]}
@@ -94,7 +100,11 @@ export default function ManualOrderPage() {
         subtitle="บันทึกออร์เดอร์ช่องทางอื่นๆ"
         right={
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setImportOpen(true)} className="cursor-pointer">
+            <Button
+              variant="outline"
+              onClick={() => setImportOpen(true)}
+              className="cursor-pointer"
+            >
               นำเข้าไฟล์
             </Button>
             <Button
@@ -107,7 +117,7 @@ export default function ManualOrderPage() {
         }
       />
 
-      <div className="p-6 md:p-8 max-w-[1320px] mx-auto grid gap-6">
+      <div className="p-6 md:p-8 max-w-full mx-auto grid gap-6">
         {/* Summary */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
@@ -132,9 +142,9 @@ export default function ManualOrderPage() {
             {
               label: "ช่องทาง",
               value: `${new Set(list.map((o) => o.channel)).size} ช่อง`,
-              sub: CHANNELS.filter((ch) => list.some((o) => o.channel === ch)).join(
-                " · "
-              ),
+              sub: CHANNELS.filter((ch) =>
+                list.some((o) => o.channel === ch),
+              ).join(" · "),
               color: "var(--erp-accent)",
             },
           ].map((item) => (
@@ -142,7 +152,10 @@ export default function ManualOrderPage() {
               t={t}
               key={item.label}
               className="border border-border bg-card p-5"
-              style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+              style={{
+                borderColor: "var(--erp-border)",
+                background: "var(--erp-surface)",
+              }}
             >
               <div
                 className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground"
@@ -156,7 +169,10 @@ export default function ManualOrderPage() {
               >
                 {item.value}
               </div>
-              <div className="text-xs text-muted-foreground mt-1" style={{ color: "var(--erp-ink3)" }}>
+              <div
+                className="text-xs text-muted-foreground mt-1"
+                style={{ color: "var(--erp-ink3)" }}
+              >
                 {item.sub}
               </div>
             </Card>
@@ -172,16 +188,28 @@ export default function ManualOrderPage() {
                 t={t}
                 key={ch}
                 className="border border-border bg-card p-3 flex items-center gap-3"
-                style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+                style={{
+                  borderColor: "var(--erp-border)",
+                  background: "var(--erp-surface)",
+                }}
               >
-                <span className="text-lg font-bold text-muted-foreground" style={{ color: "var(--erp-ink3)" }}>
+                <span
+                  className="text-lg font-bold text-muted-foreground"
+                  style={{ color: "var(--erp-ink3)" }}
+                >
                   {CHANNEL_ICON[ch]}
                 </span>
                 <div>
-                  <div className="text-xs font-semibold text-foreground" style={{ color: "var(--erp-ink)" }}>
+                  <div
+                    className="text-xs font-semibold text-foreground"
+                    style={{ color: "var(--erp-ink)" }}
+                  >
                     {ch}
                   </div>
-                  <div className="text-[10px] text-muted-foreground" style={{ color: "var(--erp-ink3)" }}>
+                  <div
+                    className="text-[10px] text-muted-foreground"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     {count} รายการ
                   </div>
                 </div>
@@ -195,9 +223,15 @@ export default function ManualOrderPage() {
           t={t}
           pad={false}
           className="overflow-hidden border border-border bg-card"
-          style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+          style={{
+            borderColor: "var(--erp-border)",
+            background: "var(--erp-surface)",
+          }}
         >
-          <div className="p-4 border-b border-border flex items-center gap-4 flex-wrap" style={{ borderColor: "var(--erp-border)" }}>
+          <div
+            className="p-4 border-b border-border flex items-center gap-4 flex-wrap"
+            style={{ borderColor: "var(--erp-border)" }}
+          >
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -213,7 +247,8 @@ export default function ManualOrderPage() {
                   onClick={() => setActiveTab(tab)}
                   className="rounded-full cursor-pointer text-xs h-8 px-4"
                   style={{
-                    backgroundColor: activeTab === tab ? "var(--erp-accent)" : undefined,
+                    backgroundColor:
+                      activeTab === tab ? "var(--erp-accent)" : undefined,
                     color: activeTab === tab ? "#fff" : undefined,
                   }}
                 >
@@ -221,7 +256,10 @@ export default function ManualOrderPage() {
                 </Button>
               ))}
             </div>
-            <span className="ml-auto text-xs text-muted-foreground" style={{ color: "var(--erp-ink3)" }}>
+            <span
+              className="ml-auto text-xs text-muted-foreground"
+              style={{ color: "var(--erp-ink3)" }}
+            >
               {filtered.length} รายการ
             </span>
           </div>
@@ -230,23 +268,74 @@ export default function ManualOrderPage() {
             <Table className="w-full border-collapse">
               <TableHeader
                 className="bg-muted/50 border-b border-border"
-                style={{ background: "var(--erp-subtle)", borderColor: "var(--erp-border)" }}
+                style={{
+                  background: "var(--erp-subtle)",
+                  borderColor: "var(--erp-border)",
+                }}
               >
                 <TableRow>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>เลขที่</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>ลูกค้า</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>โทรศัพท์</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>ช่องทาง</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>วันที่</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>สินค้า</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>มูลค่า</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>สถานะ</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>หมายเหตุ</TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    เลขที่
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    ลูกค้า
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    โทรศัพท์
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    ช่องทาง
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    วันที่
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    สินค้า
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    มูลค่า
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    สถานะ
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    หมายเหตุ
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map((o) => {
-                  const s = STATUS_STYLE[o.status] || { variant: "outline", label: o.status };
+                  const s = STATUS_STYLE[o.status] || {
+                    variant: "outline",
+                    label: o.status,
+                  };
                   return (
                     <TableRow
                       key={o.id}
@@ -254,11 +343,19 @@ export default function ManualOrderPage() {
                       style={{ borderColor: "var(--erp-border)" }}
                     >
                       <TableCell className="p-4 px-5 align-middle">
-                        <Mono t={t} size={12} weight={600} style={{ color: c.accent }}>
+                        <Mono
+                          t={t}
+                          size={12}
+                          weight={600}
+                          style={{ color: c.accent }}
+                        >
                           {o.id}
                         </Mono>
                       </TableCell>
-                      <TableCell className="p-4 px-5 align-middle font-medium text-foreground" style={{ color: "var(--erp-ink)" }}>
+                      <TableCell
+                        className="p-4 px-5 align-middle font-medium text-foreground"
+                        style={{ color: "var(--erp-ink)" }}
+                      >
                         {o.customer}
                       </TableCell>
                       <TableCell className="p-4 px-5 align-middle">
@@ -271,19 +368,31 @@ export default function ManualOrderPage() {
                           {CHANNEL_ICON[o.channel]} {o.channel}
                         </Badge>
                       </TableCell>
-                      <TableCell className="p-4 px-5 align-middle text-sm text-muted-foreground" style={{ color: "var(--erp-ink3)" }}>
+                      <TableCell
+                        className="p-4 px-5 align-middle text-sm text-muted-foreground"
+                        style={{ color: "var(--erp-ink3)" }}
+                      >
                         {o.date}
                       </TableCell>
-                      <TableCell className="p-4 px-5 align-middle text-sm text-muted-foreground" style={{ color: "var(--erp-ink3)" }}>
+                      <TableCell
+                        className="p-4 px-5 align-middle text-sm text-muted-foreground"
+                        style={{ color: "var(--erp-ink3)" }}
+                      >
                         {o.items} รายการ
                       </TableCell>
-                      <TableCell className="p-4 px-5 align-middle text-right font-semibold text-foreground" style={{ color: "var(--erp-ink)" }}>
+                      <TableCell
+                        className="p-4 px-5 align-middle text-right font-semibold text-foreground"
+                        style={{ color: "var(--erp-ink)" }}
+                      >
                         {formatBaht(o.amount)}
                       </TableCell>
                       <TableCell className="p-4 px-5 align-middle">
                         <Badge variant={s.variant}>{s.label}</Badge>
                       </TableCell>
-                      <TableCell className="p-4 px-5 align-middle text-xs text-muted-foreground max-w-[160px] truncate" style={{ color: "var(--erp-ink3)" }}>
+                      <TableCell
+                        className="p-4 px-5 align-middle text-xs text-muted-foreground max-w-[160px] truncate"
+                        style={{ color: "var(--erp-ink3)" }}
+                      >
                         {o.notes || "—"}
                       </TableCell>
                     </TableRow>

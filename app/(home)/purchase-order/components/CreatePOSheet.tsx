@@ -4,12 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableRow,
-  TableCell,
-} from "@/components/ui/table";
+import { Table, TableBody, TableRow, TableCell } from "@/components/ui/table";
 import {
   Sheet,
   SheetContent,
@@ -63,7 +58,7 @@ export function CreatePOSheet({
 
   const lineTotal = form.items.reduce(
     (s, line) => s + Number(line.qty) * Number(line.unitCost),
-    0
+    0,
   );
 
   function addLine() {
@@ -99,7 +94,7 @@ export function CreatePOSheet({
         i.qty === "" ||
         Number(i.qty) <= 0 ||
         i.unitCost === "" ||
-        Number(i.unitCost) < 0
+        Number(i.unitCost) < 0,
     );
     if (hasInvalidItem) {
       showToast("กรุณากรอกจำนวนและราคาสินค้าให้ถูกต้อง");
@@ -131,39 +126,58 @@ export function CreatePOSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex h-full w-[min(540px,100vw)] flex-col border-l bg-card text-card-foreground shadow-2xl outline-none">
         <SheetHeader className="mb-4">
-          <SheetTitle className="text-base font-bold text-foreground" style={{ color: "var(--erp-ink)" }}>
+          <SheetTitle
+            className="text-base font-bold text-foreground"
+            style={{ color: "var(--erp-ink)" }}
+          >
             New Purchase Order
           </SheetTitle>
-          <div className="text-xs text-muted-foreground" style={{ color: "var(--erp-ink3)" }}>
+          <div
+            className="text-xs text-muted-foreground"
+            style={{ color: "var(--erp-ink3)" }}
+          >
             Total {formatBaht(lineTotal)}
           </div>
         </SheetHeader>
-        <SheetBody className="grid gap-4 overflow-y-auto">
+        <SheetBody className="space-y-3">
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               Supplier
             </Label>
             <Input
               value={form.supplier}
-              onChange={(e) => setForm((f) => ({ ...f, supplier: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, supplier: e.target.value }))
+              }
               placeholder="Supplier name"
             />
           </div>
 
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               ETA
             </Label>
             <Input
               type="date"
               value={form.etaDate}
-              onChange={(e) => setForm((f) => ({ ...f, etaDate: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, etaDate: e.target.value }))
+              }
             />
           </div>
 
           <div>
             <div className="flex justify-between items-center mb-2">
-              <span className="text-xs font-bold text-foreground" style={{ color: "var(--erp-ink2)" }}>
+              <span
+                className="text-xs font-bold text-foreground"
+                style={{ color: "var(--erp-ink2)" }}
+              >
                 Items
               </span>
               <Button
@@ -176,7 +190,10 @@ export function CreatePOSheet({
               </Button>
             </div>
 
-            <div className="border border-border rounded-lg overflow-hidden" style={{ borderColor: "var(--erp-border)" }}>
+            <div
+              className="border border-border rounded-lg overflow-hidden"
+              style={{ borderColor: "var(--erp-border)" }}
+            >
               <Table className="w-full border-collapse">
                 <TableBody>
                   {form.items.map((line, i) => (
@@ -211,7 +228,7 @@ export function CreatePOSheet({
                               "qty",
                               e.target.value === ""
                                 ? ""
-                                : parseInt(e.target.value) || 0
+                                : parseInt(e.target.value) || 0,
                             )
                           }
                           className="h-8 text-xs p-1 text-center font-mono"
@@ -228,7 +245,7 @@ export function CreatePOSheet({
                               "unitCost",
                               e.target.value === ""
                                 ? ""
-                                : parseFloat(e.target.value) || 0
+                                : parseFloat(e.target.value) || 0,
                             )
                           }
                           className="h-8 text-xs p-1 text-right font-mono"
@@ -253,7 +270,10 @@ export function CreatePOSheet({
           </div>
         </SheetBody>
         <SheetFooter className="flex justify-between items-center border-t p-4 px-6">
-          <div className="font-mono text-sm font-semibold" style={{ color: "var(--erp-ink)" }}>
+          <div
+            className="font-mono text-sm font-semibold"
+            style={{ color: "var(--erp-ink)" }}
+          >
             {formatBaht(lineTotal)}
           </div>
           <div className="flex gap-2">
@@ -261,7 +281,11 @@ export function CreatePOSheet({
               variant="outline"
               onClick={() => onOpenChange(false)}
               className="cursor-pointer border-border"
-              style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)", color: "#374151" }}
+              style={{
+                borderColor: "var(--erp-border)",
+                background: "var(--erp-surface)",
+                color: "#374151",
+              }}
             >
               Cancel
             </Button>

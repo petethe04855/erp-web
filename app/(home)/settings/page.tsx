@@ -15,7 +15,14 @@ import { ModulesTab } from "./components/ModulesTab";
 import { LivePayrollTab } from "./components/LivePayrollTab";
 import { AboutTab } from "./components/AboutTab";
 
-type Tab = "company" | "notifications" | "products" | "reorder" | "modules" | "livePayroll" | "about";
+type Tab =
+  | "company"
+  | "notifications"
+  | "products"
+  | "reorder"
+  | "modules"
+  | "livePayroll"
+  | "about";
 
 const TABS: Array<{ id: Tab; label: string; sub: string }> = [
   { id: "company", label: "Company", sub: "ข้อมูลบริษัท" },
@@ -49,15 +56,23 @@ export default function SettingsPage() {
     clipBonus: String(settings.livePayroll.clipBonus),
   }));
 
-  const [reorderDraft, setReorderDraft] = useState<Record<string, number>>(() => {
-    const map: Record<string, number> = {};
-    for (const p of products) {
-      if (!p.isBundle) map[p.sku] = p.reorder;
-    }
-    return map;
-  });
+  const [reorderDraft, setReorderDraft] = useState<Record<string, number>>(
+    () => {
+      const map: Record<string, number> = {};
+      for (const p of products) {
+        if (!p.isBundle) map[p.sku] = p.reorder;
+      }
+      return map;
+    },
+  );
 
-  const [categories, setCategories] = useState(["อาหารแห้ง", "อาหารเปียก", "ขนม", "อาหารเสริม", "อื่นๆ"]);
+  const [categories, setCategories] = useState([
+    "อาหารแห้ง",
+    "อาหารเปียก",
+    "ขนม",
+    "อาหารเสริม",
+    "อื่นๆ",
+  ]);
 
   function flash() {
     setSaved(true);
@@ -107,10 +122,15 @@ export default function SettingsPage() {
   }
 
   const showSave =
-    activeTab === "company" || activeTab === "reorder" || activeTab === "livePayroll";
+    activeTab === "company" ||
+    activeTab === "reorder" ||
+    activeTab === "livePayroll";
 
   return (
-    <div className="min-h-screen bg-canvas pb-16" style={{ background: c.canvas }}>
+    <div
+      className="min-h-screen bg-canvas pb-16"
+      style={{ background: c.canvas }}
+    >
       <TopBar
         t={t}
         breadcrumb={["Chawy", "System", "Settings"]}
@@ -134,7 +154,14 @@ export default function SettingsPage() {
 
       <div className="p-6 md:p-8 max-w-[1040px] mx-auto grid grid-cols-1 md:grid-cols-[200px_1fr] gap-6 items-start">
         {/* Tab Navigation */}
-        <Card t={t} className="p-2 border border-border bg-card" style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}>
+        <Card
+          t={t}
+          className="p-2 border border-border bg-card"
+          style={{
+            borderColor: "var(--erp-border)",
+            background: "var(--erp-surface)",
+          }}
+        >
           <div className="flex flex-col gap-0.5">
             {TABS.map((tab) => {
               const isActive = activeTab === tab.id;
@@ -153,11 +180,16 @@ export default function SettingsPage() {
                 >
                   <div
                     className={`text-[13px] ${isActive ? "font-bold text-[var(--erp-accent)]" : "font-normal"}`}
-                    style={{ color: isActive ? "var(--erp-accent)" : "var(--erp-ink2)" }}
+                    style={{
+                      color: isActive ? "var(--erp-accent)" : "var(--erp-ink2)",
+                    }}
                   >
                     {tab.label}
                   </div>
-                  <div className="text-[10px] mt-0.5" style={{ color: "var(--erp-ink3)" }}>
+                  <div
+                    className="text-[10px] mt-0.5"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     {tab.sub}
                   </div>
                 </button>
@@ -170,7 +202,10 @@ export default function SettingsPage() {
         <Card
           t={t}
           className="p-6 md:p-8 border border-border bg-card"
-          style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+          style={{
+            borderColor: "var(--erp-border)",
+            background: "var(--erp-surface)",
+          }}
         >
           {activeTab === "company" && (
             <CompanyTab company={company} onChange={setCompany} />
@@ -182,7 +217,10 @@ export default function SettingsPage() {
               onToggle={toggleNotif}
               onUpdateExpiryDays={(days) =>
                 updateSettings({
-                  notifications: { ...settings.notifications, nearExpiryDays: days },
+                  notifications: {
+                    ...settings.notifications,
+                    nearExpiryDays: days,
+                  },
                 })
               }
             />
@@ -209,7 +247,10 @@ export default function SettingsPage() {
           )}
 
           {activeTab === "modules" && (
-            <ModulesTab modules={settings.modules} onToggleModule={toggleModule} />
+            <ModulesTab
+              modules={settings.modules}
+              onToggleModule={toggleModule}
+            />
           )}
 
           {activeTab === "livePayroll" && (

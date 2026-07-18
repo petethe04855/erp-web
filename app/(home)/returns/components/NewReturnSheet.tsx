@@ -17,7 +17,13 @@ import {
 import { useTheme } from "@/lib/design/ThemeContext";
 import type { ReturnReason, ReturnCondition } from "@/lib/store/erpWorkflow";
 
-const REASONS: ReturnReason[] = ["สินค้าชำรุด", "ผิดสินค้า", "ลูกค้าเปลี่ยนใจ", "ผิดขนาด/รุ่น", "อื่นๆ"];
+const REASONS: ReturnReason[] = [
+  "สินค้าชำรุด",
+  "ผิดสินค้า",
+  "ลูกค้าเปลี่ยนใจ",
+  "ผิดขนาด/รุ่น",
+  "อื่นๆ",
+];
 interface FormState {
   soRef: string;
   sku: string;
@@ -113,16 +119,25 @@ export function NewReturnSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex h-full w-[min(540px,100vw)] flex-col border-l bg-card text-card-foreground shadow-2xl outline-none">
         <SheetHeader className="mb-4">
-          <SheetTitle className="text-base font-bold text-foreground" style={{ color: "var(--erp-ink)" }}>
+          <SheetTitle
+            className="text-base font-bold text-foreground"
+            style={{ color: "var(--erp-ink)" }}
+          >
             New Return
           </SheetTitle>
-          <div className="text-xs text-muted-foreground" style={{ color: "var(--erp-ink3)" }}>
+          <div
+            className="text-xs text-muted-foreground"
+            style={{ color: "var(--erp-ink3)" }}
+          >
             บันทึกการรับสินค้ากลับจากลูกค้า
           </div>
         </SheetHeader>
-        <SheetBody className="grid gap-4 overflow-y-auto">
+        <SheetBody className="space-y-3">
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               Sales Order
             </Label>
             <NativeSelect
@@ -147,7 +162,10 @@ export function NewReturnSheet({
           </div>
 
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               Product
             </Label>
             <NativeSelect
@@ -164,7 +182,10 @@ export function NewReturnSheet({
           </div>
 
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               Quantity
             </Label>
             <Input
@@ -174,7 +195,8 @@ export function NewReturnSheet({
               onChange={(e) =>
                 setForm((f) => ({
                   ...f,
-                  qty: e.target.value === "" ? "" : parseInt(e.target.value) || 0,
+                  qty:
+                    e.target.value === "" ? "" : parseInt(e.target.value) || 0,
                 }))
               }
             />
@@ -182,25 +204,38 @@ export function NewReturnSheet({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+              <Label
+                className="text-xs font-semibold text-muted-foreground mb-1 block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
                 Condition
               </Label>
               <NativeSelect
                 value={form.condition}
-                onChange={(e) => setForm((f) => ({ ...f, condition: e.target.value as ReturnCondition }))}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    condition: e.target.value as ReturnCondition,
+                  }))
+                }
               >
                 <option value="ดี">ดี · add back to stock</option>
                 <option value="เสียหาย">เสียหาย · do not add stock</option>
               </NativeSelect>
             </div>
             <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+              <Label
+                className="text-xs font-semibold text-muted-foreground mb-1 block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
                 Channel
               </Label>
               <NativeSelect
                 value={form.channel}
                 disabled={!!form.soRef}
-                onChange={(e) => setForm((f) => ({ ...f, channel: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, channel: e.target.value }))
+                }
               >
                 <option value="Manual">Manual</option>
                 <option value="LINE">LINE</option>
@@ -211,12 +246,20 @@ export function NewReturnSheet({
           </div>
 
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               Reason
             </Label>
             <NativeSelect
               value={form.reason}
-              onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value as ReturnReason }))}
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  reason: e.target.value as ReturnReason,
+                }))
+              }
             >
               {REASONS.map((r) => (
                 <option key={r} value={r}>
@@ -227,7 +270,10 @@ export function NewReturnSheet({
           </div>
 
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               Note
             </Label>
             <Textarea
@@ -242,7 +288,11 @@ export function NewReturnSheet({
             variant="outline"
             onClick={() => onOpenChange(false)}
             className="cursor-pointer border-border"
-            style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)", color: "#374151" }}
+            style={{
+              borderColor: "var(--erp-border)",
+              background: "var(--erp-surface)",
+              color: "#374151",
+            }}
           >
             Cancel
           </Button>

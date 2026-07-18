@@ -52,18 +52,27 @@ export function RecordPaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-[400px] p-6 bg-white dark:bg-zinc-950">
+      <DialogContent className="w-full max-w-[400px] p-6">
         <DialogHeader className="mb-4">
-          <DialogTitle className="text-base font-bold text-foreground" style={{ color: "var(--erp-ink)" }}>
+          <DialogTitle
+            className="text-base font-bold text-foreground"
+            style={{ color: "var(--erp-ink)" }}
+          >
             บันทึกการรับชำระ
           </DialogTitle>
-          <div className="text-xs text-muted-foreground" style={{ color: "var(--erp-ink3)" }}>
+          <div
+            className="text-xs text-muted-foreground"
+            style={{ color: "var(--erp-ink3)" }}
+          >
             รับชำระสำหรับ {invoiceId}
           </div>
         </DialogHeader>
         <div className="grid gap-3">
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               จำนวนเงินที่รับชำระ (บาท)
             </Label>
             <Input
@@ -72,7 +81,7 @@ export function RecordPaymentDialog({
               value={payAmount}
               onChange={(e) =>
                 setPayAmount(
-                  e.target.value === "" ? "" : parseFloat(e.target.value) || 0
+                  e.target.value === "" ? "" : parseFloat(e.target.value) || 0,
                 )
               }
               placeholder="0.00"
@@ -84,7 +93,11 @@ export function RecordPaymentDialog({
             variant="outline"
             onClick={() => onOpenChange(false)}
             className="cursor-pointer border-border"
-            style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)", color: "#374151" }}
+            style={{
+              borderColor: "var(--erp-border)",
+              background: "var(--erp-surface)",
+              color: "#374151",
+            }}
           >
             ยกเลิก
           </Button>

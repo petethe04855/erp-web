@@ -58,7 +58,7 @@ export default function UsersPage() {
       showToast(
         newUser.emailWarning
           ? `สร้างผู้ใช้ ${data.email} สำเร็จ แต่ส่งอีเมลแจ้งเตือนไม่สำเร็จ`
-          : `สร้างผู้ใช้ ${data.email} สำเร็จ`
+          : `สร้างผู้ใช้ ${data.email} สำเร็จ`,
       );
     } catch (err: any) {
       showToast(err.message || "สร้างผู้ใช้ไม่สำเร็จ");
@@ -90,7 +90,9 @@ export default function UsersPage() {
     setBusyUserId(user.id);
     try {
       await updateUserStatus(user.id, nextActive);
-      showToast(`${nextActive ? "เปิด" : "ปิด"}การใช้งาน ${userEmail(user)} สำเร็จ`);
+      showToast(
+        `${nextActive ? "เปิด" : "ปิด"}การใช้งาน ${userEmail(user)} สำเร็จ`,
+      );
     } catch (err: any) {
       showToast(err.message || "เปลี่ยนสถานะผู้ใช้ไม่สำเร็จ");
     } finally {
@@ -122,7 +124,10 @@ export default function UsersPage() {
 
   if (!canManageUsers) {
     return (
-      <div className="min-h-screen bg-canvas pb-16" style={{ background: c.canvas }}>
+      <div
+        className="min-h-screen bg-canvas pb-16"
+        style={{ background: c.canvas }}
+      >
         <TopBar
           t={t}
           breadcrumb={["Chawy", "System", "Users"]}
@@ -134,7 +139,10 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-canvas pb-16" style={{ background: c.canvas }}>
+    <div
+      className="min-h-screen bg-canvas pb-16"
+      style={{ background: c.canvas }}
+    >
       <TopBar
         t={t}
         breadcrumb={["Chawy", "System", "Users"]}
@@ -143,7 +151,10 @@ export default function UsersPage() {
         right={
           <div className="flex items-center gap-2">
             {toast && (
-              <span className="text-xs font-semibold pr-2" style={{ color: c.pos }}>
+              <span
+                className="text-xs font-semibold pr-2"
+                style={{ color: c.pos }}
+              >
                 {toast}
               </span>
             )}
@@ -157,26 +168,62 @@ export default function UsersPage() {
         }
       />
 
-      <div className="p-6 md:p-8 max-w-[1320px] mx-auto">
+      <div className="p-6 md:p-8 max-w-full mx-auto">
         <Card
           t={t}
           pad={false}
           className="overflow-hidden border border-border bg-card"
-          style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+          style={{
+            borderColor: "var(--erp-border)",
+            background: "var(--erp-surface)",
+          }}
         >
           <div className="overflow-x-auto">
             <Table className="w-full border-collapse">
               <TableHeader
                 className="bg-muted/50 border-b border-border"
-                style={{ background: "var(--erp-subtle)", borderColor: "var(--erp-border)" }}
+                style={{
+                  background: "var(--erp-subtle)",
+                  borderColor: "var(--erp-border)",
+                }}
               >
                 <TableRow>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>User</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Role</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Access</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Last active</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Status</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>Actions</TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    User
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Role
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Access
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Last active
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Status
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -198,15 +245,22 @@ export default function UsersPage() {
                           <div
                             className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border flex-shrink-0"
                             style={{
-                              background: isCurrentUser ? "var(--erp-ink)" : "var(--erp-subtle)",
+                              background: isCurrentUser
+                                ? "var(--erp-ink)"
+                                : "var(--erp-subtle)",
                               borderColor: "var(--erp-border)",
-                              color: isCurrentUser ? "var(--erp-surface)" : "var(--erp-ink)",
+                              color: isCurrentUser
+                                ? "var(--erp-surface)"
+                                : "var(--erp-ink)",
                             }}
                           >
                             {userEmail(user).trim().charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <div className="text-sm font-semibold" style={{ color: "var(--erp-ink)" }}>
+                            <div
+                              className="text-sm font-semibold"
+                              style={{ color: "var(--erp-ink)" }}
+                            >
                               {userEmail(user)}
                             </div>
                             <span className="mt-0.5 block">
@@ -217,9 +271,15 @@ export default function UsersPage() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="p-4 px-5 align-middle text-sm" style={{ color: "var(--erp-ink)" }}>
+                      <TableCell
+                        className="p-4 px-5 align-middle text-sm"
+                        style={{ color: "var(--erp-ink)" }}
+                      >
                         {ROLE_LABELS[user.role]}
-                        <span className="text-[11px] font-normal font-mono ml-1.5" style={{ color: "var(--erp-ink3)" }}>
+                        <span
+                          className="text-[11px] font-normal font-mono ml-1.5"
+                          style={{ color: "var(--erp-ink3)" }}
+                        >
                           ({user.role})
                         </span>
                       </TableCell>
@@ -232,10 +292,15 @@ export default function UsersPage() {
                             color: "var(--erp-ink2)",
                           }}
                         >
-                          {user.role === "owner" ? "All modules" : `${ROLE_LABELS[user.role]} access`}
+                          {user.role === "owner"
+                            ? "All modules"
+                            : `${ROLE_LABELS[user.role]} access`}
                         </span>
                       </TableCell>
-                      <TableCell className="p-4 px-5 align-middle text-xs" style={{ color: "var(--erp-ink2)" }}>
+                      <TableCell
+                        className="p-4 px-5 align-middle text-xs"
+                        style={{ color: "var(--erp-ink2)" }}
+                      >
                         {formatLastActive(user)}
                       </TableCell>
                       <TableCell className="p-4 px-5 align-middle">
@@ -243,7 +308,8 @@ export default function UsersPage() {
                           className="inline-flex items-center gap-1.5 text-xs font-medium"
                           style={{ color: isEnabled ? c.pos : c.neg }}
                         >
-                          <Dot color={isEnabled ? c.pos : c.neg} /> {isEnabled ? "Active" : "Inactive"}
+                          <Dot color={isEnabled ? c.pos : c.neg} />{" "}
+                          {isEnabled ? "Active" : "Inactive"}
                         </span>
                       </TableCell>
                       <TableCell className="p-4 px-5 align-middle text-right">
@@ -264,8 +330,8 @@ export default function UsersPage() {
                             {busyUserId === user.id
                               ? "กำลังบันทึก..."
                               : isEnabled
-                              ? "ปิดใช้งาน"
-                              : "เปิดใช้งาน"}
+                                ? "ปิดใช้งาน"
+                                : "เปิดใช้งาน"}
                           </Button>
                           <Button
                             variant="ghost"

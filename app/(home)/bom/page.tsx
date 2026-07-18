@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  Card,
-  Mono,
-  PageBody,
-  TopBar,
-} from "@/components/ui";
+import { Card, Mono, PageBody, TopBar } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 import { readApiResponse } from "@/lib/apiResponse";
 import { useTheme } from "@/lib/design/ThemeContext";
 import { useErpStore } from "@/lib/store/useErpStore";
@@ -244,7 +246,10 @@ export default function BomPage() {
   }
 
   return (
-    <div className="min-h-screen bg-canvas pb-16" style={{ background: c.canvas }}>
+    <div
+      className="min-h-screen bg-canvas pb-16"
+      style={{ background: c.canvas }}
+    >
       <TopBar
         t={t}
         breadcrumb={["Chawy", "Inventory", "Materials"]}
@@ -261,7 +266,7 @@ export default function BomPage() {
         }
       />
 
-      <PageBody t={t} maxWidth={1320}>
+      <PageBody t={t}>
         <div className="flex items-center justify-between gap-4 mb-4">
           <div className="relative flex-1 max-w-[360px]">
             <Input
@@ -272,7 +277,10 @@ export default function BomPage() {
               className="w-full"
             />
           </div>
-          <Button onClick={() => setShowAddRmModal(true)} className="cursor-pointer bg-[var(--erp-accent)] text-white hover:opacity-90 border-none shadow-none">
+          <Button
+            onClick={() => setShowAddRmModal(true)}
+            className="cursor-pointer bg-[var(--erp-accent)] text-white hover:opacity-90 border-none shadow-none"
+          >
             + สร้างข้อมูลวัตถุดิบ
           </Button>
         </div>
@@ -281,24 +289,67 @@ export default function BomPage() {
           t={t}
           pad={false}
           className="overflow-hidden mb-4 border border-border bg-card"
-          style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)' }}
+          style={{
+            borderColor: "var(--erp-border)",
+            background: "var(--erp-surface)",
+          }}
         >
-          <div className="p-5 border-b border-border" style={{ borderColor: 'var(--erp-border)' }}>
-            <div className="text-sm font-semibold text-foreground" style={{ color: 'var(--erp-ink)' }}>
+          <div
+            className="p-5 border-b border-border"
+            style={{ borderColor: "var(--erp-border)" }}
+          >
+            <div
+              className="text-sm font-semibold text-foreground"
+              style={{ color: "var(--erp-ink)" }}
+            >
               รายการสูตรการผลิตทั้งหมด (Bill of Materials Master)
             </div>
-            <div className="text-xs text-muted-foreground mt-1" style={{ color: 'var(--erp-ink3)' }}>
+            <div
+              className="text-xs text-muted-foreground mt-1"
+              style={{ color: "var(--erp-ink3)" }}
+            >
               แสดงสูตรการผลิตและต้นทุนการผลิตต่อหน่วยตามโครงสร้างสูตรทั้งหมดที่มีในระบบ
             </div>
           </div>
           <Table className="w-full border-collapse">
-            <TableHeader className="bg-muted/50 border-b border-border" style={{ background: 'var(--erp-subtle)', borderColor: 'var(--erp-border)' }}>
+            <TableHeader
+              className="bg-muted/50 border-b border-border"
+              style={{
+                background: "var(--erp-subtle)",
+                borderColor: "var(--erp-border)",
+              }}
+            >
               <TableRow>
-                <TableHead className="p-3 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: 'var(--erp-ink3)' }}>รหัสสูตร (BOM Code)</TableHead>
-                <TableHead className="p-3 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: 'var(--erp-ink3)' }}>ชื่อสูตรการผลิต (BOM Name)</TableHead>
-                <TableHead className="p-3 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: 'var(--erp-ink3)' }}>ปริมาณผลผลิต</TableHead>
-                <TableHead className="p-3 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: 'var(--erp-ink3)' }}>ต้นทุนอ้างอิง</TableHead>
-                <TableHead className="p-3 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: 'var(--erp-ink3)' }}>สถานะ</TableHead>
+                <TableHead
+                  className="p-3 text-xs font-bold text-muted-foreground uppercase text-left"
+                  style={{ color: "var(--erp-ink3)" }}
+                >
+                  รหัสสูตร (BOM Code)
+                </TableHead>
+                <TableHead
+                  className="p-3 text-xs font-bold text-muted-foreground uppercase text-left"
+                  style={{ color: "var(--erp-ink3)" }}
+                >
+                  ชื่อสูตรการผลิต (BOM Name)
+                </TableHead>
+                <TableHead
+                  className="p-3 text-xs font-bold text-muted-foreground uppercase text-right"
+                  style={{ color: "var(--erp-ink3)" }}
+                >
+                  ปริมาณผลผลิต
+                </TableHead>
+                <TableHead
+                  className="p-3 text-xs font-bold text-muted-foreground uppercase text-right"
+                  style={{ color: "var(--erp-ink3)" }}
+                >
+                  ต้นทุนอ้างอิง
+                </TableHead>
+                <TableHead
+                  className="p-3 text-xs font-bold text-muted-foreground uppercase text-left"
+                  style={{ color: "var(--erp-ink3)" }}
+                >
+                  สถานะ
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -307,7 +358,7 @@ export default function BomPage() {
                   <TableCell
                     colSpan={5}
                     className="p-5 text-center text-muted-foreground text-sm"
-                    style={{ color: 'var(--erp-ink3)' }}
+                    style={{ color: "var(--erp-ink3)" }}
                   >
                     ไม่พบข้อมูลสูตรการผลิตในระบบ
                   </TableCell>
@@ -321,24 +372,39 @@ export default function BomPage() {
                         ? c.neg
                         : c.ink3;
                   return (
-                    <TableRow key={row.id} className="hover:bg-muted/30 border-b border-border" style={{ borderColor: 'var(--erp-subtle)' }}>
+                    <TableRow
+                      key={row.id}
+                      className="hover:bg-muted/30 border-b border-border"
+                      style={{ borderColor: "var(--erp-subtle)" }}
+                    >
                       <TableCell className="p-3">
                         <Mono t={t} size={12} weight={600}>
                           {row.code}
                         </Mono>
                       </TableCell>
                       <TableCell className="p-3">
-                        <span className="text-sm font-semibold text-foreground" style={{ color: 'var(--erp-ink)' }}>
+                        <span
+                          className="text-sm font-semibold text-foreground"
+                          style={{ color: "var(--erp-ink)" }}
+                        >
                           {row.name}
                         </span>
                       </TableCell>
                       <TableCell className="p-3 text-right">
-                        <span className="text-xs text-foreground" style={{ color: 'var(--erp-ink)' }}>
+                        <span
+                          className="text-xs text-foreground"
+                          style={{ color: "var(--erp-ink)" }}
+                        >
                           {row.outputQty || 0} {row.outputUnit || "ชิ้น"}
                         </span>
                       </TableCell>
                       <TableCell className="p-3 text-right">
-                        <Mono t={t} size={12} weight={600} style={{ color: 'var(--erp-pos)' }}>
+                        <Mono
+                          t={t}
+                          size={12}
+                          weight={600}
+                          style={{ color: "var(--erp-pos)" }}
+                        >
                           {formatBaht(row.cost || 0)}
                         </Mono>
                       </TableCell>

@@ -31,7 +31,7 @@ export default function GoodsReceivePage() {
   const [toast, setToast] = useState("");
 
   const eligiblePOs = poList.filter(
-    (po) => po.status === "Sent" || po.status === "Partial Received"
+    (po) => po.status === "Sent" || po.status === "Partial Received",
   );
 
   const rows = useMemo(() => {
@@ -72,7 +72,12 @@ export default function GoodsReceivePage() {
   function handleCreateGR(data: {
     poRef: string;
     receiveDate: string;
-    items: { sku: string; qtyReceived: number; lot: string; expiryDate: string }[];
+    items: {
+      sku: string;
+      qtyReceived: number;
+      lot: string;
+      expiryDate: string;
+    }[];
     landedCosts: LandedCostLine[];
   }) {
     const gr = createGR({
@@ -90,7 +95,10 @@ export default function GoodsReceivePage() {
   }
 
   return (
-    <div className="min-h-screen bg-canvas pb-16" style={{ background: c.canvas }}>
+    <div
+      className="min-h-screen bg-canvas pb-16"
+      style={{ background: c.canvas }}
+    >
       <TopBar
         t={t}
         breadcrumb={["Chawy", "Inventory", "Goods Receive"]}
@@ -121,7 +129,7 @@ export default function GoodsReceivePage() {
         }
       />
 
-      <div className="p-6 md:p-8 max-w-[1320px] mx-auto grid gap-6">
+      <div className="p-6 md:p-8 max-w-full mx-auto grid gap-6">
         <StatStrip
           t={t}
           tiles={[
@@ -149,40 +157,73 @@ export default function GoodsReceivePage() {
           t={t}
           pad={false}
           className="overflow-hidden border border-border bg-card"
-          style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+          style={{
+            borderColor: "var(--erp-border)",
+            background: "var(--erp-surface)",
+          }}
         >
           <div className="overflow-x-auto">
             <Table className="w-full border-collapse">
               <TableHeader
                 className="bg-muted/50 border-b border-border"
-                style={{ background: "var(--erp-subtle)", borderColor: "var(--erp-border)" }}
+                style={{
+                  background: "var(--erp-subtle)",
+                  borderColor: "var(--erp-border)",
+                }}
               >
                 <TableRow>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     GR
                   </TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     PO Ref
                   </TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     Supplier
                   </TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     Date
                   </TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     Items
                   </TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     Quantity
                   </TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     Base Value
                   </TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     Landed Value
                   </TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     Status
                   </TableHead>
                 </TableRow>
@@ -205,7 +246,10 @@ export default function GoodsReceivePage() {
                         {g.poRef}
                       </Mono>
                     </TableCell>
-                    <TableCell className="p-4 px-5 align-middle font-medium text-foreground" style={{ color: "var(--erp-ink)" }}>
+                    <TableCell
+                      className="p-4 px-5 align-middle font-medium text-foreground"
+                      style={{ color: "var(--erp-ink)" }}
+                    >
                       {g.supplier}
                     </TableCell>
                     <TableCell className="p-4 px-5 align-middle">
@@ -239,7 +283,9 @@ export default function GoodsReceivePage() {
                       </Mono>
                     </TableCell>
                     <TableCell className="p-4 px-5 align-middle">
-                      <Badge variant={g.status === "pending" ? "low" : "normal"}>
+                      <Badge
+                        variant={g.status === "pending" ? "low" : "normal"}
+                      >
                         {g.status === "pending" ? "Pending" : "Completed"}
                       </Badge>
                     </TableCell>

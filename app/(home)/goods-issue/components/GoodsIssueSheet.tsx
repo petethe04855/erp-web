@@ -100,19 +100,26 @@ export function GoodsIssueSheet({
     }
   }
 
-  const isFormInvalid = !form.sku || isOverStock || form.qty === "" || Number(form.qty) < 1;
+  const isFormInvalid =
+    !form.sku || isOverStock || form.qty === "" || Number(form.qty) < 1;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex h-full w-[min(520px,100vw)] flex-col border-l bg-card text-card-foreground shadow-2xl outline-none">
         <SheetHeader className="mb-4">
-          <SheetTitle className="text-base font-bold text-foreground" style={{ color: "var(--erp-ink)" }}>
+          <SheetTitle
+            className="text-base font-bold text-foreground"
+            style={{ color: "var(--erp-ink)" }}
+          >
             Issue Goods
           </SheetTitle>
         </SheetHeader>
-        <SheetBody className="grid gap-4 overflow-y-auto">
+        <SheetBody className="space-y-3">
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               Product *
             </Label>
             <NativeSelect
@@ -149,7 +156,10 @@ export function GoodsIssueSheet({
                     borderRight: i < 2 ? "1px solid var(--erp-border)" : "none",
                   }}
                 >
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-[0.10em]" style={{ color: "var(--erp-ink3)" }}>
+                  <div
+                    className="text-[10px] text-muted-foreground uppercase tracking-[0.10em]"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     {label}
                   </div>
                   <Mono t={t} size={18} weight={600}>
@@ -161,7 +171,10 @@ export function GoodsIssueSheet({
           )}
 
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               Quantity *
             </Label>
             <Input
@@ -172,26 +185,38 @@ export function GoodsIssueSheet({
               onChange={(e) =>
                 setForm((f) => ({
                   ...f,
-                  qty: e.target.value === "" ? "" : parseInt(e.target.value) || 0,
+                  qty:
+                    e.target.value === "" ? "" : parseInt(e.target.value) || 0,
                 }))
               }
-              style={{ borderColor: isOverStock ? "var(--erp-neg)" : undefined }}
+              style={{
+                borderColor: isOverStock ? "var(--erp-neg)" : undefined,
+              }}
             />
             {isOverStock && (
-              <div className="mt-1 text-xs text-red-500" style={{ color: "var(--erp-neg)" }}>
+              <div
+                className="mt-1 text-xs text-red-500"
+                style={{ color: "var(--erp-neg)" }}
+              >
                 เกินสต๊อกพร้อมเบิก ({available} ชิ้น)
               </div>
             )}
           </div>
 
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               Purpose
             </Label>
             <NativeSelect
               value={form.reason}
               onChange={(e) =>
-                setForm((f) => ({ ...f, reason: e.target.value as GoodsIssueReason }))
+                setForm((f) => ({
+                  ...f,
+                  reason: e.target.value as GoodsIssueReason,
+                }))
               }
               className="w-full cursor-pointer"
             >
@@ -204,7 +229,10 @@ export function GoodsIssueSheet({
           </div>
 
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               Note
             </Label>
             <Textarea
@@ -219,7 +247,11 @@ export function GoodsIssueSheet({
             variant="outline"
             onClick={() => onOpenChange(false)}
             className="cursor-pointer border-border"
-            style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)", color: "#374151" }}
+            style={{
+              borderColor: "var(--erp-border)",
+              background: "var(--erp-surface)",
+              color: "#374151",
+            }}
           >
             Cancel
           </Button>

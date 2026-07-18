@@ -90,7 +90,7 @@ export default function PLPage() {
         (order) =>
           order.date.startsWith(targetMonth) &&
           order.status !== "Cancelled" &&
-          (channel === "ทั้งหมด" || order.channel === channel)
+          (channel === "ทั้งหมด" || order.channel === channel),
       )
       .reduce((sum, order) => {
         if (order.channel === "TikTok") {
@@ -108,7 +108,7 @@ export default function PLPage() {
         expense.date.startsWith(targetMonth) &&
         (channel === "ทั้งหมด" ||
           expense.channel === channel ||
-          expense.channel === "ทั่วไป")
+          expense.channel === "ทั่วไป"),
     );
   }
 
@@ -123,7 +123,10 @@ export default function PLPage() {
   const cogsCur = amountFor(month, COGS);
   const cogsPrev = amountFor(prevMonth, COGS);
   const opexCur = OPEX.reduce((sum, cat) => sum + amountFor(month, cat), 0);
-  const opexPrev = OPEX.reduce((sum, cat) => sum + amountFor(prevMonth, cat), 0);
+  const opexPrev = OPEX.reduce(
+    (sum, cat) => sum + amountFor(prevMonth, cat),
+    0,
+  );
   const grossCur = revCur - cogsCur;
   const grossPrev = revPrev - cogsPrev;
   const netCur = grossCur - opexCur;
@@ -152,8 +155,8 @@ export default function PLPage() {
           ? c.neg
           : c.pos
         : kind === "cost"
-        ? c.pos
-        : c.neg;
+          ? c.pos
+          : c.neg;
     return (
       <TableRow
         className="border-b border-border"
@@ -176,16 +179,18 @@ export default function PLPage() {
             {label}
           </span>
           {en && (
-            <span
-              className="text-xs ml-2"
-              style={{ color: "var(--erp-ink3)" }}
-            >
+            <span className="text-xs ml-2" style={{ color: "var(--erp-ink3)" }}>
               {en}
             </span>
           )}
         </TableCell>
         <TableCell className="p-3 px-6 align-middle text-right">
-          <Mono t={t} size={13} weight={isHead ? 600 : 500} color={cur < 0 ? c.neg : c.ink}>
+          <Mono
+            t={t}
+            size={13}
+            weight={isHead ? 600 : 500}
+            color={cur < 0 ? c.neg : c.ink}
+          >
             {fmtBaht(cur)}
           </Mono>
         </TableCell>
@@ -260,7 +265,12 @@ export default function PLPage() {
           style={{ borderColor: "var(--erp-border-strong)" }}
         >
           {prev ? (
-            <Mono t={t} size={13} weight={600} color={delta >= 0 ? c.pos : c.neg}>
+            <Mono
+              t={t}
+              size={13}
+              weight={600}
+              color={delta >= 0 ? c.pos : c.neg}
+            >
               {delta >= 0 ? "+" : "−"}
               {Math.abs(delta).toFixed(1)}%
             </Mono>
@@ -276,7 +286,7 @@ export default function PLPage() {
     try {
       await exportXlsx(
         `pl?month=${month}&channel=${channel}`,
-        `pl-report-export-${month}.xlsx`
+        `pl-report-export-${month}.xlsx`,
       );
       showToast("Export สำเร็จ");
     } catch (err: any) {
@@ -285,13 +295,16 @@ export default function PLPage() {
   }
 
   return (
-    <div className="min-h-screen bg-canvas pb-16" style={{ background: c.canvas }}>
+    <div
+      className="min-h-screen bg-canvas pb-16"
+      style={{ background: c.canvas }}
+    >
       <TopBar
         t={t}
         breadcrumb={["Chawy", "Finance", "P&L Report"]}
         title="Profit & Loss"
         subtitle={`งบกำไรขาดทุน · ${fmtMonth(month)} เทียบกับ ${fmtMonth(
-          prevMonth
+          prevMonth,
         )}`}
         right={
           <div className="flex items-center gap-2">
@@ -300,20 +313,22 @@ export default function PLPage() {
                 {toast}
               </span>
             )}
-            <Button variant="outline" onClick={handleExport} className="cursor-pointer">
+            <Button
+              variant="outline"
+              onClick={handleExport}
+              className="cursor-pointer"
+            >
               Export XLSX
             </Button>
-            <Button variant="outline" className="cursor-pointer">Export PDF</Button>
-            <MonthPicker
-              month={month}
-              onChange={setMonth}
-              nowKey={nowKey}
-            />
+            <Button variant="outline" className="cursor-pointer">
+              Export PDF
+            </Button>
+            <MonthPicker month={month} onChange={setMonth} nowKey={nowKey} />
           </div>
         }
       />
 
-      <div className="p-6 md:p-8 max-w-[1320px] mx-auto grid gap-6">
+      <div className="p-6 md:p-8 max-w-full mx-auto grid gap-6">
         <div className="flex items-center gap-1.5 justify-end flex-wrap">
           {CHANNELS.map((item) => (
             <Button
@@ -323,7 +338,8 @@ export default function PLPage() {
               onClick={() => setChannel(item)}
               className="cursor-pointer"
               style={{
-                backgroundColor: channel === item ? "var(--erp-accent)" : undefined,
+                backgroundColor:
+                  channel === item ? "var(--erp-accent)" : undefined,
                 color: channel === item ? "#fff" : undefined,
               }}
             >
@@ -380,7 +396,12 @@ export default function PLPage() {
                 {item.label}
               </div>
               <span className="block mt-2">
-                <Mono t={t} size={24} weight={600} color={item.primary ? c.accent : c.ink}>
+                <Mono
+                  t={t}
+                  size={24}
+                  weight={600}
+                  color={item.primary ? c.accent : c.ink}
+                >
                   {fmtBaht(item.value)}
                 </Mono>
               </span>
@@ -396,14 +417,18 @@ export default function PLPage() {
                           ? c.neg
                           : c.pos
                         : item.cost
-                        ? c.pos
-                        : c.neg
+                          ? c.pos
+                          : c.neg
                     }
                   >
-                    {item.delta >= 0 ? "↑" : "↓"} {Math.abs(item.delta).toFixed(1)}%
+                    {item.delta >= 0 ? "↑" : "↓"}{" "}
+                    {Math.abs(item.delta).toFixed(1)}%
                   </Mono>
                 </span>
-                <span className="text-xs text-muted-foreground" style={{ color: "var(--erp-ink3)" }}>
+                <span
+                  className="text-xs text-muted-foreground"
+                  style={{ color: "var(--erp-ink3)" }}
+                >
                   {item.sub || `vs ${fmtMonth(prevMonth)}`}
                 </span>
               </div>
@@ -416,28 +441,89 @@ export default function PLPage() {
           t={t}
           pad={false}
           className="overflow-hidden border border-border bg-card"
-          style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+          style={{
+            borderColor: "var(--erp-border)",
+            background: "var(--erp-surface)",
+          }}
         >
           <div className="overflow-x-auto">
             <Table className="w-full border-collapse">
               <TableHeader
                 className="bg-muted/50 border-b border-border"
-                style={{ background: "var(--erp-subtle)", borderColor: "var(--erp-border-strong)" }}
+                style={{
+                  background: "var(--erp-subtle)",
+                  borderColor: "var(--erp-border-strong)",
+                }}
               >
                 <TableRow>
-                  <TableHead className="p-3 px-6 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Account</TableHead>
-                  <TableHead className="p-3 px-6 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>{fmtMonth(month)}</TableHead>
-                  <TableHead className="p-3 px-6 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>{fmtMonth(prevMonth)}</TableHead>
-                  <TableHead className="p-3 px-6 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>Change</TableHead>
+                  <TableHead
+                    className="p-3 px-6 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Account
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-6 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    {fmtMonth(month)}
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-6 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    {fmtMonth(prevMonth)}
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-6 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Change
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                <Row label="รายได้" en="Revenue" cur={revCur} prev={revPrev} kind="head" />
-                <Row label="ยอดขายสินค้า" en="Product sales" cur={revCur} prev={revPrev} indent />
-                <Row label="ต้นทุนขาย" en="Cost of goods sold" cur={cogsCur} prev={cogsPrev} kind="head" />
-                <Row label="ต้นทุนวัตถุดิบ" en="Raw materials" cur={cogsCur} prev={cogsPrev} kind="cost" indent />
-                <TotalRow label="กำไรขั้นต้น · Gross profit" cur={grossCur} prev={grossPrev} />
-                <Row label="ค่าใช้จ่ายดำเนินงาน" en="Operating expenses" cur={opexCur} prev={opexPrev} kind="head" />
+                <Row
+                  label="รายได้"
+                  en="Revenue"
+                  cur={revCur}
+                  prev={revPrev}
+                  kind="head"
+                />
+                <Row
+                  label="ยอดขายสินค้า"
+                  en="Product sales"
+                  cur={revCur}
+                  prev={revPrev}
+                  indent
+                />
+                <Row
+                  label="ต้นทุนขาย"
+                  en="Cost of goods sold"
+                  cur={cogsCur}
+                  prev={cogsPrev}
+                  kind="head"
+                />
+                <Row
+                  label="ต้นทุนวัตถุดิบ"
+                  en="Raw materials"
+                  cur={cogsCur}
+                  prev={cogsPrev}
+                  kind="cost"
+                  indent
+                />
+                <TotalRow
+                  label="กำไรขั้นต้น · Gross profit"
+                  cur={grossCur}
+                  prev={grossPrev}
+                />
+                <Row
+                  label="ค่าใช้จ่ายดำเนินงาน"
+                  en="Operating expenses"
+                  cur={opexCur}
+                  prev={opexPrev}
+                  kind="head"
+                />
                 {OPEX.map((cat) => (
                   <Row
                     key={cat}
@@ -448,7 +534,12 @@ export default function PLPage() {
                     indent
                   />
                 ))}
-                <TotalRow label="กำไรสุทธิ · Net profit" cur={netCur} prev={netPrev} accent />
+                <TotalRow
+                  label="กำไรสุทธิ · Net profit"
+                  cur={netCur}
+                  prev={netPrev}
+                  accent
+                />
               </TableBody>
             </Table>
           </div>

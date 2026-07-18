@@ -43,12 +43,15 @@ export default function StockTransferPage() {
       return;
     }
     showToast(
-      `โอน ${result.skuName} ${result.qty} ชิ้น: ${result.fromLocation} → ${result.toLocation}`
+      `โอน ${result.skuName} ${result.qty} ชิ้น: ${result.fromLocation} → ${result.toLocation}`,
     );
   }
 
   return (
-    <div className="min-h-screen bg-canvas pb-16" style={{ background: c.canvas }}>
+    <div
+      className="min-h-screen bg-canvas pb-16"
+      style={{ background: c.canvas }}
+    >
       <TopBar
         t={t}
         breadcrumb={["Chawy", "Inventory", "Stock Transfer"]}
@@ -74,7 +77,7 @@ export default function StockTransferPage() {
         }
       />
 
-      <div className="p-6 md:p-8 max-w-[1320px] mx-auto grid gap-6">
+      <div className="p-6 md:p-8 max-w-full mx-auto grid gap-6">
         {/* KPI Strip */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
@@ -99,7 +102,7 @@ export default function StockTransferPage() {
             {
               label: "โอนวันนี้",
               value: stockTransfers.filter(
-                (tr) => tr.date === new Date().toISOString().split("T")[0]
+                (tr) => tr.date === new Date().toISOString().split("T")[0],
               ).length,
               sub: "รายการ",
               tone: c.pos,
@@ -121,12 +124,7 @@ export default function StockTransferPage() {
                 {item.label}
               </div>
               <span className="block mt-2">
-                <Mono
-                  t={t}
-                  size={22}
-                  weight={600}
-                  color={item.tone}
-                >
+                <Mono t={t} size={22} weight={600} color={item.tone}>
                   {item.value}
                 </Mono>
               </span>
@@ -145,11 +143,17 @@ export default function StockTransferPage() {
           t={t}
           pad={false}
           className="overflow-hidden border border-border bg-card"
-          style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+          style={{
+            borderColor: "var(--erp-border)",
+            background: "var(--erp-surface)",
+          }}
         >
           <div
             className="p-4 px-5 border-b border-border text-sm font-bold text-foreground"
-            style={{ borderColor: "var(--erp-border)", color: "var(--erp-ink)" }}
+            style={{
+              borderColor: "var(--erp-border)",
+              color: "var(--erp-ink)",
+            }}
           >
             ประวัติการโอนย้าย
           </div>
@@ -157,17 +161,60 @@ export default function StockTransferPage() {
             <Table className="w-full border-collapse">
               <TableHeader
                 className="bg-muted/50 border-b border-border"
-                style={{ background: "var(--erp-subtle)", borderColor: "var(--erp-border)" }}
+                style={{
+                  background: "var(--erp-subtle)",
+                  borderColor: "var(--erp-border)",
+                }}
               >
                 <TableRow>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>เลขที่</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>สินค้า</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>จำนวน</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>จาก</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>ไปยัง</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>วันที่</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>ผู้โอน</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>หมายเหตุ</TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    เลขที่
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    สินค้า
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    จำนวน
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    จาก
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    ไปยัง
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    วันที่
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    ผู้โอน
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    หมายเหตุ
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -188,13 +235,22 @@ export default function StockTransferPage() {
                     className="border-b border-border hover:bg-muted/50 transition-colors"
                     style={{ borderColor: "var(--erp-border)" }}
                   >
-                    <TableCell className="p-4 px-5 align-middle text-xs font-semibold font-mono" style={{ color: "var(--erp-accent)" }}>
+                    <TableCell
+                      className="p-4 px-5 align-middle text-xs font-semibold font-mono"
+                      style={{ color: "var(--erp-accent)" }}
+                    >
                       {tr.id}
                     </TableCell>
-                    <TableCell className="p-4 px-5 align-middle text-sm font-semibold" style={{ color: "var(--erp-ink)" }}>
+                    <TableCell
+                      className="p-4 px-5 align-middle text-sm font-semibold"
+                      style={{ color: "var(--erp-ink)" }}
+                    >
                       {tr.skuName}
                     </TableCell>
-                    <TableCell className="p-4 px-5 align-middle text-sm font-bold font-mono" style={{ color: "var(--erp-ink)" }}>
+                    <TableCell
+                      className="p-4 px-5 align-middle text-sm font-bold font-mono"
+                      style={{ color: "var(--erp-ink)" }}
+                    >
                       {tr.qty} ชิ้น
                     </TableCell>
                     <TableCell className="p-4 px-5 align-middle">
@@ -213,18 +269,26 @@ export default function StockTransferPage() {
                       <span
                         className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border"
                         style={{
-                          background: "var(--erp-info-subtle, rgba(59, 130, 246, 0.1))",
-                          borderColor: "var(--erp-info-border, rgba(59, 130, 246, 0.2))",
+                          background:
+                            "var(--erp-info-subtle, rgba(59, 130, 246, 0.1))",
+                          borderColor:
+                            "var(--erp-info-border, rgba(59, 130, 246, 0.2))",
                           color: "var(--erp-info)",
                         }}
                       >
                         → {tr.toLocation}
                       </span>
                     </TableCell>
-                    <TableCell className="p-4 px-5 align-middle text-xs" style={{ color: "var(--erp-ink3)" }}>
+                    <TableCell
+                      className="p-4 px-5 align-middle text-xs"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
                       {tr.date}
                     </TableCell>
-                    <TableCell className="p-4 px-5 align-middle text-xs" style={{ color: "var(--erp-ink2)" }}>
+                    <TableCell
+                      className="p-4 px-5 align-middle text-xs"
+                      style={{ color: "var(--erp-ink2)" }}
+                    >
                       {tr.transferredBy}
                     </TableCell>
                     <TableCell

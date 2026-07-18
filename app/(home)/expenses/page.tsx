@@ -62,7 +62,7 @@ export default function ExpensesPage() {
     .filter(
       (expense) =>
         !expense.invoiceRef ||
-        expense.description.toLowerCase().includes("pending")
+        expense.description.toLowerCase().includes("pending"),
     )
     .reduce((sum, expense) => sum + expense.amount, 0);
 
@@ -99,7 +99,7 @@ export default function ExpensesPage() {
     try {
       await exportXlsx(
         "expenses",
-        `expenses-export-${new Date().toISOString().slice(0, 10)}.xlsx`
+        `expenses-export-${new Date().toISOString().slice(0, 10)}.xlsx`,
       );
       showToast("Export สำเร็จ");
     } catch (err: any) {
@@ -108,7 +108,10 @@ export default function ExpensesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-canvas pb-16" style={{ background: c.canvas }}>
+    <div
+      className="min-h-screen bg-canvas pb-16"
+      style={{ background: c.canvas }}
+    >
       <TopBar
         t={t}
         breadcrumb={["Chawy", "Finance", "Expenses"]}
@@ -121,7 +124,11 @@ export default function ExpensesPage() {
                 {toast}
               </span>
             )}
-            <Button variant="outline" onClick={handleExport} className="cursor-pointer">
+            <Button
+              variant="outline"
+              onClick={handleExport}
+              className="cursor-pointer"
+            >
               Export
             </Button>
             <Button
@@ -134,12 +141,26 @@ export default function ExpensesPage() {
         }
       />
 
-      <div className="p-6 md:p-8 max-w-[1320px] mx-auto grid gap-6">
+      <div className="p-6 md:p-8 max-w-full mx-auto grid gap-6">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.6fr] gap-6 items-stretch">
-          <Card t={t} pad={false} className="border border-border bg-card" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)' }}>
+          <Card
+            t={t}
+            pad={false}
+            className="border border-border bg-card"
+            style={{
+              borderColor: "var(--erp-border)",
+              background: "var(--erp-surface)",
+            }}
+          >
             <div className="grid grid-rows-2 h-full">
-              <div className="p-5 border-b border-border" style={{ borderColor: 'var(--erp-border)' }}>
-                <div className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>
+              <div
+                className="p-5 border-b border-border"
+                style={{ borderColor: "var(--erp-border)" }}
+              >
+                <div
+                  className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground"
+                  style={{ color: "var(--erp-ink3)" }}
+                >
                   Total · MTD
                 </div>
                 <span className="block mt-2">
@@ -149,7 +170,10 @@ export default function ExpensesPage() {
                 </span>
               </div>
               <div className="p-5">
-                <div className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>
+                <div
+                  className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground"
+                  style={{ color: "var(--erp-ink3)" }}
+                >
                   Unpaid
                 </div>
                 <span className="block mt-2">
@@ -161,8 +185,18 @@ export default function ExpensesPage() {
             </div>
           </Card>
 
-          <Card t={t} className="border border-border bg-card p-5" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)' }}>
-            <div className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground mb-4" style={{ color: 'var(--erp-ink3)' }}>
+          <Card
+            t={t}
+            className="border border-border bg-card p-5"
+            style={{
+              borderColor: "var(--erp-border)",
+              background: "var(--erp-surface)",
+            }}
+          >
+            <div
+              className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground mb-4"
+              style={{ color: "var(--erp-ink3)" }}
+            >
               By Category · MTD
             </div>
             <div className="grid gap-3">
@@ -171,10 +205,16 @@ export default function ExpensesPage() {
                   key={item.category}
                   className="grid grid-cols-[140px_1fr_100px] items-center gap-4"
                 >
-                  <span className="text-sm font-medium text-foreground" style={{ color: 'var(--erp-ink)' }}>
+                  <span
+                    className="text-sm font-medium text-foreground"
+                    style={{ color: "var(--erp-ink)" }}
+                  >
                     {item.category}
                   </span>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden" style={{ background: 'var(--erp-subtle)' }}>
+                  <div
+                    className="h-2 bg-muted rounded-full overflow-hidden"
+                    style={{ background: "var(--erp-subtle)" }}
+                  >
                     <div
                       className="h-full rounded-full bg-[var(--erp-expense)]"
                       style={{
@@ -198,19 +238,63 @@ export default function ExpensesPage() {
           t={t}
           pad={false}
           className="overflow-hidden border border-border bg-card"
-          style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)' }}
+          style={{
+            borderColor: "var(--erp-border)",
+            background: "var(--erp-surface)",
+          }}
         >
           <div className="overflow-x-auto">
             <Table className="w-full border-collapse">
-              <TableHeader className="bg-muted/50 border-b border-border" style={{ background: 'var(--erp-subtle)', borderColor: 'var(--erp-border)' }}>
+              <TableHeader
+                className="bg-muted/50 border-b border-border"
+                style={{
+                  background: "var(--erp-subtle)",
+                  borderColor: "var(--erp-border)",
+                }}
+              >
                 <TableRow>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: 'var(--erp-ink3)' }}>Ref</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: 'var(--erp-ink3)' }}>Date</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: 'var(--erp-ink3)' }}>Vendor</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: 'var(--erp-ink3)' }}>Category</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: 'var(--erp-ink3)' }}>Method</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: 'var(--erp-ink3)' }}>Amount</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: 'var(--erp-ink3)' }}>Status</TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Ref
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Date
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Vendor
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Category
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Method
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Amount
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Status
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -218,7 +302,7 @@ export default function ExpensesPage() {
                   <TableRow
                     key={expense.id}
                     className="hover:bg-muted/50 transition-colors border-b border-border"
-                    style={{ borderColor: 'var(--erp-border)' }}
+                    style={{ borderColor: "var(--erp-border)" }}
                   >
                     <TableCell className="p-4 px-5 align-middle">
                       <Mono t={t} size={12} weight={500}>
@@ -230,13 +314,22 @@ export default function ExpensesPage() {
                         {formatDateShort(expense.date)}
                       </Mono>
                     </TableCell>
-                    <TableCell className="p-4 px-5 align-middle font-medium text-foreground" style={{ color: 'var(--erp-ink)' }}>
+                    <TableCell
+                      className="p-4 px-5 align-middle font-medium text-foreground"
+                      style={{ color: "var(--erp-ink)" }}
+                    >
                       {expense.vendor}
                     </TableCell>
-                    <TableCell className="p-4 px-5 align-middle text-sm text-muted-foreground" style={{ color: 'var(--erp-ink2)' }}>
+                    <TableCell
+                      className="p-4 px-5 align-middle text-sm text-muted-foreground"
+                      style={{ color: "var(--erp-ink2)" }}
+                    >
                       {expense.category}
                     </TableCell>
-                    <TableCell className="p-4 px-5 align-middle text-sm text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>
+                    <TableCell
+                      className="p-4 px-5 align-middle text-sm text-muted-foreground"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
                       {expense.channel}
                     </TableCell>
                     <TableCell className="p-4 px-5 align-middle text-right">
@@ -253,12 +346,16 @@ export default function ExpensesPage() {
                           variant="outline"
                           size="sm"
                           onClick={async () => {
-                            const nextInvoiceRef = expense.invoiceRef ? "" : "PAID";
-                            await updateExpense(expense.id, { invoiceRef: nextInvoiceRef });
+                            const nextInvoiceRef = expense.invoiceRef
+                              ? ""
+                              : "PAID";
+                            await updateExpense(expense.id, {
+                              invoiceRef: nextInvoiceRef,
+                            });
                             showToast(
                               `เปลี่ยนสถานะเป็น ${
                                 nextInvoiceRef ? "Paid" : "Pending"
-                              } แล้ว`
+                              } แล้ว`,
                             );
                           }}
                           className="h-7 px-2 text-xs cursor-pointer"

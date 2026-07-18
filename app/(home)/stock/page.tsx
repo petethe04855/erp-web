@@ -17,7 +17,7 @@ import {
 
 function earliestLot(
   lots: ReturnType<typeof useErpStore.getState>["stockLots"],
-  sku: string
+  sku: string,
 ) {
   return lots
     .filter((l) => l.sku === sku && l.remainingQty > 0)
@@ -41,7 +41,8 @@ export default function StockPage() {
       const lot = earliestLot(stockLots, product.sku);
       const onHand = product.stock;
       const value = onHand * product.cost;
-      const status = onHand === 0 ? "out" : onHand <= product.reorder ? "low" : "ok";
+      const status =
+        onHand === 0 ? "out" : onHand <= product.reorder ? "low" : "ok";
       const ratio = Math.min(onHand / Math.max(product.reorder * 2, 1), 1);
       return { ...product, lot, onHand, value, status, ratio };
     });
@@ -49,11 +50,16 @@ export default function StockPage() {
 
   const totalValue = rows.reduce((s, p) => s + p.value, 0);
   const totalUnits = rows.reduce((s, p) => s + p.onHand, 0);
-  const lowStock = rows.filter((p) => p.onHand > 0 && p.onHand <= p.reorder).length;
+  const lowStock = rows.filter(
+    (p) => p.onHand > 0 && p.onHand <= p.reorder,
+  ).length;
   const outOfStock = rows.filter((p) => p.onHand === 0).length;
 
   return (
-    <div className="min-h-screen bg-canvas pb-16" style={{ background: c.canvas }}>
+    <div
+      className="min-h-screen bg-canvas pb-16"
+      style={{ background: c.canvas }}
+    >
       <TopBar
         t={t}
         breadcrumb={["Chawy", "Inventory", "Stock Balance"]}
@@ -85,7 +91,7 @@ export default function StockPage() {
         }
       />
 
-      <div className="p-6 md:p-8 max-w-[1320px] mx-auto grid gap-6">
+      <div className="p-6 md:p-8 max-w-full mx-auto grid gap-6">
         {/* KPI Strip */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
@@ -152,28 +158,79 @@ export default function StockPage() {
           t={t}
           pad={false}
           className="overflow-hidden border border-border bg-card"
-          style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+          style={{
+            borderColor: "var(--erp-border)",
+            background: "var(--erp-surface)",
+          }}
         >
           <div className="overflow-x-auto">
             <Table className="w-full border-collapse">
               <TableHeader
                 className="bg-muted/50 border-b border-border"
-                style={{ background: "var(--erp-subtle)", borderColor: "var(--erp-border)" }}
+                style={{
+                  background: "var(--erp-subtle)",
+                  borderColor: "var(--erp-border)",
+                }}
               >
                 <TableRow>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>SKU</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Product</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Lot</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>On hand</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>Reorder</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Stock level</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>Value</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>30D trend</TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    SKU
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Product
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Lot
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    On hand
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Reorder
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Stock level
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Value
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    30D trend
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rows.map((p) => {
-                  const barColor = p.status === "out" ? c.neg : p.status === "low" ? c.warn : c.pos;
+                  const barColor =
+                    p.status === "out"
+                      ? c.neg
+                      : p.status === "low"
+                        ? c.warn
+                        : c.pos;
                   return (
                     <TableRow
                       key={p.sku}
@@ -233,7 +290,11 @@ export default function StockPage() {
                             className="text-[11px] font-semibold min-w-[50px]"
                             style={{ color: barColor }}
                           >
-                            {p.status === "out" ? "Out" : p.status === "low" ? "Low" : "Healthy"}
+                            {p.status === "out"
+                              ? "Out"
+                              : p.status === "low"
+                                ? "Low"
+                                : "Healthy"}
                           </span>
                         </div>
                       </TableCell>

@@ -36,10 +36,10 @@ export default function QuotationPage() {
   const products = useErpStore((state) => state.products);
   const createQuotation = useErpStore((state) => state.createQuotation);
   const convertQuotationToSalesOrder = useErpStore(
-    (state) => state.convertQuotationToSalesOrder
+    (state) => state.convertQuotationToSalesOrder,
   );
   const updateQuotationStatus = useErpStore(
-    (state) => state.updateQuotationStatus
+    (state) => state.updateQuotationStatus,
   );
 
   const [open, setOpen] = useState(false);
@@ -73,7 +73,10 @@ export default function QuotationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-canvas pb-16" style={{ background: c.canvas }}>
+    <div
+      className="min-h-screen bg-canvas pb-16"
+      style={{ background: c.canvas }}
+    >
       <TopBar
         t={t}
         breadcrumb={["Chawy", "Sales", "Quotations"]}
@@ -101,27 +104,63 @@ export default function QuotationPage() {
         }
       />
 
-      <div className="p-6 md:p-8 max-w-[1320px] mx-auto grid gap-6">
+      <div className="p-6 md:p-8 max-w-full mx-auto grid gap-6">
         {/* Quotations Table */}
         <Card
           t={t}
           pad={false}
           className="overflow-hidden border border-border bg-card"
-          style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+          style={{
+            borderColor: "var(--erp-border)",
+            background: "var(--erp-surface)",
+          }}
         >
           <div className="overflow-x-auto">
             <Table className="w-full border-collapse">
               <TableHeader
                 className="bg-muted/50 border-b border-border"
-                style={{ background: "var(--erp-subtle)", borderColor: "var(--erp-border)" }}
+                style={{
+                  background: "var(--erp-subtle)",
+                  borderColor: "var(--erp-border)",
+                }}
               >
                 <TableRow>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Quote</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Customer</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Issued</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Valid until</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>Amount</TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>Status</TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Quote
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Customer
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Issued
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Valid until
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Amount
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Status
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -145,7 +184,7 @@ export default function QuotationPage() {
                                 transition(
                                   q.id,
                                   "Sent",
-                                  "ส่งให้ลูกค้าแล้ว รออนุมัติ"
+                                  "ส่งให้ลูกค้าแล้ว รออนุมัติ",
                                 )
                               }
                               className="h-6 text-[10px] px-2 cursor-pointer"
@@ -160,7 +199,7 @@ export default function QuotationPage() {
                                 transition(
                                   q.id,
                                   "Approved",
-                                  "Admin/Owner อนุมัติใบเสนอราคา"
+                                  "Admin/Owner อนุมัติใบเสนอราคา",
                                 )
                               }
                               className="h-6 text-[10px] px-2 cursor-pointer bg-[var(--erp-accent)] text-white border-none"

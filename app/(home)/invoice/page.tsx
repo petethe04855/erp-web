@@ -117,7 +117,7 @@ function preparePdfElement(source: HTMLElement) {
   ] as const;
 
   Object.entries(PDF_SAFE_CSS_VARS).forEach(([name, value]) =>
-    clone.style.setProperty(name, value)
+    clone.style.setProperty(name, value),
   );
   clone.querySelectorAll<HTMLElement>(".print-company-detail").forEach((el) => {
     el.style.setProperty("display", "block", "important");
@@ -161,7 +161,7 @@ export default function InvoicePage() {
   const [selectedId, setSelectedId] = useState(
     processedList.find((i) => i.status !== "Paid")?.id ??
       processedList[0]?.id ??
-      ""
+      "",
   );
   const selected =
     processedList.find((i) => i.id === selectedId) ?? processedList[0];
@@ -175,7 +175,7 @@ export default function InvoicePage() {
     : null;
   const eligibleSOs = salesOrders.filter(
     (so) =>
-      so.status === "Completed" && !invoices.some((inv) => inv.soRef === so.id)
+      so.status === "Completed" && !invoices.some((inv) => inv.soRef === so.id),
   );
 
   const vatRate = settings.company.vatRate || 7;
@@ -241,7 +241,7 @@ export default function InvoicePage() {
     if (updated) {
       setSelectedId(updated.id);
       showToast(
-        `${updated.id} → ${updated.status === "Paid" ? "ชำระครบ" : "ชำระบางส่วน"}`
+        `${updated.id} → ${updated.status === "Paid" ? "ชำระครบ" : "ชำระบางส่วน"}`,
       );
     }
   }
@@ -250,7 +250,7 @@ export default function InvoicePage() {
     try {
       await exportXlsx(
         "invoices",
-        `invoices-export-${new Date().toISOString().slice(0, 10)}.xlsx`
+        `invoices-export-${new Date().toISOString().slice(0, 10)}.xlsx`,
       );
       showToast("Export สำเร็จ");
     } catch (err: any) {
@@ -313,10 +313,27 @@ export default function InvoicePage() {
           }
         />
         <div className="p-6 md:p-8 max-w-[1320px] mx-auto">
-          <Card t={t} className="p-12 text-center border border-border bg-card" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)' }}>
+          <Card
+            t={t}
+            className="p-12 text-center border border-border bg-card"
+            style={{
+              borderColor: "var(--erp-border)",
+              background: "var(--erp-surface)",
+            }}
+          >
             <div className="text-5xl mb-4">📄</div>
-            <h3 className="text-base font-semibold text-foreground" style={{ color: 'var(--erp-ink)' }}>ยังไม่มีใบแจ้งหนี้ (No Invoices)</h3>
-            <p className="text-xs text-muted-foreground mt-2 mb-5" style={{ color: 'var(--erp-ink3)' }}>คุณสามารถสร้างใบแจ้งหนี้ใหม่ได้โดยคลิกปุ่มด้านล่าง</p>
+            <h3
+              className="text-base font-semibold text-foreground"
+              style={{ color: "var(--erp-ink)" }}
+            >
+              ยังไม่มีใบแจ้งหนี้ (No Invoices)
+            </h3>
+            <p
+              className="text-xs text-muted-foreground mt-2 mb-5"
+              style={{ color: "var(--erp-ink3)" }}
+            >
+              คุณสามารถสร้างใบแจ้งหนี้ใหม่ได้โดยคลิกปุ่มด้านล่าง
+            </p>
             <Button
               onClick={() => setCreateOpen(true)}
               className="cursor-pointer bg-[var(--erp-accent)] text-white hover:opacity-90 border-none shadow-none"
@@ -340,11 +357,14 @@ export default function InvoicePage() {
   const outstanding = selected.amount - selected.paid;
   const terms = daysBetween(selected.issueDate, selected.dueDate);
   const customerInvoices = processedList.filter(
-    (inv) => inv.customer === selected.customer
+    (inv) => inv.customer === selected.customer,
   );
-  const customerRevenue = customerInvoices.reduce((s, inv) => s + inv.amount, 0);
+  const customerRevenue = customerInvoices.reduce(
+    (s, inv) => s + inv.amount,
+    0,
+  );
   const openInvoices = customerInvoices.filter(
-    (inv) => inv.status !== "Paid"
+    (inv) => inv.status !== "Paid",
   ).length;
 
   const actionRight = (
@@ -354,13 +374,25 @@ export default function InvoicePage() {
           {toast}
         </span>
       )}
-      <Button variant="outline" onClick={handleExport} className="cursor-pointer">
+      <Button
+        variant="outline"
+        onClick={handleExport}
+        className="cursor-pointer"
+      >
         Export CSV
       </Button>
-      <Button variant="outline" onClick={() => window.print()} className="cursor-pointer">
+      <Button
+        variant="outline"
+        onClick={() => window.print()}
+        className="cursor-pointer"
+      >
         Print
       </Button>
-      <Button variant="outline" onClick={handleDownloadPdf} className="cursor-pointer">
+      <Button
+        variant="outline"
+        onClick={handleDownloadPdf}
+        className="cursor-pointer"
+      >
         Export PDF
       </Button>
       <Button
@@ -373,7 +405,10 @@ export default function InvoicePage() {
   );
 
   return (
-    <div className="min-h-screen bg-canvas pb-16" style={{ background: c.canvas }}>
+    <div
+      className="min-h-screen bg-canvas pb-16"
+      style={{ background: c.canvas }}
+    >
       <div className="no-print">
         <TopBar
           t={t}
@@ -393,20 +428,37 @@ export default function InvoicePage() {
         />
       </div>
 
-      <div className="p-6 md:p-8 max-w-[1320px] mx-auto grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
+      <div className="p-6 md:p-8 max-w-full mx-auto grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
         <div className="grid gap-6">
           <div className="invoice-card">
-            <Card t={t} pad={false} className="border border-border bg-card" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)' }}>
+            <Card
+              t={t}
+              pad={false}
+              className="border border-border bg-card"
+              style={{
+                borderColor: "var(--erp-border)",
+                background: "var(--erp-surface)",
+              }}
+            >
               <div className="p-8 pb-0 flex justify-between items-start flex-wrap gap-4">
                 <div>
-                  <div className="text-base font-bold text-foreground mb-1" style={{ color: 'var(--erp-ink)' }}>
+                  <div
+                    className="text-base font-bold text-foreground mb-1"
+                    style={{ color: "var(--erp-ink)" }}
+                  >
                     {settings.company.name}
                   </div>
                   <div className="print-company-detail hidden">
-                    <div className="text-xs text-muted-foreground leading-relaxed mb-1" style={{ color: 'var(--erp-ink2)' }}>
+                    <div
+                      className="text-xs text-muted-foreground leading-relaxed mb-1"
+                      style={{ color: "var(--erp-ink2)" }}
+                    >
                       {settings.company.address}
                     </div>
-                    <div className="flex gap-4 text-[11px] text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>
+                    <div
+                      className="flex gap-4 text-[11px] text-muted-foreground"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
                       <span>
                         Tax ID{" "}
                         <Mono t={t} size={11} color={c.ink2}>
@@ -419,7 +471,10 @@ export default function InvoicePage() {
                       <span>{settings.company.email}</span>
                     </div>
                   </div>
-                  <div className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground mt-2" style={{ color: 'var(--erp-ink3)' }}>
+                  <div
+                    className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground mt-2"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     Invoice
                   </div>
                   <span className="block mt-1">
@@ -429,7 +484,15 @@ export default function InvoicePage() {
                   </span>
                 </div>
                 <div className="text-right">
-                  <Badge variant={selected.status === "Paid" ? "normal" : selected.status === "Overdue" ? "empty" : "low"}>
+                  <Badge
+                    variant={
+                      selected.status === "Paid"
+                        ? "normal"
+                        : selected.status === "Overdue"
+                          ? "empty"
+                          : "low"
+                    }
+                  >
                     {selected.status}
                   </Badge>
                   <span className="block mt-2">
@@ -440,18 +503,33 @@ export default function InvoicePage() {
                 </div>
               </div>
 
-              <div className="p-8 grid grid-cols-1 sm:grid-cols-3 gap-6 border-b border-border mt-4" style={{ borderColor: 'var(--erp-border)' }}>
+              <div
+                className="p-8 grid grid-cols-1 sm:grid-cols-3 gap-6 border-b border-border mt-4"
+                style={{ borderColor: "var(--erp-border)" }}
+              >
                 <div>
-                  <div className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground mb-2" style={{ color: 'var(--erp-ink3)' }}>
+                  <div
+                    className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground mb-2"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     Bill to
                   </div>
-                  <div className="text-sm font-semibold text-foreground" style={{ color: 'var(--erp-ink)' }}>
+                  <div
+                    className="text-sm font-semibold text-foreground"
+                    style={{ color: "var(--erp-ink)" }}
+                  >
                     {selected.customer}
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1 leading-relaxed" style={{ color: 'var(--erp-ink2)' }}>
+                  <div
+                    className="text-xs text-muted-foreground mt-1 leading-relaxed"
+                    style={{ color: "var(--erp-ink2)" }}
+                  >
                     Customer record from ERP invoice ledger
                   </div>
-                  <div className="flex gap-3 mt-2 text-[11px] text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>
+                  <div
+                    className="flex gap-3 mt-2 text-[11px] text-muted-foreground"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     <span>
                       SO{" "}
                       <Mono t={t} size={11} color={c.ink2}>
@@ -463,24 +541,36 @@ export default function InvoicePage() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground mb-2" style={{ color: 'var(--erp-ink3)' }}>
+                  <div
+                    className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground mb-2"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     Due date
                   </div>
                   <Mono t={t} size={14} weight={500}>
                     {formatDate(selected.dueDate)}
                   </Mono>
-                  <div className="text-xs text-muted-foreground mt-1" style={{ color: 'var(--erp-ink3)' }}>
+                  <div
+                    className="text-xs text-muted-foreground mt-1"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     Net {terms} · {terms} days from issue
                   </div>
                 </div>
                 <div>
-                  <div className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground mb-2" style={{ color: 'var(--erp-ink3)' }}>
+                  <div
+                    className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground mb-2"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     Amount due
                   </div>
                   <Mono t={t} size={20} weight={600}>
                     {fmtBaht(outstanding)}
                   </Mono>
-                  <div className="text-xs text-muted-foreground mt-1" style={{ color: 'var(--erp-ink3)' }}>
+                  <div
+                    className="text-xs text-muted-foreground mt-1"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     {selected.paid > 0
                       ? `${fmtBaht(selected.paid)} paid`
                       : "awaiting payment"}
@@ -490,34 +580,62 @@ export default function InvoicePage() {
 
               <div className="overflow-x-auto">
                 <Table className="w-full border-collapse">
-                  <TableHeader className="bg-muted/50 border-b border-border" style={{ background: 'var(--erp-subtle)', borderColor: 'var(--erp-border)' }}>
+                  <TableHeader
+                    className="bg-muted/50 border-b border-border"
+                    style={{
+                      background: "var(--erp-subtle)",
+                      borderColor: "var(--erp-border)",
+                    }}
+                  >
                     <TableRow>
-                      <TableHead className="p-3 px-8 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: 'var(--erp-ink3)', width: 130 }}>
+                      <TableHead
+                        className="p-3 px-8 text-xs font-bold text-muted-foreground uppercase text-left"
+                        style={{ color: "var(--erp-ink3)", width: 130 }}
+                      >
                         SKU
                       </TableHead>
-                      <TableHead className="p-3 px-8 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: 'var(--erp-ink3)' }}>
+                      <TableHead
+                        className="p-3 px-8 text-xs font-bold text-muted-foreground uppercase text-left"
+                        style={{ color: "var(--erp-ink3)" }}
+                      >
                         Description
                       </TableHead>
-                      <TableHead className="p-3 px-8 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: 'var(--erp-ink3)', width: 80 }}>
+                      <TableHead
+                        className="p-3 px-8 text-xs font-bold text-muted-foreground uppercase text-right"
+                        style={{ color: "var(--erp-ink3)", width: 80 }}
+                      >
                         Qty
                       </TableHead>
-                      <TableHead className="p-3 px-8 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: 'var(--erp-ink3)', width: 120 }}>
+                      <TableHead
+                        className="p-3 px-8 text-xs font-bold text-muted-foreground uppercase text-right"
+                        style={{ color: "var(--erp-ink3)", width: 120 }}
+                      >
                         Unit price (THB)
                       </TableHead>
-                      <TableHead className="p-3 px-8 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: 'var(--erp-ink3)', width: 130 }}>
+                      <TableHead
+                        className="p-3 px-8 text-xs font-bold text-muted-foreground uppercase text-right"
+                        style={{ color: "var(--erp-ink3)", width: 130 }}
+                      >
                         Amount (THB)
                       </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {lines.map((line) => (
-                      <TableRow key={line.sku} className="border-b border-border" style={{ borderColor: 'var(--erp-border)' }}>
+                      <TableRow
+                        key={line.sku}
+                        className="border-b border-border"
+                        style={{ borderColor: "var(--erp-border)" }}
+                      >
                         <TableCell className="p-4 px-8 align-middle">
                           <Mono t={t} size={12} weight={500}>
                             {line.sku}
                           </Mono>
                         </TableCell>
-                        <TableCell className="p-4 px-8 align-middle text-sm font-medium text-foreground" style={{ color: 'var(--erp-ink)' }}>
+                        <TableCell
+                          className="p-4 px-8 align-middle text-sm font-medium text-foreground"
+                          style={{ color: "var(--erp-ink)" }}
+                        >
                           {line.name}
                         </TableCell>
                         <TableCell className="p-4 px-8 align-middle text-right">
@@ -544,7 +662,12 @@ export default function InvoicePage() {
               <div className="p-8 pt-5 flex justify-end">
                 <div className="w-80 flex flex-col gap-2.5">
                   {[
-                    { label: "Subtotal", val: subtotal, color: c.ink2, weight: 500 },
+                    {
+                      label: "Subtotal",
+                      val: subtotal,
+                      color: c.ink2,
+                      weight: 500,
+                    },
                     {
                       label: `VAT (${vatRate}%)`,
                       val: vat,
@@ -552,18 +675,26 @@ export default function InvoicePage() {
                       weight: 500,
                     },
                   ].map((r) => (
-                    <div
-                      key={r.label}
-                      className="flex justify-between text-sm"
-                    >
-                      <span className="text-muted-foreground" style={{ color: c.ink3 }}>{r.label}</span>
+                    <div key={r.label} className="flex justify-between text-sm">
+                      <span
+                        className="text-muted-foreground"
+                        style={{ color: c.ink3 }}
+                      >
+                        {r.label}
+                      </span>
                       <Mono t={t} size={13} weight={r.weight} color={r.color}>
                         {fmtBaht(r.val)}
                       </Mono>
                     </div>
                   ))}
-                  <div className="border-t border-border pt-3 flex justify-between items-baseline" style={{ borderColor: 'var(--erp-border)' }}>
-                    <span className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground" style={{ color: c.ink3 }}>
+                  <div
+                    className="border-t border-border pt-3 flex justify-between items-baseline"
+                    style={{ borderColor: "var(--erp-border)" }}
+                  >
+                    <span
+                      className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground"
+                      style={{ color: c.ink3 }}
+                    >
                       Total due
                     </span>
                     <Mono t={t} size={22} weight={600}>
@@ -576,8 +707,20 @@ export default function InvoicePage() {
           </div>
 
           <div className="no-print grid gap-3 mt-2">
-            <div className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>Activity</div>
-            <Card t={t} className="border border-border bg-card p-5" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)' }}>
+            <div
+              className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground"
+              style={{ color: "var(--erp-ink3)" }}
+            >
+              Activity
+            </div>
+            <Card
+              t={t}
+              className="border border-border bg-card p-5"
+              style={{
+                borderColor: "var(--erp-border)",
+                background: "var(--erp-surface)",
+              }}
+            >
               {(selected.auditTrail.length
                 ? selected.auditTrail
                 : [
@@ -594,17 +737,25 @@ export default function InvoicePage() {
                   className="grid grid-cols-[auto_1fr_auto] items-baseline gap-4 py-3"
                   style={{
                     borderBottom:
-                      i < arr.length - 1 ? `1px solid var(--erp-border)` : "none",
+                      i < arr.length - 1
+                        ? `1px solid var(--erp-border)`
+                        : "none",
                   }}
                 >
                   <Dot color={i === 0 ? c.accent : c.ink4} />
                   <div>
                     <div className="text-sm text-foreground">
                       <span className="font-semibold">{event.by}</span>
-                      <span className="text-muted-foreground"> {event.action}</span>
+                      <span className="text-muted-foreground">
+                        {" "}
+                        {event.action}
+                      </span>
                     </div>
                     {event.note && (
-                      <div className="text-xs text-muted-foreground mt-1" style={{ color: 'var(--erp-ink3)' }}>
+                      <div
+                        className="text-xs text-muted-foreground mt-1"
+                        style={{ color: "var(--erp-ink3)" }}
+                      >
                         {event.note}
                       </div>
                     )}
@@ -619,12 +770,30 @@ export default function InvoicePage() {
 
           <div className="no-print grid gap-3 mt-2">
             <div className="flex justify-between items-center">
-              <span className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>Invoice ledger</span>
-              <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)} className="cursor-pointer h-7">
+              <span
+                className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground"
+                style={{ color: "var(--erp-ink3)" }}
+              >
+                Invoice ledger
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCreateOpen(true)}
+                className="cursor-pointer h-7"
+              >
                 Create invoice
               </Button>
             </div>
-            <Card t={t} pad={false} className="overflow-hidden border border-border bg-card" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)' }}>
+            <Card
+              t={t}
+              pad={false}
+              className="overflow-hidden border border-border bg-card"
+              style={{
+                borderColor: "var(--erp-border)",
+                background: "var(--erp-surface)",
+              }}
+            >
               {processedList.slice(0, 6).map((inv) => {
                 const active = inv.id === selected.id;
                 return (
@@ -646,14 +815,25 @@ export default function InvoicePage() {
                     >
                       {inv.id}
                     </Mono>
-                    <span className="text-sm text-muted-foreground" style={{ color: "var(--erp-ink2)" }}>
+                    <span
+                      className="text-sm text-muted-foreground"
+                      style={{ color: "var(--erp-ink2)" }}
+                    >
                       {inv.customer}
                     </span>
                     <Mono t={t} size={12} weight={500}>
                       {fmtBaht(inv.amount - inv.paid)}
                     </Mono>
                     <div>
-                      <Badge variant={inv.status === "Paid" ? "normal" : inv.status === "Overdue" ? "empty" : "low"}>
+                      <Badge
+                        variant={
+                          inv.status === "Paid"
+                            ? "normal"
+                            : inv.status === "Overdue"
+                              ? "empty"
+                              : "low"
+                        }
+                      >
                         {inv.status}
                       </Badge>
                     </div>
@@ -665,8 +845,20 @@ export default function InvoicePage() {
         </div>
 
         <div className="no-print flex flex-col gap-6 sticky top-28">
-          <Card t={t} className="border border-border bg-card p-5" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)' }}>
-            <div className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground mb-4" style={{ color: 'var(--erp-ink3)' }}>Payment</div>
+          <Card
+            t={t}
+            className="border border-border bg-card p-5"
+            style={{
+              borderColor: "var(--erp-border)",
+              background: "var(--erp-surface)",
+            }}
+          >
+            <div
+              className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground mb-4"
+              style={{ color: "var(--erp-ink3)" }}
+            >
+              Payment
+            </div>
             <div className="flex flex-col gap-4">
               <div>
                 <span className="block">
@@ -674,20 +866,28 @@ export default function InvoicePage() {
                     {fmtBaht(outstanding)}
                   </Mono>
                 </span>
-                <div className="text-xs text-muted-foreground mt-1" style={{ color: c.ink3 }}>
+                <div
+                  className="text-xs text-muted-foreground mt-1"
+                  style={{ color: c.ink3 }}
+                >
                   Due in {terms} days · {formatDate(selected.dueDate)}
                 </div>
               </div>
-              <div className="h-[1px] bg-border" style={{ background: c.border }} />
+              <div
+                className="h-[1px] bg-border"
+                style={{ background: c.border }}
+              />
               {[
                 { label: "Outstanding", val: outstanding },
                 { label: "Paid", val: selected.paid },
               ].map((row) => (
-                <div
-                  key={row.label}
-                  className="flex justify-between text-xs"
-                >
-                  <span className="text-muted-foreground" style={{ color: c.ink3 }}>{row.label}</span>
+                <div key={row.label} className="flex justify-between text-xs">
+                  <span
+                    className="text-muted-foreground"
+                    style={{ color: c.ink3 }}
+                  >
+                    {row.label}
+                  </span>
                   <Mono t={t} size={12} weight={500}>
                     {fmtBaht(row.val)}
                   </Mono>
@@ -702,8 +902,20 @@ export default function InvoicePage() {
             </div>
           </Card>
 
-          <Card t={t} className="border border-border bg-card p-5" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)' }}>
-            <div className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground mb-4" style={{ color: 'var(--erp-ink3)' }}>Customer summary</div>
+          <Card
+            t={t}
+            className="border border-border bg-card p-5"
+            style={{
+              borderColor: "var(--erp-border)",
+              background: "var(--erp-surface)",
+            }}
+          >
+            <div
+              className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground mb-4"
+              style={{ color: "var(--erp-ink3)" }}
+            >
+              Customer summary
+            </div>
             <div className="flex flex-col gap-3">
               {[
                 { label: "Lifetime revenue", value: fmtBaht(customerRevenue) },
@@ -718,8 +930,8 @@ export default function InvoicePage() {
                   value: fmtBaht(
                     customerInvoices.reduce(
                       (s, inv) => s + Math.max(0, inv.amount - inv.paid),
-                      0
-                    )
+                      0,
+                    ),
                   ),
                 },
               ].map((row) => (
@@ -727,7 +939,12 @@ export default function InvoicePage() {
                   key={row.label}
                   className="flex justify-between items-baseline text-xs"
                 >
-                  <span className="text-muted-foreground" style={{ color: c.ink3 }}>{row.label}</span>
+                  <span
+                    className="text-muted-foreground"
+                    style={{ color: c.ink3 }}
+                  >
+                    {row.label}
+                  </span>
                   <Mono t={t} size={12} weight={500}>
                     {row.value}
                   </Mono>

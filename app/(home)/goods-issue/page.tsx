@@ -83,7 +83,10 @@ export default function GoodsIssuePage() {
   }
 
   return (
-    <div className="min-h-screen bg-canvas pb-16" style={{ background: c.canvas }}>
+    <div
+      className="min-h-screen bg-canvas pb-16"
+      style={{ background: c.canvas }}
+    >
       <TopBar
         t={t}
         breadcrumb={["Chawy", "Inventory", "Goods Issue"]}
@@ -94,7 +97,12 @@ export default function GoodsIssuePage() {
             {toast && (
               <span
                 className="text-xs font-semibold pr-2"
-                style={{ color: toast.includes("ไม่") || toast.includes("เกิน") ? c.neg : c.pos }}
+                style={{
+                  color:
+                    toast.includes("ไม่") || toast.includes("เกิน")
+                      ? c.neg
+                      : c.pos,
+                }}
               >
                 {toast}
               </span>
@@ -109,7 +117,7 @@ export default function GoodsIssuePage() {
         }
       />
 
-      <div className="p-6 md:p-8 max-w-[1320px] mx-auto grid gap-6">
+      <div className="p-6 md:p-8 max-w-full mx-auto grid gap-6">
         <StatStrip
           t={t}
           tiles={[
@@ -123,11 +131,16 @@ export default function GoodsIssuePage() {
               value: formatBaht(
                 rows
                   .filter((g) => g.dept === "Operations")
-                  .reduce((s, g) => s + g.value, 0)
+                  .reduce((s, g) => s + g.value, 0),
               ),
               sub: "Operations",
             },
-            { label: "Pending", value: "0", sub: "awaiting pick", tone: c.warn },
+            {
+              label: "Pending",
+              value: "0",
+              sub: "awaiting pick",
+              tone: c.warn,
+            },
             {
               label: "Departments",
               value: String(new Set(rows.map((g) => g.dept)).size),
@@ -140,37 +153,67 @@ export default function GoodsIssuePage() {
           t={t}
           pad={false}
           className="overflow-hidden border border-border bg-card"
-          style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}
+          style={{
+            borderColor: "var(--erp-border)",
+            background: "var(--erp-surface)",
+          }}
         >
           <div className="overflow-x-auto">
             <Table className="w-full border-collapse">
               <TableHeader
                 className="bg-muted/50 border-b border-border"
-                style={{ background: "var(--erp-subtle)", borderColor: "var(--erp-border)" }}
+                style={{
+                  background: "var(--erp-subtle)",
+                  borderColor: "var(--erp-border)",
+                }}
               >
                 <TableRow>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     GI
                   </TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     Purpose
                   </TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     Department
                   </TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     Date
                   </TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     Items
                   </TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     Quantity
                   </TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right" style={{ color: "var(--erp-ink3)" }}>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     Value
                   </TableHead>
-                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     Status
                   </TableHead>
                 </TableRow>
@@ -188,14 +231,23 @@ export default function GoodsIssuePage() {
                       </Mono>
                     </TableCell>
                     <TableCell className="p-4 px-5 align-middle">
-                      <span className="text-sm font-medium text-foreground" style={{ color: "var(--erp-ink)" }}>
+                      <span
+                        className="text-sm font-medium text-foreground"
+                        style={{ color: "var(--erp-ink)" }}
+                      >
                         {g.reason}
                       </span>
-                      <div className="text-xs text-muted-foreground mt-0.5" style={{ color: "var(--erp-ink3)" }}>
+                      <div
+                        className="text-xs text-muted-foreground mt-0.5"
+                        style={{ color: "var(--erp-ink3)" }}
+                      >
                         {g.skuName}
                       </div>
                     </TableCell>
-                    <TableCell className="p-4 px-5 align-middle text-sm text-muted-foreground" style={{ color: "var(--erp-ink2)" }}>
+                    <TableCell
+                      className="p-4 px-5 align-middle text-sm text-muted-foreground"
+                      style={{ color: "var(--erp-ink2)" }}
+                    >
                       {g.dept}
                     </TableCell>
                     <TableCell className="p-4 px-5 align-middle">

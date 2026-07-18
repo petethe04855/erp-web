@@ -9,12 +9,26 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
 export { Badge } from "@/components/ui/badge";
 export { Checkbox } from "@/components/ui/checkbox";
-export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 
 // ── TopBar ──────────────────────────────────────────────────────────────────
 
@@ -123,18 +137,13 @@ interface PageBodyProps {
   style?: React.CSSProperties;
 }
 
-export function PageBody({
-  t,
-  children,
-  maxWidth = 1320,
-  style,
-}: PageBodyProps) {
+export function PageBody({ t, children, style }: PageBodyProps) {
   return (
     <div
       style={{
         padding: "24px 32px 40px",
-        maxWidth,
-        margin: maxWidth === "none" ? 0 : "0 auto",
+        maxWidth: "100%",
+        margin: "0 auto",
         color: t.color.ink,
         fontFamily: t.font.sans,
         ...style,
@@ -403,7 +412,9 @@ export function Btn({
       style={{
         borderRadius: Math.max(t.radius - 2, 0),
         fontFamily: t.font.sans,
-        ...(variant === "primary" ? { background: t.color.ink, color: t.color.canvas } : null),
+        ...(variant === "primary"
+          ? { background: t.color.ink, color: t.color.canvas }
+          : null),
         ...style,
       }}
     >
@@ -562,7 +573,7 @@ export function PremiumTh({
     <TableHead
       className={cn(
         "px-[22px] py-[11px] text-[10px] font-medium tracking-[0.10em] uppercase border-b border-border bg-muted/30 whitespace-nowrap text-muted-foreground",
-        right ? "text-right" : "text-left"
+        right ? "text-right" : "text-left",
       )}
       style={style}
     >
@@ -592,7 +603,7 @@ export function PremiumTd({
       className={cn(
         "px-[22px] py-3.5 align-middle text-sm text-foreground",
         last ? "border-b-0" : "border-b border-border",
-        right ? "text-right" : "text-left"
+        right ? "text-right" : "text-left",
       )}
       style={style}
     >
@@ -635,7 +646,7 @@ export function Td({
     <TableCell
       className={cn(
         "px-3.5 py-[11px] border-b border-border align-middle text-muted-foreground",
-        mono ? "font-mono tabular-nums text-xs" : "font-sans text-sm"
+        mono ? "font-mono tabular-nums text-xs" : "font-sans text-sm",
       )}
       style={style}
     >
@@ -671,7 +682,9 @@ interface FieldProps extends Omit<
 
 export function Field({ t, label, style, inputStyle, ...props }: FieldProps) {
   return (
-    <Label style={{ display: "grid", gap: 6, fontFamily: t.font.sans, ...style }}>
+    <Label
+      style={{ display: "grid", gap: 6, fontFamily: t.font.sans, ...style }}
+    >
       {label && (
         <span
           style={{
@@ -709,7 +722,9 @@ export function SelectField({
   ...props
 }: SelectFieldProps) {
   return (
-    <Label style={{ display: "grid", gap: 6, fontFamily: t.font.sans, ...style }}>
+    <Label
+      style={{ display: "grid", gap: 6, fontFamily: t.font.sans, ...style }}
+    >
       {label && (
         <span
           style={{
@@ -748,7 +763,9 @@ export function TextAreaField({
   ...props
 }: TextAreaFieldProps) {
   return (
-    <Label style={{ display: "grid", gap: 6, fontFamily: t.font.sans, ...style }}>
+    <Label
+      style={{ display: "grid", gap: 6, fontFamily: t.font.sans, ...style }}
+    >
       {label && (
         <span
           style={{
@@ -843,7 +860,10 @@ export function CategoryBadge({ type }: { type: ProductCategory }) {
   const c = CATEGORY_LABELS[type];
   const variant = type.toLowerCase() as "cat" | "dog" | "bundle" | "other";
   return (
-    <Badge variant={variant} className="px-2.5 py-0.5 text-[11px] font-semibold">
+    <Badge
+      variant={variant}
+      className="px-2.5 py-0.5 text-[11px] font-semibold"
+    >
       {c.label}
     </Badge>
   );
@@ -859,13 +879,35 @@ export function StockBadge({
   isBundle: boolean;
 }) {
   if (isBundle) {
-    return <Badge variant="virtual" className="px-2.5 py-0.5 text-[11px] font-semibold">Virtual</Badge>;
+    return (
+      <Badge
+        variant="virtual"
+        className="px-2.5 py-0.5 text-[11px] font-semibold"
+      >
+        Virtual
+      </Badge>
+    );
   }
   if (stock === 0) {
-    return <Badge variant="empty" className="px-2.5 py-0.5 text-[11px] font-semibold">หมด</Badge>;
+    return (
+      <Badge
+        variant="empty"
+        className="px-2.5 py-0.5 text-[11px] font-semibold"
+      >
+        หมด
+      </Badge>
+    );
   }
   if (stock < reorder) {
-    return <Badge variant="low" className="px-2.5 py-0.5 text-[11px] font-semibold">ใกล้หมด</Badge>;
+    return (
+      <Badge variant="low" className="px-2.5 py-0.5 text-[11px] font-semibold">
+        ใกล้หมด
+      </Badge>
+    );
   }
-  return <Badge variant="normal" className="px-2.5 py-0.5 text-[11px] font-semibold">ปกติ</Badge>;
+  return (
+    <Badge variant="normal" className="px-2.5 py-0.5 text-[11px] font-semibold">
+      ปกติ
+    </Badge>
+  );
 }
