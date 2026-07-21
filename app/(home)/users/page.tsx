@@ -1,307 +1,371 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useErpStore } from '@/lib/store/useErpStore'
-import { ROLE_LABELS, type AppUser, type UserRole } from '@/lib/store/erpTypes'
-import { useTheme } from '@/lib/design/ThemeContext'
-import { Btn, Dot, Mono, PremiumTable, PremiumTd, PremiumTh, TopBar } from '@/components/ui'
-import SlidePanel from '@/components/SlidePanel'
-
-const BLANK = { id: '', email: '', name: '', role: 'sales' as UserRole, password: '' }
+import { useState } from "react";
+import { useErpStore } from "@/lib/store/useErpStore";
+import { ROLE_LABELS, type AppUser, type UserRole } from "@/lib/store/erpTypes";
+import { useTheme } from "@/lib/design/ThemeContext";
+import { Card, Dot, Mono, TopBar } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import { CreateUserSheet } from "./components/CreateUserSheet";
+import { EditUserSheet } from "./components/EditUserSheet";
 
 export default function UsersPage() {
-  const { tokens: t } = useTheme()
-  const c = t.color
-  const currentUser = useErpStore(s => s.currentUser)
-  const storeUsers = useErpStore(s => s.users)
-  const createUser = useErpStore(s => s.createUser)
-  const updateUser = useErpStore(s => s.updateUser)
-  const updateUserStatus = useErpStore(s => s.updateUserStatus)
-  const deleteUser = useErpStore(s => s.deleteUser)
+  const { tokens: t } = useTheme();
+  const c = t.color;
+  const currentUser = useErpStore((s) => s.currentUser);
+  const storeUsers = useErpStore((s) => s.users);
+  const createUser = useErpStore((s) => s.createUser);
+  const updateUser = useErpStore((s) => s.updateUser);
+  const updateUserStatus = useErpStore((s) => s.updateUserStatus);
+  const deleteUser = useErpStore((s) => s.deleteUser);
 
-  const [createOpen, setCreateOpen] = useState(false)
-  const [editOpen, setEditOpen] = useState(false)
-  const [form, setForm] = useState(BLANK)
-  const [editForm, setEditForm] = useState(BLANK)
-  const [toast, setToast] = useState('')
-  const [busyUserId, setBusyUserId] = useState('')
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<AppUser | null>(null);
+  const [toast, setToast] = useState("");
+  const [busyUserId, setBusyUserId] = useState("");
 
   function showToast(msg: string) {
-    setToast(msg)
-    setTimeout(() => setToast(''), 3000)
+    setToast(msg);
+    setTimeout(() => setToast(""), 3000);
   }
 
   function userEmail(user: AppUser) {
-    return user.email || `${user.id.toLowerCase()}@chawy.local`
+    return user.email || `${user.id.toLowerCase()}@chawy.local`;
   }
 
-  const displayUsers = storeUsers
-  const active = displayUsers.filter(user => user.isActive !== false).length
-  const canManageUsers = currentUser.role === 'owner'
+  const displayUsers = storeUsers;
+  const active = displayUsers.filter((user) => user.isActive !== false).length;
+  const canManageUsers = currentUser.role === "owner";
 
-  async function handleSubmit() {
-    if (!form.id || !form.email || !form.name || !form.password) {
-      showToast('กรุณากรอกข้อมูลให้ครบถ้วน')
-      return
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      showToast('อีเมลไม่ถูกต้อง')
-      return
-    }
-    // Prefix User ID with USR- if not present, but only if they type numeric ID
-    let finalId = form.id
-    if (/^\d+$/.test(finalId)) {
-      finalId = 'USR-' + finalId.padStart(3, '0')
-    }
-
+  async function handleCreateSubmit(data: {
+    id: string;
+    email: string;
+    name: string;
+    role: UserRole;
+    password: string;
+  }) {
     try {
-      const newUser = await createUser({
-        id: finalId,
-        email: form.email.trim().toLowerCase(),
-        name: form.name,
-        role: form.role,
-        password: form.password,
-      })
-      showToast(newUser.emailWarning ? `สร้างผู้ใช้ ${form.email.trim().toLowerCase()} สำเร็จ แต่ส่งอีเมลแจ้งเตือนไม่สำเร็จ` : `สร้างผู้ใช้ ${form.email.trim().toLowerCase()} สำเร็จ`)
-      setForm(BLANK)
-      setCreateOpen(false)
+      const newUser = await createUser(data);
+      showToast(
+        newUser.emailWarning
+          ? `สร้างผู้ใช้ ${data.email} สำเร็จ แต่ส่งอีเมลแจ้งเตือนไม่สำเร็จ`
+          : `สร้างผู้ใช้ ${data.email} สำเร็จ`,
+      );
     } catch (err: any) {
-      showToast(err.message || 'สร้างผู้ใช้ไม่สำเร็จ')
+      showToast(err.message || "สร้างผู้ใช้ไม่สำเร็จ");
     }
   }
 
   function handleEditClick(user: AppUser) {
-    setEditForm({
-      id: user.id,
-      email: user.email ?? '',
-      name: user.name,
-      role: user.role,
-      password: '',
-    })
-    setEditOpen(true)
+    setSelectedUser(user);
+    setEditOpen(true);
+  }
+
+  async function handleEditSubmit(data: {
+    id: string;
+    email?: string;
+    name: string;
+    role: UserRole;
+    password?: string;
+  }) {
+    try {
+      await updateUser(data.id, data);
+      showToast(`แก้ไขผู้ใช้ ${data.email || data.id} สำเร็จ`);
+    } catch (err: any) {
+      showToast(err.message || "แก้ไขผู้ใช้ไม่สำเร็จ");
+    }
   }
 
   async function handleStatusChange(user: AppUser) {
-    const nextActive = user.isActive === false
-    setBusyUserId(user.id)
+    const nextActive = user.isActive === false;
+    setBusyUserId(user.id);
     try {
-      await updateUserStatus(user.id, nextActive)
-      showToast(`${nextActive ? 'เปิด' : 'ปิด'}การใช้งาน ${userEmail(user)} สำเร็จ`)
+      await updateUserStatus(user.id, nextActive);
+      showToast(
+        `${nextActive ? "เปิด" : "ปิด"}การใช้งาน ${userEmail(user)} สำเร็จ`,
+      );
     } catch (err: any) {
-      showToast(err.message || 'เปลี่ยนสถานะผู้ใช้ไม่สำเร็จ')
+      showToast(err.message || "เปลี่ยนสถานะผู้ใช้ไม่สำเร็จ");
     } finally {
-      setBusyUserId('')
+      setBusyUserId("");
     }
   }
 
   function formatLastActive(user: AppUser) {
-    if (user.id === currentUser.id) return 'ขณะนี้'
-    if (!user.lastLoginAt) return 'ยังไม่เคยเข้าสู่ระบบ'
-    return new Intl.DateTimeFormat('th-TH', {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    }).format(new Date(user.lastLoginAt))
+    if (user.id === currentUser.id) return "ขณะนี้";
+    if (!user.lastLoginAt) return "ยังไม่เคยเข้าสู่ระบบ";
+    return new Intl.DateTimeFormat("th-TH", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(user.lastLoginAt));
   }
 
   async function handleDelete(user: AppUser) {
-    if (!window.confirm(`ลบผู้ใช้ ${userEmail(user)} ใช่ไหม?`)) return
-    setBusyUserId(user.id)
+    if (!window.confirm(`ลบผู้ใช้ ${userEmail(user)} ใช่ไหม?`)) return;
+    setBusyUserId(user.id);
     try {
-      await deleteUser(user.id)
-      showToast(`ลบผู้ใช้ ${userEmail(user)} สำเร็จ`)
+      await deleteUser(user.id);
+      showToast(`ลบผู้ใช้ ${userEmail(user)} สำเร็จ`);
     } catch (err: any) {
-      showToast(err.message || 'ลบผู้ใช้ไม่สำเร็จ')
+      showToast(err.message || "ลบผู้ใช้ไม่สำเร็จ");
     } finally {
-      setBusyUserId('')
+      setBusyUserId("");
     }
   }
 
   if (!canManageUsers) {
     return (
-      <div style={{ minHeight: '100vh', background: c.canvas }}>
-        <TopBar t={t} breadcrumb={['Chawy', 'System', 'Users']} title="ไม่มีสิทธิ์เข้าถึง" subtitle="เฉพาะเจ้าของระบบเท่านั้นที่จัดการผู้ใช้ได้" />
+      <div
+        className="min-h-screen bg-canvas pb-16"
+        style={{ background: c.canvas }}
+      >
+        <TopBar
+          t={t}
+          breadcrumb={["Chawy", "System", "Users"]}
+          title="ไม่มีสิทธิ์เข้าถึง"
+          subtitle="เฉพาะเจ้าของระบบเท่านั้นที่จัดการผู้ใช้ได้"
+        />
       </div>
-    )
-  }
-
-  async function handleEditSubmit() {
-    if (!editForm.name) {
-      showToast('กรุณากรอกชื่อผู้ใช้')
-      return
-    }
-    if (editForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email)) {
-      showToast('อีเมลไม่ถูกต้อง')
-      return
-    }
-    try {
-      await updateUser(editForm.id, {
-        email: editForm.email || undefined,
-        name: editForm.name,
-        role: editForm.role,
-        password: editForm.password || undefined,
-      })
-      showToast(`แก้ไขผู้ใช้ ${editForm.email || editForm.id} สำเร็จ`)
-      setEditOpen(false)
-    } catch (err: any) {
-      showToast(err.message || 'แก้ไขผู้ใช้ไม่สำเร็จ')
-    }
+    );
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: c.canvas }}>
+    <div
+      className="min-h-screen bg-canvas pb-16"
+      style={{ background: c.canvas }}
+    >
       <TopBar
         t={t}
-        breadcrumb={['Chawy', 'System', 'Users']}
+        breadcrumb={["Chawy", "System", "Users"]}
         title="User Management"
         subtitle={`จัดการผู้ใช้ · ${displayUsers.length} บัญชี · ${active} ใช้งานอยู่`}
         right={
-          <>
-            {toast && <span style={{ fontSize: 12, color: c.pos, fontWeight: 600 }}>{toast}</span>}
-            <Btn t={t} variant="primary" onClick={() => setCreateOpen(true)}>+ Create User</Btn>
-          </>
+          <div className="flex items-center gap-2">
+            {toast && (
+              <span
+                className="text-xs font-semibold pr-2"
+                style={{ color: c.pos }}
+              >
+                {toast}
+              </span>
+            )}
+            <Button
+              onClick={() => setCreateOpen(true)}
+              className="cursor-pointer bg-[var(--erp-accent)] text-white hover:opacity-90 border-none shadow-none"
+            >
+              + Create User
+            </Button>
+          </div>
         }
       />
-      <div style={{ padding: '24px 32px 48px' }}>
-        <PremiumTable t={t} minWidth={900}>
-          <thead>
-            <tr>
-              {['User', 'Role', 'Access', 'Last active', 'Status', 'Actions'].map(h => <PremiumTh key={h} t={t}>{h}</PremiumTh>)}
-            </tr>
-          </thead>
-          <tbody>
-            {displayUsers.map((user, i) => {
-              const last = i === displayUsers.length - 1
-              const isCurrentUser = user.id === currentUser.id
-              const isEnabled = user.isActive !== false
-              return (
-                <tr key={user.id} style={{ background: isCurrentUser ? c.subtle : 'transparent', opacity: isEnabled ? 1 : 0.62 }}>
-                  <PremiumTd t={t} last={last}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: isCurrentUser ? c.ink : c.subtle, border: `1px solid ${c.border}`, color: isCurrentUser ? c.canvas : c.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
-                        {userEmail(user).trim().charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: c.ink }}>{userEmail(user)}</div>
-                        <Mono t={t} size={11} color={c.ink3} style={{ marginTop: 1, display: 'block' }}>{user.id}</Mono>
-                      </div>
-                    </div>
-                  </PremiumTd>
-                  <PremiumTd t={t} last={last}>
-                    <span style={{ fontSize: 13, color: c.ink }}>{ROLE_LABELS[user.role]}</span>
-                    <span style={{ fontSize: 11, color: c.ink3, marginLeft: 6 }}>{user.role}</span>
-                  </PremiumTd>
-                  <PremiumTd t={t} last={last}>
-                    <span style={{ fontSize: 11, color: c.ink2, background: c.subtle, padding: '3px 9px', borderRadius: 4, border: `1px solid ${c.border}`, fontWeight: 500 }}>
-                      {user.role === 'owner' ? 'All modules' : `${ROLE_LABELS[user.role]} access`}
-                    </span>
-                  </PremiumTd>
-                  <PremiumTd t={t} last={last}><span style={{ fontSize: 12, color: c.ink2 }}>{formatLastActive(user)}</span></PremiumTd>
-                  <PremiumTd t={t} last={last}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: isEnabled ? c.pos : c.neg }}>
-                      <Dot color={isEnabled ? c.pos : c.neg} /> {isEnabled ? 'Active' : 'Inactive'}
-                    </span>
-                  </PremiumTd>
-                  <PremiumTd t={t} last={last} right>
-                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                      <Btn t={t} variant="ghost" onClick={() => handleEditClick(user)}>แก้ไข</Btn>
-                      <Btn t={t} variant="ghost" onClick={() => handleStatusChange(user)} disabled={isCurrentUser || busyUserId === user.id}>
-                        {busyUserId === user.id ? 'กำลังบันทึก...' : isEnabled ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}
-                      </Btn>
-                      <Btn t={t} variant="ghost" onClick={() => handleDelete(user)} disabled={isCurrentUser || busyUserId === user.id}>ลบ</Btn>
-                    </div>
-                  </PremiumTd>
-                </tr>
-              )
-            })}
-          </tbody>
-        </PremiumTable>
+
+      <div className="p-6 md:p-8 max-w-full mx-auto">
+        <Card
+          t={t}
+          pad={false}
+          className="overflow-hidden border border-border bg-card"
+          style={{
+            borderColor: "var(--erp-border)",
+            background: "var(--erp-surface)",
+          }}
+        >
+          <div className="overflow-x-auto">
+            <Table className="w-full border-collapse">
+              <TableHeader
+                className="bg-muted/50 border-b border-border"
+                style={{
+                  background: "var(--erp-subtle)",
+                  borderColor: "var(--erp-border)",
+                }}
+              >
+                <TableRow>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    User
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Role
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Access
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Last active
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Status
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Actions
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {displayUsers.map((user) => {
+                  const isCurrentUser = user.id === currentUser.id;
+                  const isEnabled = user.isActive !== false;
+                  return (
+                    <TableRow
+                      key={user.id}
+                      className="border-b border-border hover:bg-muted/50 transition-colors"
+                      style={{
+                        borderColor: "var(--erp-border)",
+                        background: isCurrentUser ? c.subtle : "transparent",
+                        opacity: isEnabled ? 1 : 0.62,
+                      }}
+                    >
+                      <TableCell className="p-4 px-5 align-middle">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border flex-shrink-0"
+                            style={{
+                              background: isCurrentUser
+                                ? "var(--erp-ink)"
+                                : "var(--erp-subtle)",
+                              borderColor: "var(--erp-border)",
+                              color: isCurrentUser
+                                ? "var(--erp-surface)"
+                                : "var(--erp-ink)",
+                            }}
+                          >
+                            {userEmail(user).trim().charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div
+                              className="text-sm font-semibold"
+                              style={{ color: "var(--erp-ink)" }}
+                            >
+                              {userEmail(user)}
+                            </div>
+                            <span className="mt-0.5 block">
+                              <Mono t={t} size={11} color={c.ink3}>
+                                {user.id}
+                              </Mono>
+                            </span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell
+                        className="p-4 px-5 align-middle text-sm"
+                        style={{ color: "var(--erp-ink)" }}
+                      >
+                        {ROLE_LABELS[user.role]}
+                        <span
+                          className="text-[11px] font-normal font-mono ml-1.5"
+                          style={{ color: "var(--erp-ink3)" }}
+                        >
+                          ({user.role})
+                        </span>
+                      </TableCell>
+                      <TableCell className="p-4 px-5 align-middle">
+                        <span
+                          className="px-2.5 py-0.5 rounded text-[11px] font-medium border"
+                          style={{
+                            background: "var(--erp-subtle)",
+                            borderColor: "var(--erp-border)",
+                            color: "var(--erp-ink2)",
+                          }}
+                        >
+                          {user.role === "owner"
+                            ? "All modules"
+                            : `${ROLE_LABELS[user.role]} access`}
+                        </span>
+                      </TableCell>
+                      <TableCell
+                        className="p-4 px-5 align-middle text-xs"
+                        style={{ color: "var(--erp-ink2)" }}
+                      >
+                        {formatLastActive(user)}
+                      </TableCell>
+                      <TableCell className="p-4 px-5 align-middle">
+                        <span
+                          className="inline-flex items-center gap-1.5 text-xs font-medium"
+                          style={{ color: isEnabled ? c.pos : c.neg }}
+                        >
+                          <Dot color={isEnabled ? c.pos : c.neg} />{" "}
+                          {isEnabled ? "Active" : "Inactive"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="p-4 px-5 align-middle text-right">
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            variant="ghost"
+                            onClick={() => handleEditClick(user)}
+                            className="cursor-pointer text-xs h-8 px-2"
+                          >
+                            แก้ไข
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            onClick={() => handleStatusChange(user)}
+                            disabled={isCurrentUser || busyUserId === user.id}
+                            className="cursor-pointer text-xs h-8 px-2"
+                          >
+                            {busyUserId === user.id
+                              ? "กำลังบันทึก..."
+                              : isEnabled
+                                ? "ปิดใช้งาน"
+                                : "เปิดใช้งาน"}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            onClick={() => handleDelete(user)}
+                            disabled={isCurrentUser || busyUserId === user.id}
+                            className="cursor-pointer text-xs h-8 px-2 text-red-500 hover:text-red-600 hover:bg-red-50/20"
+                          >
+                            ลบ
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
       </div>
 
-      <SlidePanel open={createOpen} onClose={() => setCreateOpen(false)} title="สร้างผู้ใช้ใหม่" subtitle="เพิ่มผู้ใช้งานระบบ ERP ใหม่"
-        footer={
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button onClick={() => setCreateOpen(false)} style={{ padding: '9px 20px', border: `1px solid ${c.border}`, borderRadius: 7, background: c.surface, cursor: 'pointer', fontSize: 13, color: c.ink2 }}>ยกเลิก</button>
-            <button onClick={handleSubmit} style={{ padding: '9px 20px', border: 'none', borderRadius: 7, background: c.accent, color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>บันทึกผู้ใช้</button>
-          </div>
-        }
-      >
-        <div style={{ display: 'grid', gap: 16 }}>
-          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
-            รหัสผู้ใช้ (User ID / Username) *
-            <input placeholder="เช่น USR-005 หรือ somchai" value={form.id} onChange={e => setForm(f => ({ ...f, id: e.target.value }))} style={panelInput(c.surface, c.border, c.ink)} />
-          </label>
-          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
-            ชื่อผู้ใช้ (Display Name) *
-            <input placeholder="เช่น สมชาย" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} style={panelInput(c.surface, c.border, c.ink)} />
-          </label>
-          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
-            Email *
-            <input type="email" placeholder="name@company.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} style={panelInput(c.surface, c.border, c.ink)} />
-          </label>
-          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
-            Role *
-            <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value as UserRole }))} style={panelInput(c.surface, c.border, c.ink)}>
-              {Object.entries(ROLE_LABELS).map(([k, v]) => (
-                <option key={k} value={k}>{v} ({k})</option>
-              ))}
-            </select>
-          </label>
-          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
-            รหัสผ่าน (Password) *
-            <input type="password" placeholder="••••••••" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} style={panelInput(c.surface, c.border, c.ink)} />
-          </label>
-        </div>
-      </SlidePanel>
+      <CreateUserSheet
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onSubmit={handleCreateSubmit}
+        showToast={showToast}
+      />
 
-      <SlidePanel open={editOpen} onClose={() => setEditOpen(false)} title="แก้ไขข้อมูลผู้ใช้" subtitle="อัปเดตรายละเอียดของผู้ใช้งานในระบบ"
-        footer={
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button onClick={() => setEditOpen(false)} style={{ padding: '9px 20px', border: `1px solid ${c.border}`, borderRadius: 7, background: c.surface, cursor: 'pointer', fontSize: 13, color: c.ink2 }}>ยกเลิก</button>
-            <button onClick={handleEditSubmit} style={{ padding: '9px 20px', border: 'none', borderRadius: 7, background: c.accent, color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>บันทึกการเปลี่ยนแปลง</button>
-          </div>
-        }
-      >
-        <div style={{ display: 'grid', gap: 16 }}>
-          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink3 }}>
-            รหัสผู้ใช้ (ไม่สามารถแก้ไขได้)
-            <input value={editForm.id} disabled style={{ ...panelInput(c.surface, c.border, c.ink), opacity: 0.6, cursor: 'not-allowed' }} />
-          </label>
-          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
-            ชื่อผู้ใช้ (Display Name) *
-            <input placeholder="เช่น สมชาย" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} style={panelInput(c.surface, c.border, c.ink)} />
-          </label>
-          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
-            Email
-            <input type="email" placeholder="name@company.com" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} style={panelInput(c.surface, c.border, c.ink)} />
-          </label>
-          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
-            Role *
-            <select value={editForm.role} onChange={e => setEditForm(f => ({ ...f, role: e.target.value as UserRole }))} style={panelInput(c.surface, c.border, c.ink)}>
-              {Object.entries(ROLE_LABELS).map(([k, v]) => (
-                <option key={k} value={k}>{v} ({k})</option>
-              ))}
-            </select>
-          </label>
-          <label style={{ display: 'grid', gap: 6, fontSize: 12, fontWeight: 600, color: c.ink2 }}>
-            รหัสผ่านใหม่ (ระบุเมื่อต้องการเปลี่ยนเท่านั้น)
-            <input type="password" placeholder="ระบุรหัสผ่านใหม่หากต้องการเปลี่ยน" value={editForm.password} onChange={e => setEditForm(f => ({ ...f, password: e.target.value }))} style={panelInput(c.surface, c.border, c.ink)} />
-          </label>
-        </div>
-      </SlidePanel>
+      <EditUserSheet
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        initialData={selectedUser}
+        onSubmit={handleEditSubmit}
+        showToast={showToast}
+      />
     </div>
-  )
-}
-
-function panelInput(surface: string, border: string, ink: string): React.CSSProperties {
-  return {
-    width: '100%',
-    padding: '8px 12px',
-    border: `1px solid ${border}`,
-    borderRadius: 6,
-    fontSize: 13,
-    outline: 'none',
-    boxSizing: 'border-box',
-    background: surface,
-    color: ink,
-  }
+  );
 }

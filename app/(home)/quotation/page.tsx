@@ -1,48 +1,26 @@
 "use client";
+
 import { useState } from "react";
 import {
   formatBaht,
   type LeadSource,
   type QuotationStatus,
 } from "@/lib/mockData";
-import SlidePanel from "@/components/SlidePanel";
 import { useErpStore } from "@/lib/store/useErpStore";
 import { useTheme } from "@/lib/design/ThemeContext";
-import {
-  Btn,
-  Field,
-  Mono,
-  PremiumTable,
-  PremiumTd,
-  PremiumTh,
-  SelectField,
-  StatusPill,
-  TopBar,
-} from "@/components/ui";
+import { Card, Mono, StatusPill, TopBar } from "@/components/ui";
 import { Button } from "@/components/ui/button";
-
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import { NewQuotationSheet } from "./components/NewQuotationSheet";
 
 type Line = { sku: string; qty: number };
-const LEAD_SOURCES: LeadSource[] = [
-  "Live",
-  "LINE",
-  "Facebook",
-  "Shopee",
-  "Walk-in",
-  "B2B Referral",
-];
-const BLANK_FORM = {
-  customer: "",
-  leadSource: "Live" as LeadSource,
-  validUntil: addDaysIso(15),
-  lines: [{ sku: "", qty: 1 }] as Line[],
-};
-
-function addDaysIso(days: number) {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date.toISOString().split("T")[0];
-}
 
 function quoteStatus(status: QuotationStatus) {
   if (status === "Approved" || status === "Converted") return "completed";
@@ -64,52 +42,23 @@ export default function QuotationPage() {
     (state) => state.updateQuotationStatus,
   );
 
-  const getProductName = (sku: string) =>
-    products.find((p) => p.sku === sku)?.name ?? sku;
-
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState(BLANK_FORM);
   const [toast, setToast] = useState("");
 
   const total = list.reduce((s, q) => s + q.amount, 0);
-  const lineTotal = form.lines.reduce((s, line) => {
-    const product = products.find((p) => p.sku === line.sku);
-    return s + (product ? product.price * line.qty : 0);
-  }, 0);
 
   function showToast(message: string) {
     setToast(message);
     setTimeout(() => setToast(""), 3000);
   }
-  function addLine() {
-    setForm((f) => ({ ...f, lines: [...f.lines, { sku: "", qty: 1 }] }));
-  }
-  function removeLine(i: number) {
-    setForm((f) => ({ ...f, lines: f.lines.filter((_, idx) => idx !== i) }));
-  }
-  function updateLine(i: number, field: keyof Line, val: string | number) {
-    setForm((f) => ({
-      ...f,
-      lines: f.lines.map((line, idx) =>
-        idx === i ? { ...line, [field]: val } : line,
-      ),
-    }));
-  }
 
-  function handleSubmit() {
-    const validLines = form.lines.filter((l) => l.sku && l.qty > 0);
-    if (!form.customer || !form.validUntil || validLines.length === 0) {
-      showToast("กรุณากรอกลูกค้า วันหมดอายุ และสินค้า");
-      return;
-    }
-    const newQt = createQuotation({
-      customer: form.customer,
-      validUntil: form.validUntil,
-      leadSource: form.leadSource,
-      lines: validLines,
-    });
-    setForm(BLANK_FORM);
-    setOpen(false);
+  function handleCreateQuotation(data: {
+    customer: string;
+    validUntil: string;
+    leadSource: LeadSource;
+    lines: Line[];
+  }) {
+    const newQt = createQuotation(data);
     showToast(`สร้าง ${newQt.id} แล้ว`);
   }
 
@@ -124,19 +73,21 @@ export default function QuotationPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: c.canvas }}>
+    <div
+      className="min-h-screen bg-canvas pb-16"
+      style={{ background: c.canvas }}
+    >
       <TopBar
         t={t}
         breadcrumb={["Chawy", "Sales", "Quotations"]}
         title="Quotations"
         subtitle={`ใบเสนอราคา · ${list.length} รายการ · ${formatBaht(total)} pipeline`}
         right={
-          <>
+          <div className="flex items-center gap-2">
             {toast && (
               <span
+                className="text-xs font-semibold pr-2"
                 style={{
-                  fontSize: 12,
-                  fontWeight: 600,
                   color: toast.includes("กรุณา") ? c.neg : c.pos,
                 }}
               >
@@ -144,305 +95,177 @@ export default function QuotationPage() {
               </span>
             )}
             <Button
-              variant="outline"
-              onClick={() => showToast("Shadcn Button Clicked!")}
-            >
-              Test Shadcn
-            </Button>
-            <Btn
-              t={t}
-              variant="primary"
-              onClick={() => {
-                setForm({ ...BLANK_FORM, validUntil: addDaysIso(15) });
-                setOpen(true);
-              }}
+              onClick={() => setOpen(true)}
+              className="cursor-pointer bg-[var(--erp-accent)] text-white hover:opacity-90 border-none shadow-none"
             >
               + New Quotation
-            </Btn>
-          </>
+            </Button>
+          </div>
         }
       />
 
-      <div style={{ padding: "24px 32px 48px" }}>
-        <PremiumTable t={t} minWidth={920}>
-          <thead>
-            <tr>
-              {["Quote", "Customer", "Issued", "Valid until"].map((h) => (
-                <PremiumTh key={h} t={t}>
-                  {h}
-                </PremiumTh>
-              ))}
-              <PremiumTh t={t} right>
-                Amount
-              </PremiumTh>
-              <PremiumTh t={t}>Status</PremiumTh>
-            </tr>
-          </thead>
-          <tbody>
-            {list.map((q, i) => {
-              const last = i === list.length - 1;
-              return (
-                <tr key={q.id}>
-                  <PremiumTd t={t} last={last}>
-                    <Mono t={t} size={12} weight={500}>
-                      {q.id}
-                    </Mono>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 5,
-                        marginTop: 6,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      {q.status === "Draft" && (
-                        <Btn
-                          t={t}
-                          variant="ghost"
-                          onClick={() =>
-                            transition(
-                              q.id,
-                              "Sent",
-                              "ส่งให้ลูกค้าแล้ว รออนุมัติ",
-                            )
-                          }
-                          style={{ padding: "3px 8px", fontSize: 10 }}
-                        >
-                          Send
-                        </Btn>
-                      )}
-                      {q.status === "Sent" && (
-                        <Btn
-                          t={t}
-                          variant="accent"
-                          onClick={() =>
-                            transition(
-                              q.id,
-                              "Approved",
-                              "Admin/Owner อนุมัติใบเสนอราคา",
-                            )
-                          }
-                          style={{ padding: "3px 8px", fontSize: 10 }}
-                        >
-                          Approve
-                        </Btn>
-                      )}
-                      {q.status === "Approved" && !q.soRef && (
-                        <Btn
-                          t={t}
-                          variant="accent"
-                          onClick={() => convertToSO(q.id)}
-                          style={{ padding: "3px 8px", fontSize: 10 }}
-                        >
-                          Create SO
-                        </Btn>
-                      )}
-                    </div>
-                  </PremiumTd>
-                  <PremiumTd t={t} last={last}>
-                    <span
-                      style={{ fontSize: 13, fontWeight: 500, color: c.ink }}
-                    >
-                      {q.customer}
-                    </span>
-                    <div style={{ fontSize: 11, color: c.ink3, marginTop: 2 }}>
-                      {q.leadSource} · {q.items} items
-                    </div>
-                  </PremiumTd>
-                  <PremiumTd t={t} last={last}>
-                    <Mono t={t} size={12} color={c.ink2}>
-                      {q.date}
-                    </Mono>
-                  </PremiumTd>
-                  <PremiumTd t={t} last={last}>
-                    <Mono t={t} size={12} color={c.ink2}>
-                      {q.validUntil}
-                    </Mono>
-                  </PremiumTd>
-                  <PremiumTd t={t} last={last} right>
-                    <Mono t={t} size={13} weight={600}>
-                      {formatBaht(q.amount)}
-                    </Mono>
-                  </PremiumTd>
-                  <PremiumTd t={t} last={last}>
-                    <StatusPill t={t} status={quoteStatus(q.status)} />
-                  </PremiumTd>
-                </tr>
-              );
-            })}
-          </tbody>
-        </PremiumTable>
+      <div className="p-6 md:p-8 max-w-full mx-auto grid gap-6">
+        {/* Quotations Table */}
+        <Card
+          t={t}
+          pad={false}
+          className="overflow-hidden border border-border bg-card"
+          style={{
+            borderColor: "var(--erp-border)",
+            background: "var(--erp-surface)",
+          }}
+        >
+          <div className="overflow-x-auto">
+            <Table className="w-full border-collapse">
+              <TableHeader
+                className="bg-muted/50 border-b border-border"
+                style={{
+                  background: "var(--erp-subtle)",
+                  borderColor: "var(--erp-border)",
+                }}
+              >
+                <TableRow>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Quote
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Customer
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Issued
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Valid until
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Amount
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    Status
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {list.map((q) => (
+                  <TableRow
+                    key={q.id}
+                    className="border-b border-border hover:bg-muted/50 transition-colors"
+                    style={{ borderColor: "var(--erp-border)" }}
+                  >
+                    <TableCell className="p-4 px-5 align-middle">
+                      <div className="flex flex-col gap-2">
+                        <Mono t={t} size={12} weight={500}>
+                          {q.id}
+                        </Mono>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {q.status === "Draft" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                transition(
+                                  q.id,
+                                  "Sent",
+                                  "ส่งให้ลูกค้าแล้ว รออนุมัติ",
+                                )
+                              }
+                              className="h-6 text-[10px] px-2 cursor-pointer"
+                            >
+                              Send
+                            </Button>
+                          )}
+                          {q.status === "Sent" && (
+                            <Button
+                              size="sm"
+                              onClick={() =>
+                                transition(
+                                  q.id,
+                                  "Approved",
+                                  "Admin/Owner อนุมัติใบเสนอราคา",
+                                )
+                              }
+                              className="h-6 text-[10px] px-2 cursor-pointer bg-[var(--erp-accent)] text-white border-none"
+                            >
+                              Approve
+                            </Button>
+                          )}
+                          {q.status === "Approved" && !q.soRef && (
+                            <Button
+                              size="sm"
+                              onClick={() => convertToSO(q.id)}
+                              className="h-6 text-[10px] px-2 cursor-pointer bg-[var(--erp-accent)] text-white border-none"
+                            >
+                              Create SO
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="p-4 px-5 align-middle">
+                      <span
+                        className="text-sm font-medium"
+                        style={{ color: "var(--erp-ink)" }}
+                      >
+                        {q.customer}
+                      </span>
+                      <div
+                        className="text-xs mt-1"
+                        style={{ color: "var(--erp-ink3)" }}
+                      >
+                        {q.leadSource} · {q.items} items
+                      </div>
+                    </TableCell>
+                    <TableCell className="p-4 px-5 align-middle">
+                      <Mono t={t} size={12} color={c.ink2}>
+                        {q.date}
+                      </Mono>
+                    </TableCell>
+                    <TableCell className="p-4 px-5 align-middle">
+                      <Mono t={t} size={12} color={c.ink2}>
+                        {q.validUntil}
+                      </Mono>
+                    </TableCell>
+                    <TableCell className="p-4 px-5 align-middle text-right">
+                      <Mono t={t} size={13} weight={600}>
+                        {formatBaht(q.amount)}
+                      </Mono>
+                    </TableCell>
+                    <TableCell className="p-4 px-5 align-middle">
+                      <StatusPill t={t} status={quoteStatus(q.status)} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
       </div>
 
-      <SlidePanel
+      <NewQuotationSheet
         open={open}
-        onClose={() => setOpen(false)}
-        title="New Quotation"
-        subtitle={`Total ${formatBaht(lineTotal)}`}
-        footer={
-          <div
-            style={{
-              display: "flex",
-              gap: 10,
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Mono t={t} size={14} weight={600}>
-              {formatBaht(lineTotal)}
-            </Mono>
-            <div style={{ display: "flex", gap: 10 }}>
-              <Btn t={t} variant="ghost" onClick={() => setOpen(false)}>
-                Cancel
-              </Btn>
-              <Btn t={t} variant="accent" onClick={handleSubmit}>
-                Save Draft
-              </Btn>
-            </div>
-          </div>
-        }
-      >
-        <div style={{ display: "grid", gap: 16 }}>
-          <Field
-            t={t}
-            label="Customer"
-            value={form.customer}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, customer: e.target.value }))
-            }
-          />
-          <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}
-          >
-            <SelectField
-              t={t}
-              label="Lead source"
-              value={form.leadSource}
-              onChange={(e) =>
-                setForm((f) => ({
-                  ...f,
-                  leadSource: e.target.value as LeadSource,
-                }))
-              }
-            >
-              {LEAD_SOURCES.map((source) => (
-                <option key={source}>{source}</option>
-              ))}
-            </SelectField>
-            <Field
-              t={t}
-              label="Valid until"
-              type="date"
-              value={form.validUntil}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, validUntil: e.target.value }))
-              }
-            />
-          </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <span style={{ fontSize: 12, fontWeight: 600, color: c.ink2 }}>
-              Items
-            </span>
-            <Btn t={t} variant="ghost" onClick={addLine}>
-              + Add item
-            </Btn>
-          </div>
-          <div
-            style={{
-              border: `1px solid ${c.border}`,
-              borderRadius: t.radius,
-              overflow: "hidden",
-            }}
-          >
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <tbody>
-                {form.lines.map((line, i) => {
-                  const product = products.find((p) => p.sku === line.sku);
-                  return (
-                    <tr
-                      key={i}
-                      style={{
-                        borderBottom:
-                          i === form.lines.length - 1
-                            ? "none"
-                            : `1px solid ${c.border}`,
-                      }}
-                    >
-                      <td style={{ padding: 10 }}>
-                        <SelectField
-                          t={t}
-                          value={line.sku}
-                          onChange={(e) => updateLine(i, "sku", e.target.value)}
-                        >
-                          <option value="">Select product</option>
-                          {products.map((p) => (
-                            <option key={p.sku} value={p.sku}>
-                              {p.name} · stock {p.stock}
-                            </option>
-                          ))}
-                        </SelectField>
-                        {line.sku && (
-                          <div
-                            style={{
-                              fontSize: 11,
-                              color: c.ink3,
-                              marginTop: 4,
-                            }}
-                          >
-                            {getProductName(line.sku)}
-                          </div>
-                        )}
-                      </td>
-                      <td style={{ padding: 10, width: 86 }}>
-                        <Field
-                          t={t}
-                          type="number"
-                          min={1}
-                          value={line.qty}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            updateLine(
-                              i,
-                              "qty",
-                              val === "" ? "" : Math.max(1, parseInt(val) || 0),
-                            );
-                          }}
-                          inputStyle={{ textAlign: "center" }}
-                        />
-                      </td>
-                      <td
-                        style={{ padding: 10, width: 110, textAlign: "right" }}
-                      >
-                        <Mono t={t} size={12}>
-                          {product ? formatBaht(product.price * line.qty) : "—"}
-                        </Mono>
-                      </td>
-                      <td style={{ padding: 10, width: 42 }}>
-                        {form.lines.length > 1 && (
-                          <Btn
-                            t={t}
-                            variant="ghost"
-                            onClick={() => removeLine(i)}
-                            style={{ padding: "6px 9px" }}
-                          >
-                            ×
-                          </Btn>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </SlidePanel>
+        onOpenChange={setOpen}
+        products={products}
+        onSubmit={handleCreateQuotation}
+        showToast={showToast}
+      />
     </div>
   );
 }

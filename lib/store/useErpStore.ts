@@ -311,6 +311,7 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 			unit: c.unit,
 			componentType: c.componentType,
 			unitCostOverride: c.unitCostOverride,
+			yieldFactor: c.yieldFactor,
 		})) as BundleComponent[]
 
 		set(s => ({
@@ -343,7 +344,7 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 			const prod = get().products.find(p => p.sku === comp.componentSku)
 			if (!prod) return 0
 			const available = Math.max(0, prod.stock - prod.reservedQty)
-			let required = comp.qty
+			let required = comp.qty / (comp.yieldFactor || 1)
 			if (comp.unit === 'g' && prod.baseUnit === 'kg') required /= 1000
 			if (comp.unit === 'kg' && prod.baseUnit === 'g') required *= 1000
 			virtualQty = Math.min(virtualQty, Math.floor(available / required))

@@ -478,6 +478,7 @@ export type SetBundleComponentsInput = {
     unit?: 'piece' | 'g' | 'kg' | 'baht'
     componentType?: 'material' | 'packaging' | 'expense'
     unitCostOverride?: number
+    yieldFactor?: number
   }>
 }
 

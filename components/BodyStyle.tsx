@@ -36,6 +36,31 @@ export default function BodyStyle() {
     r.style.setProperty('--erp-radius',        t.radius + 'px')
     r.style.setProperty('--erp-font-sans',     t.font.sans)
     r.style.setProperty('--erp-font-mono',     t.font.mono)
+
+    // shadcn and the legacy ERP components now read from the same theme.
+    // Keeping this bridge here lets us migrate screens incrementally without
+    // producing a second, subtly different light/dark palette.
+    r.classList.toggle('dark', t.isDark)
+    r.style.setProperty('--background',             t.color.canvas)
+    r.style.setProperty('--foreground',             t.color.ink)
+    r.style.setProperty('--card',                   t.color.surface)
+    r.style.setProperty('--card-foreground',        t.color.ink)
+    r.style.setProperty('--popover',                t.color.surface)
+    r.style.setProperty('--popover-foreground',     t.color.ink)
+    r.style.setProperty('--primary',                t.color.accent)
+    r.style.setProperty('--primary-foreground',     t.isDark ? '#0B0E13' : '#FFFFFF')
+    r.style.setProperty('--secondary',              t.color.subtle)
+    r.style.setProperty('--secondary-foreground',   t.color.ink2)
+    r.style.setProperty('--muted',                  t.color.subtle)
+    r.style.setProperty('--muted-foreground',       t.color.ink3)
+    r.style.setProperty('--accent',                 t.color.accentBg)
+    r.style.setProperty('--accent-foreground',      t.color.accent)
+    r.style.setProperty('--destructive',            t.color.neg)
+    r.style.setProperty('--border',                 t.color.border)
+    r.style.setProperty('--input',                  t.color.border)
+    r.style.setProperty('--ring',                   t.color.accent)
+    r.style.setProperty('--radius',                 t.radius + 'px')
+    r.style.setProperty('--radius-md',              Math.max(t.radius - 2, 0) + 'px')
   }, [t, settings.fontSize])
 
   return null

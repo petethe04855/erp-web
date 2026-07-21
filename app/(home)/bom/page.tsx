@@ -1,21 +1,22 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Card, Mono, PageBody, TopBar } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-  Btn,
-  Card,
-  Mono,
-  PageBody,
-  PremiumTable,
-  PremiumTd,
-  PremiumTh,
-  StatStrip,
-  TopBar,
-} from "@/components/ui";
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 import { readApiResponse } from "@/lib/apiResponse";
 import { useTheme } from "@/lib/design/ThemeContext";
 import { useErpStore } from "@/lib/store/useErpStore";
 import type { PurchaseRequest } from "@/lib/store/erpWorkflow";
+import { CreateBomDialog } from "./components/CreateBomDialog";
 
 type BOMSummary = {
   id: number;
@@ -191,23 +192,6 @@ export default function BomPage() {
   const [boms, setBoms] = useState<BOMSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAddRmModal, setShowAddRmModal] = useState(false);
-  const [newBom, setNewBom] = useState<{
-    code: string;
-    name: string;
-    outputQty: number | "";
-    outputUnit: string;
-    status: string;
-    effectiveDate: string;
-    cost: number;
-  }>({
-    code: "",
-    name: "",
-    outputQty: 1,
-    outputUnit: "ชิ้น",
-    status: "Draft",
-    effectiveDate: "",
-    cost: 0,
-  });
 
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -242,40 +226,29 @@ export default function BomPage() {
     window.setTimeout(() => setToast(""), 3600);
   }
 
-  async function handleCreateBOM() {
-    if (!newBom.code || !newBom.name) {
-      showToast("กรุณากรอกรหัสสูตร (Code) และชื่อสูตรให้ครบถ้วน");
-      return;
-    }
-    if (newBom.outputQty === "" || Number(newBom.outputQty) <= 0) {
-      showToast("กรุณากรอกปริมาณผลผลิต (Output Qty) ให้มากกว่า 0");
-      return;
-    }
+  async function handleCreateBOM(newBom: {
+    code: string;
+    name: string;
+    outputQty: number;
+    outputUnit: string;
+    status: string;
+    effectiveDate: string;
+    cost: number;
+  }) {
     try {
-      await createBOM({
-        ...newBom,
-        outputQty: Number(newBom.outputQty),
-      });
+      await createBOM(newBom);
       await loadBoms();
-      setShowAddRmModal(false);
       showToast(`สร้างสูตรการผลิต ${newBom.code} สำเร็จ!`);
-      setNewBom({
-        code: "",
-        name: "",
-        outputQty: 1,
-        outputUnit: "ชิ้น",
-        status: "Draft",
-        effectiveDate: "",
-        cost: 0,
-      });
     } catch (err) {
       showToast(err instanceof Error ? err.message : "สร้างสูตรไม่สำเร็จ");
+      throw err;
     }
   }
 
   return (
     <div
-      style={{ minHeight: "100vh", background: c.canvas, paddingBottom: 60 }}
+      className="min-h-screen bg-canvas pb-16"
+      style={{ background: c.canvas }}
     >
       <TopBar
         t={t}
@@ -283,16 +256,9 @@ export default function BomPage() {
         title="จัดการวัตถุดิบและบรรจุภัณฑ์"
         subtitle="แสดงรายการและราคาต้นทุนของวัตถุดิบและบรรจุภัณฑ์ทั้งหมดในระบบ"
         right={
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div className="flex items-center gap-2">
             {toast && (
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: c.pos,
-                  paddingRight: 10,
-                }}
-              >
+              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-500 pr-2">
                 {toast}
               </span>
             )}
@@ -300,96 +266,105 @@ export default function BomPage() {
         }
       />
 
-      <PageBody t={t} maxWidth="none">
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 16,
-            gap: 16,
-          }}
-        >
-          <div style={{ position: "relative", flex: 1, maxWidth: 360 }}>
-            <input
+      <PageBody t={t}>
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <div className="relative flex-1 max-w-[360px]">
+            <Input
               type="text"
               placeholder="ค้นหาสูตรการผลิตด้วย SKU, รหัส หรือชื่อสูตร..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "8px 12px",
-                border: `1px solid ${c.border}`,
-                borderRadius: 6,
-                background: c.surface,
-                color: c.ink,
-                fontSize: 13,
-                outline: "none",
-              }}
+              className="w-full"
             />
           </div>
-          <Btn t={t} variant="accent" onClick={() => setShowAddRmModal(true)}>
+          <Button
+            onClick={() => setShowAddRmModal(true)}
+            className="cursor-pointer bg-[var(--erp-accent)] text-white hover:opacity-90 border-none shadow-none"
+          >
             + สร้างข้อมูลวัตถุดิบ
-          </Btn>
+          </Button>
         </div>
 
         <Card
           t={t}
           pad={false}
-          style={{ overflow: "hidden", marginBottom: 16 }}
+          className="overflow-hidden mb-4 border border-border bg-card"
+          style={{
+            borderColor: "var(--erp-border)",
+            background: "var(--erp-surface)",
+          }}
         >
           <div
-            style={{
-              padding: "16px 20px",
-              borderBottom: `1px solid ${c.border}`,
-            }}
+            className="p-5 border-b border-border"
+            style={{ borderColor: "var(--erp-border)" }}
           >
-            <div style={{ fontSize: 15, fontWeight: 600, color: c.ink }}>
+            <div
+              className="text-sm font-semibold text-foreground"
+              style={{ color: "var(--erp-ink)" }}
+            >
               รายการสูตรการผลิตทั้งหมด (Bill of Materials Master)
             </div>
-            <div style={{ fontSize: 12, color: c.ink3, marginTop: 3 }}>
+            <div
+              className="text-xs text-muted-foreground mt-1"
+              style={{ color: "var(--erp-ink3)" }}
+            >
               แสดงสูตรการผลิตและต้นทุนการผลิตต่อหน่วยตามโครงสร้างสูตรทั้งหมดที่มีในระบบ
             </div>
           </div>
-          <PremiumTable
-            t={t}
-            minWidth={980}
-            style={{ border: "none", borderRadius: 0 }}
-          >
-            <thead>
-              <tr>
-                <PremiumTh t={t}>รหัสสูตร (BOM Code)</PremiumTh>
-                <PremiumTh t={t}>ชื่อสูตรการผลิต (BOM Name)</PremiumTh>
-                <PremiumTh t={t} right>
+          <Table className="w-full border-collapse">
+            <TableHeader
+              className="bg-muted/50 border-b border-border"
+              style={{
+                background: "var(--erp-subtle)",
+                borderColor: "var(--erp-border)",
+              }}
+            >
+              <TableRow>
+                <TableHead
+                  className="p-3 text-xs font-bold text-muted-foreground uppercase text-left"
+                  style={{ color: "var(--erp-ink3)" }}
+                >
+                  รหัสสูตร (BOM Code)
+                </TableHead>
+                <TableHead
+                  className="p-3 text-xs font-bold text-muted-foreground uppercase text-left"
+                  style={{ color: "var(--erp-ink3)" }}
+                >
+                  ชื่อสูตรการผลิต (BOM Name)
+                </TableHead>
+                <TableHead
+                  className="p-3 text-xs font-bold text-muted-foreground uppercase text-right"
+                  style={{ color: "var(--erp-ink3)" }}
+                >
                   ปริมาณผลผลิต
-                </PremiumTh>
-                <PremiumTh t={t} right>
+                </TableHead>
+                <TableHead
+                  className="p-3 text-xs font-bold text-muted-foreground uppercase text-right"
+                  style={{ color: "var(--erp-ink3)" }}
+                >
                   ต้นทุนอ้างอิง
-                </PremiumTh>
-                <PremiumTh t={t}>สถานะ</PremiumTh>
-              </tr>
-            </thead>
-            <tbody>
+                </TableHead>
+                <TableHead
+                  className="p-3 text-xs font-bold text-muted-foreground uppercase text-left"
+                  style={{ color: "var(--erp-ink3)" }}
+                >
+                  สถานะ
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {filteredBoms.length === 0 ? (
-                <tr>
-                  <PremiumTd
-                    t={t}
+                <TableRow>
+                  <TableCell
                     colSpan={5}
-                    last
-                    style={{
-                      textAlign: "center",
-                      color: c.ink3,
-                      fontSize: 13,
-                      paddingTop: 18,
-                      paddingBottom: 18,
-                    }}
+                    className="p-5 text-center text-muted-foreground text-sm"
+                    style={{ color: "var(--erp-ink3)" }}
                   >
                     ไม่พบข้อมูลสูตรการผลิตในระบบ
-                  </PremiumTd>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : (
                 filteredBoms.map((row, i) => {
-                  const last = i === filteredBoms.length - 1;
                   const statusColor =
                     row.status === "Active"
                       ? c.pos
@@ -397,254 +372,68 @@ export default function BomPage() {
                         ? c.neg
                         : c.ink3;
                   return (
-                    <tr key={row.id}>
-                      <PremiumTd t={t} last={last}>
+                    <TableRow
+                      key={row.id}
+                      className="hover:bg-muted/30 border-b border-border"
+                      style={{ borderColor: "var(--erp-subtle)" }}
+                    >
+                      <TableCell className="p-3">
                         <Mono t={t} size={12} weight={600}>
                           {row.code}
                         </Mono>
-                      </PremiumTd>
-                      <PremiumTd t={t} last={last}>
+                      </TableCell>
+                      <TableCell className="p-3">
                         <span
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 600,
-                            color: c.ink,
-                          }}
+                          className="text-sm font-semibold text-foreground"
+                          style={{ color: "var(--erp-ink)" }}
                         >
                           {row.name}
                         </span>
-                      </PremiumTd>
-                      <PremiumTd t={t} last={last} right>
-                        <span style={{ fontSize: 12, color: c.ink }}>
+                      </TableCell>
+                      <TableCell className="p-3 text-right">
+                        <span
+                          className="text-xs text-foreground"
+                          style={{ color: "var(--erp-ink)" }}
+                        >
                           {row.outputQty || 0} {row.outputUnit || "ชิ้น"}
                         </span>
-                      </PremiumTd>
-                      <PremiumTd t={t} last={last} right>
-                        <Mono t={t} size={12} weight={600} color={c.pos}>
+                      </TableCell>
+                      <TableCell className="p-3 text-right">
+                        <Mono
+                          t={t}
+                          size={12}
+                          weight={600}
+                          style={{ color: "var(--erp-pos)" }}
+                        >
                           {formatBaht(row.cost || 0)}
                         </Mono>
-                      </PremiumTd>
-                      <PremiumTd t={t} last={last}>
+                      </TableCell>
+                      <TableCell className="p-3">
                         <span
+                          className="text-[11px] font-semibold rounded px-2 py-0.5"
                           style={{
-                            fontSize: 11,
-                            fontWeight: 600,
                             color: statusColor,
                             background: `${statusColor}18`,
-                            borderRadius: 4,
-                            padding: "2px 8px",
                           }}
                         >
                           {row.status || "Draft"}
                         </span>
-                      </PremiumTd>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })
               )}
-            </tbody>
-          </PremiumTable>
+            </TableBody>
+          </Table>
         </Card>
       </PageBody>
 
-      {/* Modal Dialog: Add Raw Material */}
-      {showAddRmModal && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: "rgba(0,0,0,0.6)",
-            display: "grid",
-            placeItems: "center",
-            zIndex: 999,
-          }}
-        >
-          <div
-            style={{
-              background: c.surface,
-              border: `1px solid ${c.border}`,
-              padding: 24,
-              borderRadius: 8,
-              width: 440,
-              display: "grid",
-              gap: 16,
-            }}
-          >
-            <div style={{ fontSize: 16, fontWeight: 700, color: c.ink }}>
-              สร้างสูตรการผลิตใหม่ (New BOM)
-            </div>
-            <div style={{ display: "grid", gap: 12 }}>
-              <label style={{ display: "grid", gap: 4 }}>
-                <span style={{ fontSize: 12, color: c.ink2 }}>
-                  รหัสสูตร (BOM Code) *
-                </span>
-                <input
-                  type="text"
-                  placeholder="เช่น BOM-001"
-                  value={newBom.code}
-                  onChange={(e) =>
-                    setNewBom({ ...newBom, code: e.target.value })
-                  }
-                  style={{
-                    padding: "8px 10px",
-                    border: `1px solid ${c.border}`,
-                    background: c.canvas,
-                    color: c.ink,
-                    borderRadius: 4,
-                  }}
-                />
-              </label>
-              <label style={{ display: "grid", gap: 4 }}>
-                <span style={{ fontSize: 12, color: c.ink2 }}>
-                  ชื่อสูตรการผลิต (BOM Name) *
-                </span>
-                <input
-                  type="text"
-                  placeholder="เช่น สูตรอาหารแมวไก่ 1 กก."
-                  value={newBom.name}
-                  onChange={(e) =>
-                    setNewBom({ ...newBom, name: e.target.value })
-                  }
-                  style={{
-                    padding: "8px 10px",
-                    border: `1px solid ${c.border}`,
-                    background: c.canvas,
-                    color: c.ink,
-                    borderRadius: 4,
-                  }}
-                />
-              </label>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 10,
-                }}
-              >
-                <label style={{ display: "grid", gap: 4 }}>
-                  <span style={{ fontSize: 12, color: c.ink2 }}>
-                    ปริมาณผลผลิต (Output Qty)
-                  </span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={newBom.outputQty}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setNewBom({
-                        ...newBom,
-                        outputQty: val === "" ? "" : Number(val),
-                      });
-                    }}
-                    style={{
-                      padding: "8px 10px",
-                      border: `1px solid ${c.border}`,
-                      background: c.canvas,
-                      color: c.ink,
-                      borderRadius: 4,
-                    }}
-                  />
-                </label>
-                <label style={{ display: "grid", gap: 4 }}>
-                  <span style={{ fontSize: 12, color: c.ink2 }}>
-                    หน่วยผลผลิต (Unit)
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="ชิ้น, กล่อง, กก."
-                    value={newBom.outputUnit}
-                    onChange={(e) =>
-                      setNewBom({ ...newBom, outputUnit: e.target.value })
-                    }
-                    style={{
-                      padding: "8px 10px",
-                      border: `1px solid ${c.border}`,
-                      background: c.canvas,
-                      color: c.ink,
-                      borderRadius: 4,
-                    }}
-                  />
-                </label>
-              </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 10,
-                }}
-              >
-                <label style={{ display: "grid", gap: 4 }}>
-                  <span style={{ fontSize: 12, color: c.ink2 }}>
-                    ต้นทุนอ้างอิง (บาท)
-                  </span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={newBom.cost}
-                    onChange={(e) =>
-                      setNewBom({
-                        ...newBom,
-                        cost: Number(e.target.value) || 0,
-                      })
-                    }
-                    style={{
-                      padding: "8px 10px",
-                      border: `1px solid ${c.border}`,
-                      background: c.canvas,
-                      color: c.ink,
-                      borderRadius: 4,
-                    }}
-                  />
-                </label>
-                <label style={{ display: "grid", gap: 4 }}>
-                  <span style={{ fontSize: 12, color: c.ink2 }}>
-                    สถานะ (Status)
-                  </span>
-                  <select
-                    value={newBom.status}
-                    onChange={(e) =>
-                      setNewBom({ ...newBom, status: e.target.value })
-                    }
-                    style={{
-                      padding: "8px 10px",
-                      border: `1px solid ${c.border}`,
-                      background: c.canvas,
-                      color: c.ink,
-                      borderRadius: 4,
-                    }}
-                  >
-                    <option value="Draft">Draft</option>
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
-                  </select>
-                </label>
-              </div>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: 10,
-                marginTop: 10,
-              }}
-            >
-              <Btn
-                t={t}
-                variant="subtle"
-                onClick={() => setShowAddRmModal(false)}
-              >
-                ยกเลิก
-              </Btn>
-              <Btn t={t} variant="primary" onClick={handleCreateBOM}>
-                สร้างสูตร BOM
-              </Btn>
-            </div>
-          </div>
-        </div>
-      )}
+      <CreateBomDialog
+        open={showAddRmModal}
+        onOpenChange={setShowAddRmModal}
+        onCreate={handleCreateBOM}
+        showToast={showToast}
+      />
     </div>
   );
 }

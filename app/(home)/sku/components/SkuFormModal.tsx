@@ -1,6 +1,10 @@
 "use client";
 import React from "react";
 import { ProductCategory } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import type { CreateProductInput } from "@/lib/store/erpWorkflow";
 
 interface SkuFormModalProps {
@@ -31,123 +35,54 @@ export default function SkuFormModal({
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.4)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 200,
-      }}
-    >
-      <div
-        style={{
-          background: "var(--erp-surface)",
-          borderRadius: 12,
-          padding: 28,
-          width: 560,
-          maxHeight: "90vh",
-          overflowY: "auto",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
-        }}
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div 
+        className="bg-card rounded-xl p-7 w-full max-w-[560px] max-h-[90vh] overflow-y-auto shadow-2xl border border-border"
+        style={{ background: "var(--erp-surface)", borderColor: "var(--erp-border)" }}
       >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 20,
-          }}
-        >
-          <h2
-            style={{
-              margin: 0,
-              fontSize: 16,
-              fontWeight: 700,
-              color: "var(--erp-ink)",
-            }}
-          >
+        <div className="flex justify-between items-center mb-5">
+          <h2 className="text-base font-bold text-foreground m-0" style={{ color: "var(--erp-ink)" }}>
             {modalMode === "add"
               ? "+ เพิ่มสินค้าใหม่"
               : `แก้ไขสินค้า — ${selectedSku}`}
           </h2>
-          <button
+          <Button
+            variant="ghost"
+            size="xs"
             onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              fontSize: 20,
-              cursor: "pointer",
-              color: "#9CA3AF",
-            }}
+            className="text-muted-foreground hover:text-foreground cursor-pointer"
           >
             Close
-          </button>
+          </Button>
         </div>
 
         {error && (
-          <div
-            style={{
-              background: "#FEE2E2",
-              color: "#DC2626",
-              padding: "8px 12px",
-              borderRadius: 6,
-              fontSize: 13,
-              marginBottom: 14,
-            }}
-          >
+          <div className="bg-rose-50 border border-rose-200 text-rose-600 dark:bg-rose-950/20 dark:border-rose-900/30 dark:text-rose-400 p-2.5 rounded-lg text-xs mb-3.5">
             {error}
           </div>
         )}
 
-        <div
-          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}
-        >
+        <div className="grid grid-cols-2 gap-3.5">
           <div>
-            <label
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: "#374151",
-                display: "block",
-                marginBottom: 4,
-              }}
-            >
+            <Label className="text-xs font-semibold text-muted-foreground mb-1 block">
               SKU *
-            </label>
-            <input
+            </Label>
+            <Input
               value={form.sku}
               onChange={(e) =>
                 setForm((f) => ({ ...f, sku: e.target.value.toUpperCase() }))
               }
               disabled={modalMode === "edit"}
               placeholder="เช่น CAT-CHK-30"
-              style={{
-                width: "100%",
-                padding: "8px 10px",
-                borderRadius: 7,
-                border: "1px solid var(--erp-border)",
-                fontSize: 13,
-                boxSizing: "border-box",
-                background: modalMode === "edit" ? "var(--erp-subtle)" : "#fff",
-              }}
+              className="bg-background disabled:opacity-50"
+              style={modalMode === "edit" ? { background: "var(--erp-subtle)" } : undefined}
             />
           </div>
           <div>
-            <label
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: "#374151",
-                display: "block",
-                marginBottom: 4,
-              }}
-            >
+            <Label className="text-xs font-semibold text-muted-foreground mb-1 block">
               ประเภท *
-            </label>
-            <select
+            </Label>
+            <NativeSelect
               value={form.type}
               onChange={(e) =>
                 setForm((f) => ({
@@ -156,89 +91,42 @@ export default function SkuFormModal({
                   isBundle: e.target.value === "Bundle",
                 }))
               }
-              style={{
-                width: "100%",
-                padding: "8px 10px",
-                borderRadius: 7,
-                border: "1px solid var(--erp-border)",
-                fontSize: 13,
-                boxSizing: "border-box",
-              }}
+              className="w-full cursor-pointer"
             >
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>
                   {labels[c]}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </div>
-          <div style={{ gridColumn: "1 / -1" }}>
-            <label
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: "#374151",
-                display: "block",
-                marginBottom: 4,
-              }}
-            >
+          <div className="col-span-2">
+            <Label className="text-xs font-semibold text-muted-foreground mb-1 block">
               ชื่อสินค้า *
-            </label>
-            <input
+            </Label>
+            <Input
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="เช่น ไก่อกฟรีซดราย 30g"
-              style={{
-                width: "100%",
-                padding: "8px 10px",
-                borderRadius: 7,
-                border: "1px solid var(--erp-border)",
-                fontSize: 13,
-                boxSizing: "border-box",
-              }}
             />
           </div>
           <div>
-            <label
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: "#374151",
-                display: "block",
-                marginBottom: 4,
-              }}
-            >
+            <Label className="text-xs font-semibold text-muted-foreground mb-1 block">
               บาร์โค้ด
-            </label>
-            <input
+            </Label>
+            <Input
               value={form.barcode ?? ""}
               onChange={(e) =>
                 setForm((f) => ({ ...f, barcode: e.target.value }))
               }
               placeholder="13 หลัก EAN"
-              style={{
-                width: "100%",
-                padding: "8px 10px",
-                borderRadius: 7,
-                border: "1px solid var(--erp-border)",
-                fontSize: 13,
-                boxSizing: "border-box",
-              }}
             />
           </div>
           <div>
-            <label
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: "#374151",
-                display: "block",
-                marginBottom: 4,
-              }}
-            >
+            <Label className="text-xs font-semibold text-muted-foreground mb-1 block">
               น้ำหนัก (กรัม) {form.type === "Other" ? "" : "*"}
-            </label>
-            <input
+            </Label>
+            <Input
               type="number"
               min={0}
               value={form.weightGrams === 0 ? "" : (form.weightGrams ?? "")}
@@ -248,29 +136,13 @@ export default function SkuFormModal({
                   weightGrams: e.target.value === "" ? 0 : +e.target.value,
                 }))
               }
-              style={{
-                width: "100%",
-                padding: "8px 10px",
-                borderRadius: 7,
-                border: "1px solid var(--erp-border)",
-                fontSize: 13,
-                boxSizing: "border-box",
-              }}
             />
           </div>
           <div>
-            <label
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: "#374151",
-                display: "block",
-                marginBottom: 4,
-              }}
-            >
+            <Label className="text-xs font-semibold text-muted-foreground mb-1 block">
               หน่วยสต็อกหลัก
-            </label>
-            <select
+            </Label>
+            <NativeSelect
               value={form.baseUnit ?? "piece"}
               onChange={(e) =>
                 setForm((f) => ({
@@ -278,33 +150,18 @@ export default function SkuFormModal({
                   baseUnit: e.target.value as "piece" | "g" | "kg",
                 }))
               }
-              style={{
-                width: "100%",
-                padding: "8px 10px",
-                borderRadius: 7,
-                border: "1px solid var(--erp-border)",
-                fontSize: 13,
-                boxSizing: "border-box",
-              }}
+              className="w-full cursor-pointer"
             >
               <option value="piece">ชิ้น</option>
               <option value="g">กรัม</option>
               <option value="kg">กิโลกรัม</option>
-            </select>
+            </NativeSelect>
           </div>
           <div>
-            <label
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: "#374151",
-                display: "block",
-                marginBottom: 4,
-              }}
-            >
+            <Label className="text-xs font-semibold text-muted-foreground mb-1 block">
               ต้นทุน (Cost) ฿ *
-            </label>
-            <input
+            </Label>
+            <Input
               type="number"
               min={0}
               value={form.cost === 0 ? "" : form.cost}
@@ -314,29 +171,13 @@ export default function SkuFormModal({
                   cost: e.target.value === "" ? 0 : +e.target.value,
                 }))
               }
-              style={{
-                width: "100%",
-                padding: "8px 10px",
-                borderRadius: 7,
-                border: "1px solid var(--erp-border)",
-                fontSize: 13,
-                boxSizing: "border-box",
-              }}
             />
           </div>
           <div>
-            <label
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: "#374151",
-                display: "block",
-                marginBottom: 4,
-              }}
-            >
+            <Label className="text-xs font-semibold text-muted-foreground mb-1 block">
               ราคาขาย B2C ฿ {form.type === "Other" ? "" : "*"}
-            </label>
-            <input
+            </Label>
+            <Input
               type="number"
               min={0}
               value={form.retailPrice === 0 ? "" : form.retailPrice}
@@ -347,29 +188,13 @@ export default function SkuFormModal({
                   price: e.target.value === "" ? 0 : +e.target.value,
                 }))
               }
-              style={{
-                width: "100%",
-                padding: "8px 10px",
-                borderRadius: 7,
-                border: "1px solid var(--erp-border)",
-                fontSize: 13,
-                boxSizing: "border-box",
-              }}
             />
           </div>
           <div>
-            <label
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: "#374151",
-                display: "block",
-                marginBottom: 4,
-              }}
-            >
+            <Label className="text-xs font-semibold text-muted-foreground mb-1 block">
               ราคาขาย B2B (ส่ง) ฿
-            </label>
-            <input
+            </Label>
+            <Input
               type="number"
               min={0}
               value={
@@ -381,29 +206,13 @@ export default function SkuFormModal({
                   wholesalePrice: e.target.value === "" ? 0 : +e.target.value,
                 }))
               }
-              style={{
-                width: "100%",
-                padding: "8px 10px",
-                borderRadius: 7,
-                border: "1px solid var(--erp-border)",
-                fontSize: 13,
-                boxSizing: "border-box",
-              }}
             />
           </div>
           <div>
-            <label
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: "#374151",
-                display: "block",
-                marginBottom: 4,
-              }}
-            >
+            <Label className="text-xs font-semibold text-muted-foreground mb-1 block">
               Reorder Point
-            </label>
-            <input
+            </Label>
+            <Input
               type="number"
               min={0}
               value={form.reorder === 0 ? "" : (form.reorder ?? "")}
@@ -413,61 +222,27 @@ export default function SkuFormModal({
                   reorder: e.target.value === "" ? 0 : +e.target.value,
                 }))
               }
-              style={{
-                width: "100%",
-                padding: "8px 10px",
-                borderRadius: 7,
-                border: "1px solid var(--erp-border)",
-                fontSize: 13,
-                boxSizing: "border-box",
-              }}
             />
           </div>
-          <div style={{ gridColumn: "1 / -1" }}>
-            <label
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: "#374151",
-                display: "block",
-                marginBottom: 4,
-              }}
-            >
+          <div className="col-span-2">
+            <Label className="text-xs font-semibold text-muted-foreground mb-1 block">
               หมายเหตุ
-            </label>
-            <input
+            </Label>
+            <Input
               value={form.note ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
               placeholder="หมายเหตุเพิ่มเติม"
-              style={{
-                width: "100%",
-                padding: "8px 10px",
-                borderRadius: 7,
-                border: "1px solid var(--erp-border)",
-                fontSize: 13,
-                boxSizing: "border-box",
-              }}
             />
           </div>
         </div>
 
         {form.cost > 0 && form.retailPrice > 0 && (
-          <div
-            style={{
-              marginTop: 14,
-              padding: "10px 14px",
-              background: "#F0FDF4",
-              borderRadius: 8,
-              border: "1px solid #BBF7D0",
-              display: "flex",
-              gap: 20,
-            }}
-          >
+          <div className="mt-3.5 p-3.5 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 rounded-lg flex gap-5">
             <div>
-              <div style={{ fontSize: 11, color: "#065F46", fontWeight: 600 }}>
+              <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-wider">
                 Gross Margin
               </div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: "#059669" }}>
+              <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
                 {(
                   ((form.retailPrice - form.cost) / form.retailPrice) *
                   100
@@ -476,23 +251,19 @@ export default function SkuFormModal({
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 11, color: "#065F46", fontWeight: 600 }}>
+              <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-wider">
                 กำไรต่อชิ้น
               </div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: "#059669" }}>
+              <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
                 ฿{(form.retailPrice - form.cost).toLocaleString("th-TH")}
               </div>
             </div>
             {(form.wholesalePrice ?? 0) > 0 && (
               <div>
-                <div
-                  style={{ fontSize: 11, color: "#065F46", fontWeight: 600 }}
-                >
+                <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-wider">
                   Margin B2B
                 </div>
-                <div
-                  style={{ fontSize: 18, fontWeight: 700, color: "#059669" }}
-                >
+                <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
                   {(
                     (((form.wholesalePrice ?? 0) - form.cost) /
                       (form.wholesalePrice ?? 1)) *
@@ -505,43 +276,21 @@ export default function SkuFormModal({
           </div>
         )}
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 8,
-            marginTop: 20,
-          }}
-        >
-          <button
+        <div className="flex justify-end gap-2 mt-5">
+          <Button
+            variant="outline"
             onClick={onClose}
-            style={{
-              padding: "9px 18px",
-              borderRadius: 8,
-              border: "1px solid var(--erp-border)",
-              background: "var(--erp-surface)",
-              color: "#374151",
-              fontSize: 13,
-              cursor: "pointer",
-            }}
+            className="cursor-pointer border-border"
+            style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)", color: "#374151" }}
           >
             ยกเลิก
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={onSave}
-            style={{
-              padding: "9px 18px",
-              borderRadius: 8,
-              border: "none",
-              background: "var(--erp-accent)",
-              color: "#fff",
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
+            className="bg-[var(--erp-accent)] hover:opacity-90 text-white font-semibold cursor-pointer shadow-none border-none"
           >
             {modalMode === "add" ? "บันทึกสินค้า" : "บันทึกการแก้ไข"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

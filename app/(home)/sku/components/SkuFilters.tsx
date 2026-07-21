@@ -1,6 +1,8 @@
 'use client'
 import React from 'react'
 import { ProductCategory } from '@/components/ui'
+import { Input } from '@/components/ui/input'
+import { NativeSelect } from '@/components/ui/native-select'
 
 interface SkuFiltersProps {
   search: string
@@ -23,34 +25,41 @@ export default function SkuFilters({
   const labels: Record<ProductCategory, string> = { Cat: 'แมว', Dog: 'สุนัข', Bundle: 'เซ็ต', Other: 'อื่นๆ' }
 
   return (
-    <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-      <input
-        value={search} onChange={e => setSearch(e.target.value)}
+    <div className="flex gap-2.5 mb-4 flex-wrap items-center">
+      <Input
+        value={search} 
+        onChange={e => setSearch(e.target.value)}
         placeholder="ค้นหา SKU, ชื่อ, บาร์โค้ด..."
-        style={{ flex: 1, minWidth: 200, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--erp-border)', fontSize: 13 }}
+        className="flex-1 min-w-[200px]"
       />
-      <div style={{ display: 'flex', gap: 6 }}>
+      <div className="flex gap-1.5 flex-wrap">
         {types.map(t => (
-          <button key={t} onClick={() => setFilterType(t)} style={{
-            padding: '7px 14px', borderRadius: 8, border: '1px solid',
-            borderColor: filterType === t ? 'var(--erp-accent)' : 'var(--erp-border)',
-            background: filterType === t ? 'var(--erp-accent-bg)' : '#fff',
-            color: filterType === t ? 'var(--erp-accent)' : 'var(--erp-ink3)',
-            fontSize: 12, fontWeight: 600, cursor: 'pointer',
-          }}>
+          <button 
+            key={t} 
+            onClick={() => setFilterType(t)} 
+            className={`
+              px-3.5 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition-colors
+              ${filterType === t 
+                ? 'border-[var(--erp-accent)] bg-[var(--erp-accent-bg)] text-[var(--erp-accent)]' 
+                : 'border-border bg-background text-muted-foreground hover:bg-muted/50'
+              }
+            `}
+            style={filterType !== t ? { borderColor: 'var(--erp-border)', color: 'var(--erp-ink3)' } : undefined}
+          >
             {t === 'All' ? 'ทั้งหมด' : labels[t]}
           </button>
         ))}
       </div>
-      <select
+      <NativeSelect
         value={filterActive}
         onChange={e => setFilterActive(e.target.value as 'all' | 'active' | 'inactive')}
-        style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid var(--erp-border)', fontSize: 13, color: '#374151' }}
+        className="w-auto h-9 text-xs font-semibold cursor-pointer border-border"
+        style={{ borderColor: 'var(--erp-border)' }}
       >
         <option value="active">เฉพาะ Active</option>
         <option value="inactive">เฉพาะ Inactive</option>
         <option value="all">ทั้งหมด</option>
-      </select>
+      </NativeSelect>
     </div>
   )
 }
