@@ -14,7 +14,7 @@ interface BomEditorModalProps {
   onClose: () => void
   onSave: () => void
 }
-type BomRow = { componentSku: string; qty: number; unit: 'piece' | 'g' | 'kg' | 'baht'; componentType: 'material' | 'packaging' | 'expense'; unitCostOverride: number }
+export type BomRow = { componentSku: string; qty: number; unit: 'piece' | 'g' | 'kg' | 'baht'; componentType: 'material' | 'packaging' | 'expense'; unitCostOverride: number; yieldFactor: number }
 
 export default function BomEditorModal({
   bomSku,
@@ -25,7 +25,7 @@ export default function BomEditorModal({
   onClose,
   onSave
 }: BomEditorModalProps) {
-  const addBomRow = () => setBomRows(rows => [...rows, { componentSku: '', qty: 1, unit: 'piece', componentType: 'material', unitCostOverride: 0 }])
+  const addBomRow = () => setBomRows(rows => [...rows, { componentSku: '', qty: 1, unit: 'piece', componentType: 'material', unitCostOverride: 0, yieldFactor: 1 }])
   const removeBomRow = (idx: number) => setBomRows(rows => rows.filter((_, i) => i !== idx))
   const updateBomRow = (idx: number, field: keyof BomRow, val: string | number) => {
     setBomRows(rows => rows.map((r, i) => i === idx ? { ...r, [field]: val } : r))
@@ -39,7 +39,7 @@ export default function BomEditorModal({
     let factor = 1
     if (row.unit === 'g' && product.baseUnit === 'kg') factor = 0.001
     if (row.unit === 'kg' && product.baseUnit === 'g') factor = 1000
-    return sum + row.qty * factor * product.cost
+    return sum + (row.qty / (row.yieldFactor || 1)) * factor * product.cost
   }, 0)
 
   return (
@@ -65,7 +65,7 @@ export default function BomEditorModal({
                 const cp = products.find(p => p.sku === r.componentSku)
                 if (!cp) return null
                 const avail = Math.max(0, cp.stock - cp.reservedQty)
-                let required = r.qty
+                let required = r.qty / (r.yieldFactor || 1)
                 if (r.unit === 'g' && cp.baseUnit === 'kg') required /= 1000
                 if (r.unit === 'kg' && cp.baseUnit === 'g') required *= 1000
                 const canMake = Math.floor(avail / required)
@@ -80,7 +80,7 @@ export default function BomEditorModal({
               สต็อกเซ็ตที่ขายได้ = {Math.min(...validRows.filter(r => r.componentType !== 'expense').map(r => {
                 const cp = products.find(p => p.sku === r.componentSku)
                 if (!cp) return 0
-                let required = r.qty
+                let required = r.qty / (r.yieldFactor || 1)
                 if (r.unit === 'g' && cp.baseUnit === 'kg') required /= 1000
                 if (r.unit === 'kg' && cp.baseUnit === 'g') required *= 1000
                 return Math.floor(Math.max(0, cp.stock - cp.reservedQty) / required)
@@ -93,16 +93,17 @@ export default function BomEditorModal({
           <div className="p-2.5 mb-3 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 rounded-lg text-sm font-bold text-emerald-700 dark:text-emerald-400">
             ต้นทุน BOM ต่อหน่วย: ฿{bomCost.toLocaleString('th-TH', { maximumFractionDigits: 2 })}
           </div>
-          <div className="grid grid-cols-[105px_1fr_70px_75px_90px_36px] gap-2 mb-1.5 px-1 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+          <div className="grid grid-cols-[105px_1fr_70px_75px_75px_90px_36px] gap-2 mb-1.5 px-1 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
             <div>ประเภท</div>
             <div>SKU ส่วนประกอบ</div>
             <div className="text-center">จำนวน</div>
             <div>หน่วย</div>
+            <div>Yield</div>
             <div>ต้นทุน/หน่วย</div>
             <div />
           </div>
           {bomRows.map((row, idx) => (
-            <div key={idx} className="grid grid-cols-[105px_1fr_70px_75px_90px_36px] gap-2 mb-1.5 items-center">
+            <div key={idx} className="grid grid-cols-[105px_1fr_70px_75px_75px_90px_36px] gap-2 mb-1.5 items-center">
               <NativeSelect value={row.componentType} onChange={e => updateBomRow(idx, 'componentType', e.target.value)} className="h-9 cursor-pointer">
                 <option value="material">วัตถุดิบ</option>
                 <option value="packaging">บรรจุภัณฑ์</option>
@@ -119,7 +120,7 @@ export default function BomEditorModal({
                   <option key={p.sku} value={p.sku}>{p.sku} — {p.name}</option>
                 ))}
               </NativeSelect>
-              <Input
+              <Input 
                 type="number" 
                 min={1} 
                 value={row.qty}
@@ -132,6 +133,17 @@ export default function BomEditorModal({
                   : <><option value="piece">ชิ้น</option><option value="g">กรัม</option><option value="kg">กก.</option></>
                 }
               </NativeSelect>
+              <Input
+                type="number"
+                min={0.01}
+                max={1}
+                step={0.01}
+                disabled={row.componentType === 'expense'}
+                value={row.componentType === 'expense' ? 1 : row.yieldFactor}
+                onChange={e => updateBomRow(idx, 'yieldFactor', +e.target.value)}
+                className="h-9 text-center"
+                aria-label="Yield rate"
+              />
               <Input 
                 type="number" 
                 min={0} 

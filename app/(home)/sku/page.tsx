@@ -13,6 +13,7 @@ import SkuFilters from './components/SkuFilters'
 import SkuFormModal from './components/SkuFormModal'
 import SkuViewModal from './components/SkuViewModal'
 import DeleteConfirmModal from './components/DeleteConfirmModal'
+import BomEditorModal, { type BomRow } from './components/BomEditorModal'
 
 const EMPTY_FORM: CreateProductInput = {
   sku: '', name: '', type: 'Cat', barcode: '', weightGrams: 0,
@@ -32,6 +33,7 @@ export default function SkuPage() {
   const updateProduct = useErpStore(s => s.updateProduct)
   const deleteProduct = useErpStore(s => s.deleteProduct)
   const calcBundleVirtualStock = useErpStore(s => s.calcBundleVirtualStock)
+  const setBundleComponents = useErpStore(s => s.setBundleComponents)
 
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState<ProductCategory | 'All'>('All')
@@ -41,6 +43,8 @@ export default function SkuPage() {
   const [form, setForm] = useState<CreateProductInput>(EMPTY_FORM)
   const [error, setError] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [bomProduct, setBomProduct] = useState<Product | null>(null)
+  const [bomRows, setBomRows] = useState<BomRow[]>([])
 
   // Filtered list
   const filtered = products.filter(p => {
@@ -121,6 +125,27 @@ export default function SkuPage() {
   function handleDelete(sku: string) {
     deleteProduct(sku)
     setDeleteConfirm(null)
+  }
+
+  function openBomEditor(product: Product) {
+    const rows = bundleComponents
+      .filter(component => component.bundleSku === product.sku)
+      .map(component => ({
+        componentSku: component.componentSku,
+        qty: component.qty,
+        unit: component.unit ?? 'piece',
+        componentType: component.componentType ?? 'material',
+        unitCostOverride: component.unitCostOverride ?? 0,
+        yieldFactor: component.yieldFactor || 1,
+      }))
+    setBomRows(rows)
+    setBomProduct(product)
+  }
+
+  function saveBom() {
+    if (!bomProduct) return
+    setBundleComponents({ bundleSku: bomProduct.sku, components: bomRows })
+    setBomProduct(null)
   }
 
   return (
@@ -245,6 +270,19 @@ export default function SkuPage() {
             calcBundleVirtualStock={calcBundleVirtualStock}
             onClose={closeModal}
             onEdit={() => { closeModal(); openEdit(selected) }}
+            onEditBom={() => { const product = selected; closeModal(); openBomEditor(product) }}
+          />
+        )}
+
+        {bomProduct && (
+          <BomEditorModal
+            bomSku={bomProduct.sku}
+            bomProduct={bomProduct}
+            products={products}
+            bomRows={bomRows}
+            setBomRows={setBomRows}
+            onClose={() => setBomProduct(null)}
+            onSave={saveBom}
           />
         )}
 

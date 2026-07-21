@@ -570,7 +570,8 @@ function calcVirtualStock(bundleSku: string, products: Product[], bundleComponen
     const prod = products.find(p => p.sku === comp.componentSku)
     if (!prod) return 0
     const available = Math.max(0, prod.stock - prod.reservedQty)
-    virtualQty = Math.min(virtualQty, Math.floor(available / comp.qty))
+    const grossQty = comp.qty / (comp.yieldFactor || 1)
+    virtualQty = Math.min(virtualQty, Math.floor(available / grossQty))
   }
   return virtualQty === Infinity ? 0 : virtualQty
 }
@@ -1300,6 +1301,10 @@ export function createErpWorkflowState(
         bundleSku: input.bundleSku,
         componentSku: c.componentSku,
         qty: c.qty,
+        unit: c.unit,
+        componentType: c.componentType,
+        unitCostOverride: c.unitCostOverride,
+        yieldFactor: c.yieldFactor,
       }))
       set(s => ({
         bundleComponents: [

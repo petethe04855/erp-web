@@ -11,6 +11,7 @@ interface SkuViewModalProps {
   calcBundleVirtualStock: (sku: string) => number
   onClose: () => void
   onEdit: () => void
+  onEditBom: () => void
 }
 
 export default function SkuViewModal({
@@ -20,6 +21,7 @@ export default function SkuViewModal({
   calcBundleVirtualStock,
   onClose,
   onEdit,
+  onEditBom,
 }: SkuViewModalProps) {
   const formatBaht = (n: number) => '฿' + n.toLocaleString('th-TH')
   const comps = bundleComponents.filter(c => c.bundleSku === selected.sku)
@@ -98,6 +100,11 @@ export default function SkuViewModal({
         )}
 
         <div className="flex justify-end gap-2 mt-5">
+          {selected.isBundle && (
+            <Button onClick={onEditBom} variant="outline" size="sm" className="cursor-pointer border-border">
+              BOM
+            </Button>
+          )}
           <Button onClick={onEdit} variant="outline" size="sm" className="cursor-pointer border-border" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)', color: '#374151' }}>
             แก้ไข
           </Button>

@@ -153,6 +153,7 @@ export function CreateBomDialog({
               <Input
                 type="number"
                 min={0}
+                disabled
                 value={newBom.cost}
                 onChange={(e) =>
                   setNewBom({
@@ -168,14 +169,10 @@ export function CreateBomDialog({
               </Label>
               <NativeSelect
                 value={newBom.status}
-                onChange={(e) =>
-                  setNewBom({ ...newBom, status: e.target.value })
-                }
-                className="w-full cursor-pointer"
+                disabled
+                className="w-full"
               >
                 <option value="Draft">Draft</option>
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
               </NativeSelect>
             </div>
           </div>
