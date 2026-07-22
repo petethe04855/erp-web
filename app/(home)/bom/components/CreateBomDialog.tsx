@@ -1,192 +1,349 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { readApiResponse } from "@/lib/apiResponse";
+
+type Product = {
+  sku: string;
+  name: string;
+  type: string;
+  baseUnit?: string;
+};
+
+type ExistingBom = {
+  code: string;
+  fgSku?: string;
+};
+
+export type CreateBomPayload = {
+  code: string;
+  name: string;
+  version: number;
+  fgSku: string;
+  kind: "finished" | "subcomponent";
+  outputQty: number;
+  outputUnit: string;
+  status: string;
+  effectiveDate: string;
+  waste: number;
+  cost: number;
+  components: Array<{
+    componentSku: string;
+    qty: number;
+    unit: string;
+    componentType: "material" | "packaging";
+    yieldFactor: number;
+  }>;
+};
 
 interface CreateBomDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreate: (bom: {
-    code: string;
-    name: string;
-    outputQty: number;
-    outputUnit: string;
-    status: string;
-    effectiveDate: string;
-    cost: number;
-  }) => Promise<void>;
+  existingBoms: ExistingBom[];
+  onCreate: (bom: CreateBomPayload) => Promise<void>;
   showToast: (msg: string) => void;
 }
+
+type RowState = {
+  componentSku: string;
+  qty: number | "";
+  unit: string;
+};
+
+const getApiUrl = () =>
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
+const getHeaders = () => {
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("chawy_token") : "";
+  return {
+    "Content-Type": "application/json",
+    Authorization: token ? `Bearer ${token}` : "",
+  };
+};
+
+const emptyRows: RowState[] = [
+  { componentSku: "", qty: "", unit: "" },
+  { componentSku: "", qty: "", unit: "" },
+  { componentSku: "", qty: "", unit: "" },
+];
 
 export function CreateBomDialog({
   open,
   onOpenChange,
+  existingBoms,
   onCreate,
   showToast,
 }: CreateBomDialogProps) {
-  const [newBom, setNewBom] = useState<{
-    code: string;
-    name: string;
-    outputQty: number | "";
-    outputUnit: string;
-    status: string;
-    effectiveDate: string;
-    cost: number;
-  }>({
-    code: "",
-    name: "",
-    outputQty: 1,
-    outputUnit: "ชิ้น",
-    status: "Draft",
-    effectiveDate: "",
-    cost: 0,
-  });
-
+  const [products, setProducts] = useState<Product[]>([]);
+  const [outputSku, setOutputSku] = useState("");
+  const [outputQty, setOutputQty] = useState<number | "">(100);
+  const [waste, setWaste] = useState<number | "">(0);
+  const [rows, setRows] = useState<RowState[]>(emptyRows);
   const [saving, setSaving] = useState(false);
 
-  async function handleCreateBOM() {
-    if (!newBom.code || !newBom.name) {
-      showToast("กรุณากรอกรหัสสูตร (Code) และชื่อสูตรให้ครบถ้วน");
+  useEffect(() => {
+    if (!open) return;
+    fetch(`${getApiUrl()}/api/products`, { headers: getHeaders() })
+      .then((response) => readApiResponse<Product[]>(response))
+      .then((items) => setProducts(items || []))
+      .catch(() => showToast("โหลด Item Master ไม่สำเร็จ"));
+  }, [open, showToast]);
+
+  const outputs = useMemo(
+    () =>
+      products.filter(
+        (item) =>
+          item.type === "Finished Product" || item.type === "Sub-component",
+      ),
+    [products],
+  );
+
+  const parts = useMemo(
+    () =>
+      products.filter(
+        (item) => item.type !== "Finished Product" && item.sku !== outputSku,
+      ),
+    [products, outputSku],
+  );
+
+  const outputItem = outputs.find((item) => item.sku === outputSku);
+
+  useEffect(() => {
+    if (open && !outputSku && outputs.length > 0) setOutputSku(outputs[0].sku);
+  }, [open, outputSku, outputs]);
+
+  function updateRow(
+    index: number,
+    field: "componentSku" | "qty",
+    value: string,
+  ) {
+    setRows((current) =>
+      current.map((row, rowIndex) => {
+        if (rowIndex !== index) return row;
+        if (field === "componentSku") {
+          const item = parts.find((part) => part.sku === value);
+          return { ...row, componentSku: value, unit: item?.baseUnit || "" };
+        }
+        return { ...row, qty: value === "" ? "" : Number(value) };
+      }),
+    );
+  }
+
+  function nextVersion(sku: string) {
+    return (
+      existingBoms.reduce((max, bom) => {
+        if (!bom.code.startsWith(`BOM-${sku}-V`)) return max;
+        const version = Number(bom.code.split("-V").at(-1));
+        return Number.isFinite(version) ? Math.max(max, version) : max;
+      }, 0) + 1
+    );
+  }
+
+  async function handleSubmit() {
+    if (!outputItem) {
+      showToast("กรุณาสร้าง Finished Product หรือ Sub-component ก่อน");
       return;
     }
-    if (newBom.outputQty === "" || Number(newBom.outputQty) <= 0) {
-      showToast("กรุณากรอกปริมาณผลผลิต (Output Qty) ให้มากกว่า 0");
+    if (!parts.length) {
+      showToast("กรุณาสร้างวัตถุดิบหรือบรรจุภัณฑ์ก่อน");
       return;
     }
+    if (outputQty === "" || Number(outputQty) <= 0) {
+      showToast("กรุณากรอกจำนวนผลผลิตมาตรฐานมากกว่า 0");
+      return;
+    }
+
+    const components = rows
+      .filter(
+        (row) => row.componentSku && row.qty !== "" && Number(row.qty) > 0,
+      )
+      .map((row) => {
+        const item = parts.find((part) => part.sku === row.componentSku);
+        return {
+          componentSku: row.componentSku,
+          qty: Number(row.qty),
+          unit: item?.baseUnit || row.unit || "ชิ้น",
+          componentType:
+            item?.type === "Packaging"
+              ? ("packaging" as const)
+              : ("material" as const),
+          yieldFactor: 1,
+        };
+      });
+
+    if (!components.length) {
+      showToast("กรุณาเลือกส่วนประกอบอย่างน้อย 1 รายการ");
+      return;
+    }
+
+    const version = nextVersion(outputItem.sku);
+    const code = `BOM-${outputItem.sku}-V${version}`;
+
     setSaving(true);
     try {
       await onCreate({
-        ...newBom,
-        outputQty: Number(newBom.outputQty),
-      });
-      onOpenChange(false);
-      setNewBom({
-        code: "",
-        name: "",
-        outputQty: 1,
-        outputUnit: "ชิ้น",
-        status: "Draft",
-        effectiveDate: "",
+        code,
+        name: outputItem.name,
+        version,
+        fgSku: outputItem.sku,
+        kind: outputItem.type === "Sub-component" ? "subcomponent" : "finished",
+        outputQty: Number(outputQty),
+        outputUnit: outputItem.baseUnit || "ชิ้น",
+        status: "Active",
+        effectiveDate: new Date().toISOString().slice(0, 10),
+        waste: Number(waste) || 0,
         cost: 0,
+        components,
       });
-    } catch (err) {
-      // Error handled by parent or custom toast
+      setOutputSku("");
+      setOutputQty(100);
+      setWaste(0);
+      setRows(emptyRows);
+      onOpenChange(false);
     } finally {
       setSaving(false);
     }
   }
 
+  const previewVersion = outputItem ? nextVersion(outputItem.sku) : 1;
+  const previewCode = outputItem
+    ? `BOM-${outputItem.sku}-V${previewVersion}`
+    : "BOM-{SKU}-V1";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-[440px] p-6">
-        <DialogHeader className="mb-4">
-          <DialogTitle className="text-base font-bold text-foreground" style={{ color: 'var(--erp-ink)' }}>สร้างสูตรการผลิตใหม่ (New BOM)</DialogTitle>
+      <DialogContent className="w-full max-w-[560px] p-0">
+        <DialogHeader className="border-b border-border p-5">
+          <DialogTitle
+            className="text-base font-bold text-foreground"
+            style={{ color: "var(--erp-ink)" }}
+          >
+            สร้างสูตร BOM
+          </DialogTitle>
+          <p className="text-xs text-muted-foreground">
+            เลือกสินค้าที่ผลิตได้และกำหนดส่วนประกอบตามสูตรมาตรฐาน
+          </p>
         </DialogHeader>
-        <div className="grid gap-3">
-          <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: 'var(--erp-ink2)' }}>
-              รหัสสูตร (BOM Code) *
+
+        <div className="grid grid-cols-2 gap-3 p-5">
+          <div className="col-span-2">
+            <Label className="mb-1 block text-xs font-semibold text-muted-foreground">
+              ผลิตภัณฑ์ที่ได้
             </Label>
             <Input
               type="text"
-              placeholder="เช่น BOM-001"
-              value={newBom.code}
-              onChange={(e) =>
-                setNewBom({ ...newBom, code: e.target.value })
-              }
+              value={outputSku}
+              onChange={(event) => setOutputSku(event.target.value)}
+              className="w-full"
             />
           </div>
+
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: 'var(--erp-ink2)' }}>
-              ชื่อสูตรการผลิต (BOM Name) *
+            <Label className="mb-1 block text-xs font-semibold text-muted-foreground">
+              จำนวนผลผลิตมาตรฐาน
             </Label>
             <Input
-              type="text"
-              placeholder="เช่น สูตรอาหารแมวไก่ 1 กก."
-              value={newBom.name}
-              onChange={(e) =>
-                setNewBom({ ...newBom, name: e.target.value })
+              type="number"
+              min={0.0001}
+              step="any"
+              value={outputQty}
+              onChange={(event) =>
+                setOutputQty(
+                  event.target.value === "" ? "" : Number(event.target.value),
+                )
               }
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: 'var(--erp-ink2)' }}>
-                ปริมาณผลผลิต (Output Qty)
-              </Label>
-              <Input
-                type="number"
-                min={0}
-                value={newBom.outputQty}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setNewBom({
-                    ...newBom,
-                    outputQty: val === "" ? "" : Number(val),
-                  });
-                }}
-              />
-            </div>
-            <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: 'var(--erp-ink2)' }}>
-                หน่วยผลผลิต (Unit)
-              </Label>
-              <Input
-                type="text"
-                placeholder="ชิ้น, กล่อง, กก."
-                value={newBom.outputUnit}
-                onChange={(e) =>
-                  setNewBom({ ...newBom, outputUnit: e.target.value })
-                }
-              />
-            </div>
+
+          <div>
+            <Label className="mb-1 block text-xs font-semibold text-muted-foreground">
+              Waste (%)
+            </Label>
+            <Input
+              type="number"
+              min={0}
+              step="0.1"
+              value={waste}
+              onChange={(event) =>
+                setWaste(
+                  event.target.value === "" ? "" : Number(event.target.value),
+                )
+              }
+            />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: 'var(--erp-ink2)' }}>
-                ต้นทุนอ้างอิง (บาท)
-              </Label>
-              <Input
-                type="number"
-                min={0}
-                disabled
-                value={newBom.cost}
-                onChange={(e) =>
-                  setNewBom({
-                    ...newBom,
-                    cost: Number(e.target.value) || 0,
-                  })
-                }
-              />
+
+          {rows.map((row, index) => (
+            <div key={index} className="contents">
+              <div>
+                <Label className="mb-1 block text-xs font-semibold text-muted-foreground">
+                  ส่วนประกอบ {index + 1}
+                </Label>
+                <NativeSelect
+                  value={row.componentSku}
+                  onChange={(event) =>
+                    updateRow(index, "componentSku", event.target.value)
+                  }
+                  className="w-full"
+                >
+                  <option value="">-- ไม่ใช้ --</option>
+                  {parts.map((part) => (
+                    <option key={part.sku} value={part.sku}>
+                      {part.name} · {part.baseUnit || "ชิ้น"}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </div>
+              <div>
+                <Label className="mb-1 block text-xs font-semibold text-muted-foreground">
+                  ปริมาณ
+                </Label>
+                <Input
+                  type="number"
+                  min={index === 0 ? 0.0001 : 0}
+                  step="any"
+                  value={row.qty}
+                  onChange={(event) =>
+                    updateRow(index, "qty", event.target.value)
+                  }
+                />
+              </div>
             </div>
-            <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: 'var(--erp-ink2)' }}>
-                สถานะ (Status)
-              </Label>
-              <NativeSelect
-                value={newBom.status}
-                disabled
-                className="w-full"
-              >
-                <option value="Draft">Draft</option>
-              </NativeSelect>
+          ))}
+
+          <div className="col-span-2 rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-xs">
+            <b>{previewCode}</b>
+            <div className="mt-1 text-muted-foreground">
+              Version {previewVersion} · ได้ {outputQty || 0}{" "}
+              {outputItem?.baseUnit || "หน่วย"} · Waste {waste || 0}%
             </div>
           </div>
         </div>
-        <DialogFooter className="flex justify-end gap-2 mt-5">
+
+        <DialogFooter className="flex justify-end gap-2 border-t border-border p-5">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="cursor-pointer border-border"
-            style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)', color: '#374151' }}
+            className="cursor-pointer"
           >
             ยกเลิก
           </Button>
-          <Button onClick={handleCreateBOM} disabled={saving} className="bg-[var(--erp-accent)] text-white hover:opacity-90 border-none shadow-none cursor-pointer">
+          <Button
+            onClick={handleSubmit}
+            disabled={saving}
+            className="cursor-pointer border-none bg-[var(--erp-accent)] text-white shadow-none hover:opacity-90"
+          >
             สร้างสูตร BOM
           </Button>
         </DialogFooter>

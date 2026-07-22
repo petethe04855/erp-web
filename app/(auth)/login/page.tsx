@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { useErpStore } from '@/lib/store/useErpStore'
 import { readApiResponse } from '@/lib/apiResponse'
 import { Button } from '@/components/ui/button'
@@ -14,7 +13,6 @@ export default function LoginPage() {
 	const [password, setPassword] = useState('')
 	const [error, setError] = useState('')
 	const [loading, setLoading] = useState(false)
-	const router = useRouter()
 	const setCurrentUser = useErpStore(s => s.setCurrentUser)
 
 	useEffect(() => {

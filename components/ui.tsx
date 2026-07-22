@@ -856,9 +856,9 @@ const CATEGORY_LABELS: Record<
   Other: { label: "อื่นๆ", color: "#92400E", bg: "#FEF3C7" },
 };
 
-export function CategoryBadge({ type }: { type: ProductCategory }) {
-  const c = CATEGORY_LABELS[type];
-  const variant = type.toLowerCase() as "cat" | "dog" | "bundle" | "other";
+export function CategoryBadge({ type }: { type: string }) {
+  const c = CATEGORY_LABELS[type as ProductCategory] ?? { label: type, color: "#4B5563", bg: "#F3F4F6" };
+  const variant = (CATEGORY_LABELS[type as ProductCategory] ? type.toLowerCase() : "outline") as any;
   return (
     <Badge
       variant={variant}

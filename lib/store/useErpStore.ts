@@ -5,7 +5,6 @@ import {
 	createErpWorkflowState,
 	initialWorkflowState,
 	type ErpWorkflowStore,
-	type ErpWorkflowState,
 	type Product,
 	type BundleComponent,
 	type SamplingCampaign,

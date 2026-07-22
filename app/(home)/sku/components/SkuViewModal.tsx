@@ -1,5 +1,4 @@
 'use client'
-import React from 'react'
 import { CategoryBadge, StockBadge } from '@/components/ui'
 import { Button } from '@/components/ui/button'
 import type { Product, BundleComponent } from '@/lib/store/erpWorkflow'

@@ -384,7 +384,6 @@ export default function PurchaseReqPage() {
         open={open}
         onOpenChange={setOpen}
         products={products}
-        bomsList={bomsList}
         onSubmit={handleCreatePR}
         showToast={showToast}
       />

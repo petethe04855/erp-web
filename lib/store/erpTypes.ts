@@ -115,7 +115,15 @@ export type StockMovement = {
 
 // ── Inventory ──────────────────────────────────────────────────────────────
 
-export type ProductCategory = 'Cat' | 'Dog' | 'Bundle' | 'Other'
+export type ProductCategory =
+  | 'Cat'
+  | 'Dog'
+  | 'Bundle'
+  | 'Other'
+  | 'Raw Material'
+  | 'Packaging'
+  | 'Sub-component'
+  | 'Finished Product'
 
 export type Product = {
   sku: string
@@ -133,7 +141,7 @@ export type Product = {
   isBundle: boolean            // true = virtual product (no physical stock)
   isActive: boolean
   note: string
-  baseUnit?: 'piece' | 'g' | 'kg'
+  baseUnit?: string
 }
 
 // BOM: defines which components (and quantities) make up a bundle SKU
@@ -157,6 +165,7 @@ export type StockLot = {       // Gap 1: lot-level tracking for FEFO
   receivedDate: string
   grRef: string
   poRef: string
+  landedUnitCost?: number
 }
 
 // ── Sampling ───────────────────────────────────────────────────────────────
@@ -465,7 +474,7 @@ export type CreateProductInput = {
   reorder?: number
   isBundle?: boolean
   note?: string
-  baseUnit?: 'piece' | 'g' | 'kg'
+  baseUnit?: string
 }
 
 export type UpdateProductInput = Partial<Omit<Product, 'sku' | 'reservedQty' | 'stock'>> & { sku: string }

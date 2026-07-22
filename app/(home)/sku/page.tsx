@@ -16,7 +16,7 @@ import DeleteConfirmModal from './components/DeleteConfirmModal'
 import BomEditorModal, { type BomRow } from './components/BomEditorModal'
 
 const EMPTY_FORM: CreateProductInput = {
-  sku: '', name: '', type: 'Cat', barcode: '', weightGrams: 0,
+  sku: '', name: '', type: 'Raw Material', barcode: '', weightGrams: 0,
   retailPrice: 0, wholesalePrice: 0, cost: 0, reorder: 0, isBundle: false, note: '', baseUnit: 'piece',
 }
 
@@ -93,6 +93,37 @@ export default function SkuPage() {
   }
 
   function handleSave() {
+    const demoItemTypes: ProductCategory[] = ['Raw Material', 'Packaging', 'Sub-component', 'Finished Product']
+    if (demoItemTypes.includes(form.type)) {
+      if (!form.sku.trim()) { setError('กรุณากรอก SKU'); return }
+      if (!form.name.trim()) { setError('กรุณากรอกชื่อรายการ'); return }
+      if (!form.baseUnit) { setError('กรุณาเลือกหน่วยหลัก'); return }
+      try {
+        if (modalMode === 'add') {
+          addProduct({ ...form, isBundle: form.type === 'Sub-component' })
+        } else if (modalMode === 'edit' && selected) {
+          updateProduct({
+            sku: selected.sku,
+            name: form.name,
+            type: form.type,
+            barcode: form.barcode,
+            weightGrams: form.weightGrams,
+            retailPrice: form.retailPrice,
+            wholesalePrice: form.wholesalePrice,
+            price: form.retailPrice,
+            cost: form.cost,
+            reorder: form.reorder,
+            isBundle: form.type === 'Sub-component',
+            note: form.note,
+            baseUnit: form.baseUnit,
+          })
+        }
+        closeModal()
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : 'เกิดข้อผิดพลาด')
+      }
+      return
+    }
     if (!form.sku.trim()) { setError('กรุณากรอก SKU'); return }
     if (!form.name.trim()) { setError('กรุณากรอกชื่อสินค้า'); return }
     if (form.type !== 'Other' && form.retailPrice <= 0) { setError('ราคาขายต้องมากกว่า 0'); return }
@@ -194,7 +225,7 @@ export default function SkuPage() {
                   </TableCell>
                 </TableRow>
               )}
-              {filtered.map((p, i) => (
+              {filtered.map((p) => (
                 <TableRow key={p.sku} className="hover:bg-muted/30 border-b border-border" style={{
                   borderColor: 'var(--erp-subtle)',
                   opacity: p.isActive ? 1 : 0.5,

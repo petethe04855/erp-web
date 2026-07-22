@@ -30,6 +30,7 @@ interface Product {
   sku: string;
   name: string;
   cost: number;
+  type?: string;
 }
 
 interface CreatePOSheetProps {
@@ -60,6 +61,9 @@ export function CreatePOSheet({
     (s, line) => s + Number(line.qty) * Number(line.unitCost),
     0,
   );
+  const purchasableProducts = products.filter(
+    (p) => p.type === "Raw Material" || p.type === "Packaging",
+  );
 
   function addLine() {
     setForm((f) => ({ ...f, items: [...f.items, { ...BLANK_LINE }] }));
@@ -75,7 +79,7 @@ export function CreatePOSheet({
       items: f.items.map((line, idx) => {
         if (idx !== i) return line;
         if (field === "sku") {
-          const prod = products.find((p) => p.sku === val);
+          const prod = purchasableProducts.find((p) => p.sku === val);
           return {
             ...line,
             sku: val as string,
@@ -210,7 +214,7 @@ export function CreatePOSheet({
                           style={{ borderColor: "var(--erp-border)" }}
                         >
                           <option value="">Select product</option>
-                          {products.map((p) => (
+                          {purchasableProducts.map((p) => (
                             <option key={p.sku} value={p.sku}>
                               {p.name} ({p.sku})
                             </option>
