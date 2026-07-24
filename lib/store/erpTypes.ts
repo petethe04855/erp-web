@@ -201,7 +201,7 @@ export type SamplingCampaign = {   // Gap 5: sampling / trial tracker
 export type UserRole = 'owner' | 'sales' | 'warehouse' | 'accountant'
 
 export type AppUser = {        // Gap 7
-  id: string
+  id: number | string
   email?: string
   name: string
   role: UserRole
@@ -211,10 +211,10 @@ export type AppUser = {        // Gap 7
 }
 
 export const APP_USERS: AppUser[] = [
-  { id: 'USR-001', name: 'Chawy', role: 'owner' },
-  { id: 'USR-002', name: 'จอย', role: 'sales' },
-  { id: 'USR-003', name: 'แพร', role: 'warehouse' },
-  { id: 'USR-004', name: 'จ็อบ', role: 'accountant' },
+  { id: 1, name: 'Chawy', role: 'owner' },
+  { id: 2, name: 'จอย', role: 'sales' },
+  { id: 3, name: 'แพร', role: 'warehouse' },
+  { id: 4, name: 'จ็อบ', role: 'accountant' },
 ]
 
 export const ROLE_LABELS: Record<UserRole, string> = {
@@ -231,7 +231,6 @@ export const ROLE_BADGE_STYLE: Record<UserRole, { bg: string; color: string }> =
   accountant: { bg: '#FEF3C7', color: '#92400E' },
 }
 
-// Nav hrefs each role may access ('*' = all)
 export const ROLE_NAV: Record<UserRole, string[] | '*'> = {
   owner:      '*',
   sales:      ['/', '/dashboard', '/sales-orders', '/quotation', '/invoice', '/manual-order', '/tiktok-orders', '/live-sessions', '/sampling'],

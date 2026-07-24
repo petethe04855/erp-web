@@ -118,8 +118,8 @@ interface CustomErpStore extends ErpWorkflowStore {
 	users: AppUser[]
 	fetchInitialState: () => Promise<void>
 	loadResources: (resources: ErpResource[], force?: boolean) => Promise<void>
-	createUser: (input: { id: string; email: string; name: string; role: any; password?: string }) => Promise<AppUser>
-	updateUser: (id: string, input: { email?: string; name?: string; role?: any; password?: string }) => Promise<AppUser>
+	createUser: (input: { id: string; email: string; firstname: string; lastname: string; role: any; password?: string }) => Promise<AppUser>
+	updateUser: (id: string, input: { email?: string; firstname: string; lastname: string; role?: any; password?: string }) => Promise<AppUser>
 	updateUserStatus: (id: string, isActive: boolean) => Promise<AppUser>
 	deleteUser: (id: string) => Promise<void>
 	updateExpense: (id: string, input: Partial<any>) => Promise<void>
@@ -188,7 +188,7 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 		set({ currentUser: user })
 	},
 
-	createUser: async (input: { id: string; email: string; name: string; role: any; password?: string }) => {
+	createUser: async (input: { id: string; email: string; firstname: string; lastname: string; role: any; password?: string }) => {
 		const res = await fetch(`${getApiUrl()}/api/users`, {
 			method: 'POST',
 			headers: getHeaders(),

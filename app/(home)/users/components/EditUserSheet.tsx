@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ROLE_LABELS, type UserRole } from "@/lib/store/erpTypes";
+import { Loader2 } from "lucide-react";
+import { ROLE_LABELS, type AppUser, type UserRole } from "@/lib/store/erpTypes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,24 +19,27 @@ import { useTheme } from "@/lib/design/ThemeContext";
 
 interface EditUserFormState {
   id: string;
-  email?: string;
-  name: string;
+  email: string;
+  firstname: string;
+  lastname: string;
   role: UserRole;
-  password?: string;
+  password: string;
 }
 
 interface EditUserSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  initialData: EditUserFormState | null;
+  initialData: AppUser | null;
   onSubmit: (data: {
     id: string;
     email?: string;
-    name: string;
+    firstname: string;
+    lastname: string;
     role: UserRole;
     password?: string;
   }) => void;
   showToast: (msg: string) => void;
+  isSubmitting?: boolean;
 }
 
 export function EditUserSheet({
@@ -44,6 +48,7 @@ export function EditUserSheet({
   initialData,
   onSubmit,
   showToast,
+  isSubmitting = false,
 }: EditUserSheetProps) {
   const { tokens: t } = useTheme();
   const c = t.color;
@@ -51,17 +56,22 @@ export function EditUserSheet({
   const [form, setForm] = useState<EditUserFormState>({
     id: "",
     email: "",
-    name: "",
+    firstname: "",
+    lastname: "",
     role: "sales",
     password: "",
   });
 
   useEffect(() => {
     if (initialData) {
+      const nameParts = (initialData.name || "").trim().split(/\s+/);
+      const firstname = nameParts[0] || "";
+      const lastname = nameParts.slice(1).join(" ") || "";
       setForm({
-        id: initialData.id,
-        email: initialData.email,
-        name: initialData.name,
+        id: String(initialData.id),
+        email: initialData.email || "",
+        firstname: firstname,
+        lastname: lastname,
         role: initialData.role,
         password: "",
       });
@@ -69,7 +79,7 @@ export function EditUserSheet({
   }, [initialData]);
 
   const handleFormSubmit = () => {
-    if (!form.name) {
+    if (!form.firstname || !form.lastname) {
       showToast("กรุณากรอกชื่อผู้ใช้");
       return;
     }
@@ -81,22 +91,27 @@ export function EditUserSheet({
     onSubmit({
       id: form.id,
       email: form.email || undefined,
-      name: form.name,
+      firstname: form.firstname,
+      lastname: form.lastname,
       role: form.role,
       password: form.password || undefined,
     });
-
-    onOpenChange(false);
   };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex h-full w-[min(540px,100vw)] flex-col border-l bg-card text-card-foreground shadow-2xl outline-none">
         <SheetHeader className="mb-4">
-          <SheetTitle className="text-base font-bold text-foreground" style={{ color: "var(--erp-ink)" }}>
+          <SheetTitle
+            className="text-base font-bold text-foreground"
+            style={{ color: "var(--erp-ink)" }}
+          >
             แก้ไขข้อมูลผู้ใช้
           </SheetTitle>
-          <div className="text-xs text-muted-foreground" style={{ color: "var(--erp-ink3)" }}>
+          <div
+            className="text-xs text-muted-foreground"
+            style={{ color: "var(--erp-ink3)" }}
+          >
             อัปเดตรายละเอียดของผู้ใช้งานในระบบ
           </div>
         </SheetHeader>
@@ -104,37 +119,57 @@ export function EditUserSheet({
         <SheetBody className="grid gap-5 overflow-y-auto">
           <div className="flex flex-col gap-4">
             <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink3)" }}>
-                รหัสผู้ใช้ (ไม่สามารถแก้ไขได้)
-              </Label>
-              <Input value={form.id} disabled className="opacity-60 cursor-not-allowed font-mono" />
-            </div>
-
-            <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
-                ชื่อผู้ใช้ (Display Name) *
+              <Label
+                className="text-xs font-semibold text-muted-foreground mb-1 block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
+                ชื่อ *
               </Label>
               <Input
-                placeholder="เช่น สมชาย"
-                value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder=""
+                value={form.firstname}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, firstname: e.target.value }))
+                }
               />
             </div>
-
             <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
-                Email
+              <Label
+                className="text-xs font-semibold text-muted-foreground mb-1 block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
+                นามสกุล *
+              </Label>
+              <Input
+                placeholder=""
+                value={form.lastname}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, lastname: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <Label
+                className="text-xs font-semibold text-muted-foreground mb-1 block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
+                Email *
               </Label>
               <Input
                 type="email"
                 placeholder="name@company.com"
                 value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, email: e.target.value }))
+                }
               />
             </div>
 
             <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+              <Label
+                className="text-xs font-semibold text-muted-foreground mb-1 block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
                 Role *
               </Label>
               <NativeSelect
@@ -150,35 +185,30 @@ export function EditUserSheet({
                 ))}
               </NativeSelect>
             </div>
-
-            <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
-                รหัสผ่านใหม่ (ระบุเมื่อต้องการเปลี่ยนเท่านั้น)
-              </Label>
-              <Input
-                type="password"
-                placeholder="ระบุรหัสผ่านใหม่หากต้องการเปลี่ยน"
-                value={form.password}
-                onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-              />
-            </div>
           </div>
         </SheetBody>
 
         <SheetFooter className="flex justify-end gap-2 p-4 px-6 border-t">
           <Button
             variant="outline"
+            disabled={isSubmitting}
             onClick={() => onOpenChange(false)}
             className="cursor-pointer border-border"
-            style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)", color: "#374151" }}
+            style={{
+              borderColor: "var(--erp-border)",
+              background: "var(--erp-surface)",
+              color: "#374151",
+            }}
           >
             ยกเลิก
           </Button>
           <Button
             onClick={handleFormSubmit}
-            className="cursor-pointer bg-[var(--erp-accent)] text-white hover:opacity-90 border-none shadow-none"
+            disabled={isSubmitting}
+            className="cursor-pointer bg-[var(--erp-accent)] text-white hover:opacity-90 border-none shadow-none disabled:opacity-50 inline-flex items-center gap-2"
           >
-            บันทึกการเปลี่ยนแปลง
+            {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+            {isSubmitting ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}
           </Button>
         </SheetFooter>
       </SheetContent>
