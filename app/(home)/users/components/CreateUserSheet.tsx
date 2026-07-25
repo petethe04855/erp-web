@@ -16,6 +16,7 @@ import {
   SheetFooter,
 } from "@/components/ui/sheet";
 import { useTheme } from "@/lib/design/ThemeContext";
+import { Switch } from "@/components/ui/switch";
 
 interface CreateUserFormState {
   id: string;
@@ -23,7 +24,7 @@ interface CreateUserFormState {
   firstname: string;
   lastname: string;
   role: UserRole;
-  password: string;
+  isActive: boolean;
 }
 
 const BLANK_FORM: CreateUserFormState = {
@@ -32,7 +33,7 @@ const BLANK_FORM: CreateUserFormState = {
   firstname: "",
   lastname: "",
   role: "sales",
-  password: "",
+  isActive: true,
 };
 
 interface CreateUserSheetProps {
@@ -62,11 +63,7 @@ export function CreateUserSheet({
   }, [open]);
 
   const handleFormSubmit = () => {
-    if (
-      !form.email ||
-      !form.firstname ||
-      !form.lastname
-    ) {
+    if (!form.email || !form.firstname || !form.lastname) {
       showToast("กรุณากรอกข้อมูลให้ครบถ้วน");
       return;
     }
@@ -170,6 +167,20 @@ export function CreateUserSheet({
                   </option>
                 ))}
               </NativeSelect>
+            </div>
+            <div>
+              <Label
+                className="text-xs font-semibold text-muted-foreground mb-1 block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
+                Status
+              </Label>
+              <Switch
+                checked={form.isActive}
+                onCheckedChange={(checked) =>
+                  setForm((f) => ({ ...f, isActive: checked }))
+                }
+              />
             </div>
           </div>
         </SheetBody>

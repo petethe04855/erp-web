@@ -16,6 +16,7 @@ import {
   SheetFooter,
 } from "@/components/ui/sheet";
 import { useTheme } from "@/lib/design/ThemeContext";
+import { Switch } from "@/components/ui/switch";
 
 interface EditUserFormState {
   id: string;
@@ -23,7 +24,7 @@ interface EditUserFormState {
   firstname: string;
   lastname: string;
   role: UserRole;
-  password: string;
+  isActive: boolean;
 }
 
 interface EditUserSheetProps {
@@ -36,7 +37,7 @@ interface EditUserSheetProps {
     firstname: string;
     lastname: string;
     role: UserRole;
-    password?: string;
+    isActive: boolean;
   }) => void;
   showToast: (msg: string) => void;
   isSubmitting?: boolean;
@@ -59,7 +60,7 @@ export function EditUserSheet({
     firstname: "",
     lastname: "",
     role: "sales",
-    password: "",
+    isActive: true,
   });
 
   useEffect(() => {
@@ -73,7 +74,7 @@ export function EditUserSheet({
         firstname: firstname,
         lastname: lastname,
         role: initialData.role,
-        password: "",
+        isActive: true,
       });
     }
   }, [initialData]);
@@ -94,7 +95,7 @@ export function EditUserSheet({
       firstname: form.firstname,
       lastname: form.lastname,
       role: form.role,
-      password: form.password || undefined,
+      isActive: form.isActive,
     });
   };
 
@@ -184,6 +185,20 @@ export function EditUserSheet({
                   </option>
                 ))}
               </NativeSelect>
+            </div>
+            <div>
+              <Label
+                className="text-xs font-semibold text-muted-foreground mb-1 block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
+                Status
+              </Label>
+              <Switch
+                checked={form.isActive}
+                onCheckedChange={(checked) =>
+                  setForm((f) => ({ ...f, isActive: checked }))
+                }
+              />
             </div>
           </div>
         </SheetBody>

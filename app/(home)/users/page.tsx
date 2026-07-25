@@ -54,6 +54,7 @@ export default function UsersPage() {
     firstname: string;
     lastname: string;
     role: UserRole;
+    isActive: boolean;
   }) {
     setIsCreatingUser(true);
     try {
@@ -84,6 +85,7 @@ export default function UsersPage() {
     firstname: string;
     lastname: string;
     role: UserRole;
+    isActive: boolean;
   }) {
     setIsUpdatingUser(true);
     try {
