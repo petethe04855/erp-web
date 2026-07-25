@@ -1,107 +1,163 @@
-'use client'
-import { useTheme } from '@/lib/design/ThemeContext'
-import { TopBar, CategoryBadge, StockBadge } from '@/components/ui'
-import { Button } from '@/components/ui/button'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { useState } from 'react'
-import { useErpStore } from '@/lib/store/useErpStore'
-import type { Product, ProductCategory, CreateProductInput, UpdateProductInput } from '@/lib/store/erpWorkflow'
+"use client";
+import { useTheme } from "@/lib/design/ThemeContext";
+import { TopBar, CategoryBadge, StockBadge } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import { useState } from "react";
+import { useErpStore } from "@/lib/store/useErpStore";
+import type {
+  Product,
+  ProductCategory,
+  CreateProductInput,
+  UpdateProductInput,
+} from "@/lib/store/erpWorkflow";
 
 // Import Sub-Components
-import SkuStats from './components/SkuStats'
-import SkuFilters from './components/SkuFilters'
-import SkuFormModal from './components/SkuFormModal'
-import SkuViewModal from './components/SkuViewModal'
-import DeleteConfirmModal from './components/DeleteConfirmModal'
-import BomEditorModal, { type BomRow } from './components/BomEditorModal'
+import SkuStats from "./components/SkuStats";
+import SkuFilters from "./components/SkuFilters";
+import SkuFormModal from "./components/SkuFormModal";
+import SkuViewModal from "./components/SkuViewModal";
+import DeleteConfirmModal from "./components/DeleteConfirmModal";
+import BomEditorModal, { type BomRow } from "./components/BomEditorModal";
 
 const EMPTY_FORM: CreateProductInput = {
-  sku: '', name: '', type: 'Raw Material', barcode: '', weightGrams: 0,
-  retailPrice: 0, wholesalePrice: 0, cost: 0, reorder: 0, isBundle: false, note: '', baseUnit: 'piece',
+  sku: "",
+  name: "",
+  type: "Raw Material",
+  barcode: "",
+  weightGrams: 0,
+  retailPrice: 0,
+  wholesalePrice: 0,
+  cost: 0,
+  reorder: 0,
+  isBundle: false,
+  note: "",
+  baseUnit: "piece",
+};
+
+function formatBaht(n: number | undefined | null) {
+  const val = Number(n) || 0;
+  return "฿" + val.toLocaleString("th-TH");
 }
 
-function formatBaht(n: number) { return '฿' + n.toLocaleString('th-TH') }
-
-type ModalMode = 'add' | 'edit' | 'view' | null
+type ModalMode = "add" | "edit" | "view" | null;
 
 export default function SkuPage() {
-  const { tokens: t } = useTheme()
-  const c = t.color
-  const products = useErpStore(s => s.products)
-  const bundleComponents = useErpStore(s => s.bundleComponents)
-  const addProduct = useErpStore(s => s.addProduct)
-  const updateProduct = useErpStore(s => s.updateProduct)
-  const deleteProduct = useErpStore(s => s.deleteProduct)
-  const calcBundleVirtualStock = useErpStore(s => s.calcBundleVirtualStock)
-  const setBundleComponents = useErpStore(s => s.setBundleComponents)
+  const { tokens: t } = useTheme();
+  const c = t.color;
+  const products = useErpStore((s) => s.products);
+  const bundleComponents = useErpStore((s) => s.bundleComponents);
+  const addProduct = useErpStore((s) => s.addProduct);
+  const updateProduct = useErpStore((s) => s.updateProduct);
+  const deleteProduct = useErpStore((s) => s.deleteProduct);
+  const calcBundleVirtualStock = useErpStore((s) => s.calcBundleVirtualStock);
+  const setBundleComponents = useErpStore((s) => s.setBundleComponents);
 
-  const [search, setSearch] = useState('')
-  const [filterType, setFilterType] = useState<ProductCategory | 'All'>('All')
-  const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('active')
-  const [modalMode, setModalMode] = useState<ModalMode>(null)
-  const [selected, setSelected] = useState<Product | null>(null)
-  const [form, setForm] = useState<CreateProductInput>(EMPTY_FORM)
-  const [error, setError] = useState('')
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
-  const [bomProduct, setBomProduct] = useState<Product | null>(null)
-  const [bomRows, setBomRows] = useState<BomRow[]>([])
+  const [search, setSearch] = useState("");
+  const [filterType, setFilterType] = useState<ProductCategory | "All">("All");
+  const [filterActive, setFilterActive] = useState<
+    "all" | "active" | "inactive"
+  >("active");
+  const [modalMode, setModalMode] = useState<ModalMode>(null);
+  const [selected, setSelected] = useState<Product | null>(null);
+  const [form, setForm] = useState<CreateProductInput>(EMPTY_FORM);
+  const [error, setError] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [bomProduct, setBomProduct] = useState<Product | null>(null);
+  const [bomRows, setBomRows] = useState<BomRow[]>([]);
 
   // Filtered list
-  const filtered = products.filter(p => {
-    const q = search.toLowerCase()
-    const matchSearch = !q || p.sku.toLowerCase().includes(q) || p.name.toLowerCase().includes(q) || p.barcode.includes(q)
-    const matchType = filterType === 'All' || p.type === filterType
-    const matchActive = filterActive === 'all' || (filterActive === 'active' ? p.isActive : !p.isActive)
-    return matchSearch && matchType && matchActive
-  })
+  const filtered = products.filter((p) => {
+    const q = search.toLowerCase();
+    const matchSearch =
+      !q ||
+      p.sku.toLowerCase().includes(q) ||
+      p.name.toLowerCase().includes(q) ||
+      p.barcode.includes(q);
+    const matchType = filterType === "All" || p.type === filterType;
+    const matchActive =
+      filterActive === "all" ||
+      (filterActive === "active" ? p.isActive : !p.isActive);
+    return matchSearch && matchType && matchActive;
+  });
 
   // Stats
-  const active = products.filter(p => p.isActive)
-  const lowStock = active.filter(p => !p.isBundle && p.stock > 0 && p.stock < p.reorder)
-  const outStock = active.filter(p => !p.isBundle && p.stock === 0)
-  const bundles = active.filter(p => p.isBundle)
+  const active = products.filter((p) => p.isActive);
+  const lowStock = active.filter(
+    (p) => !p.isBundle && p.stock > 0 && p.stock < p.reorder,
+  );
+  const outStock = active.filter((p) => !p.isBundle && p.stock === 0);
+  const bundles = active.filter((p) => p.isBundle);
 
   // Handlers
   function openAdd() {
-    setForm({ ...EMPTY_FORM })
-    setError('')
-    setModalMode('add')
+    setForm({ ...EMPTY_FORM });
+    setError("");
+    setModalMode("add");
   }
 
   function openEdit(p: Product) {
-    setSelected(p)
+    setSelected(p);
     setForm({
-      sku: p.sku, name: p.name, type: p.type,
-      barcode: p.barcode, weightGrams: p.weightGrams,
-      retailPrice: p.retailPrice, wholesalePrice: p.wholesalePrice,
-      cost: p.cost, reorder: p.reorder, isBundle: p.isBundle, note: p.note,
-      baseUnit: p.baseUnit ?? 'piece',
-    })
-    setError('')
-    setModalMode('edit')
+      sku: p.sku,
+      name: p.name,
+      type: p.type,
+      barcode: p.barcode,
+      weightGrams: p.weightGrams,
+      retailPrice: p.retailPrice,
+      wholesalePrice: p.wholesalePrice,
+      cost: p.cost,
+      reorder: p.reorder,
+      isBundle: p.isBundle,
+      note: p.note,
+      baseUnit: p.baseUnit ?? "piece",
+    });
+    setError("");
+    setModalMode("edit");
   }
 
   function openView(p: Product) {
-    setSelected(p)
-    setModalMode('view')
+    setSelected(p);
+    setModalMode("view");
   }
 
   function closeModal() {
-    setModalMode(null)
-    setSelected(null)
-    setError('')
+    setModalMode(null);
+    setSelected(null);
+    setError("");
   }
 
   function handleSave() {
-    const demoItemTypes: ProductCategory[] = ['Raw Material', 'Packaging', 'Sub-component', 'Finished Product']
+    const demoItemTypes: ProductCategory[] = [
+      "Raw Material",
+      "Packaging",
+      "Sub-component",
+      "Finished Product",
+    ];
     if (demoItemTypes.includes(form.type)) {
-      if (!form.sku.trim()) { setError('กรุณากรอก SKU'); return }
-      if (!form.name.trim()) { setError('กรุณากรอกชื่อรายการ'); return }
-      if (!form.baseUnit) { setError('กรุณาเลือกหน่วยหลัก'); return }
+      if (!form.sku.trim()) {
+        setError("กรุณากรอก SKU");
+        return;
+      }
+      if (!form.name.trim()) {
+        setError("กรุณากรอกชื่อรายการ");
+        return;
+      }
+      if (!form.baseUnit) {
+        setError("กรุณาเลือกหน่วยหลัก");
+        return;
+      }
       try {
-        if (modalMode === 'add') {
-          addProduct({ ...form, isBundle: form.type === 'Sub-component' })
-        } else if (modalMode === 'edit' && selected) {
+        if (modalMode === "add") {
+          addProduct({ ...form, isBundle: form.type === "Sub-component" });
+        } else if (modalMode === "edit" && selected) {
           updateProduct({
             sku: selected.sku,
             name: form.name,
@@ -113,92 +169,121 @@ export default function SkuPage() {
             price: form.retailPrice,
             cost: form.cost,
             reorder: form.reorder,
-            isBundle: form.type === 'Sub-component',
+            isBundle: form.type === "Sub-component",
             note: form.note,
             baseUnit: form.baseUnit,
-          })
+          });
         }
-        closeModal()
+        closeModal();
       } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : 'เกิดข้อผิดพลาด')
+        setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
       }
-      return
+      return;
     }
-    if (!form.sku.trim()) { setError('กรุณากรอก SKU'); return }
-    if (!form.name.trim()) { setError('กรุณากรอกชื่อสินค้า'); return }
-    if (form.type !== 'Other' && form.retailPrice <= 0) { setError('ราคาขายต้องมากกว่า 0'); return }
-    if (form.cost <= 0) { setError('ต้นทุนต้องมากกว่า 0'); return }
-    if (form.type !== 'Other' && (!form.weightGrams || form.weightGrams <= 0)) { setError('น้ำหนักสินค้าต้องมากกว่า 0'); return }
+    if (!form.sku.trim()) {
+      setError("กรุณากรอก SKU");
+      return;
+    }
+    if (!form.name.trim()) {
+      setError("กรุณากรอกชื่อสินค้า");
+      return;
+    }
+    if (form.type !== "Other" && form.retailPrice <= 0) {
+      setError("ราคาขายต้องมากกว่า 0");
+      return;
+    }
+    if (form.cost <= 0) {
+      setError("ต้นทุนต้องมากกว่า 0");
+      return;
+    }
+    if (form.type !== "Other" && (!form.weightGrams || form.weightGrams <= 0)) {
+      setError("น้ำหนักสินค้าต้องมากกว่า 0");
+      return;
+    }
     try {
-      if (modalMode === 'add') {
-        addProduct({ ...form, isBundle: form.type === 'Bundle' })
-      } else if (modalMode === 'edit' && selected) {
+      if (modalMode === "add") {
+        addProduct({ ...form, isBundle: form.type === "Bundle" });
+      } else if (modalMode === "edit" && selected) {
         const input: UpdateProductInput = {
-          sku: selected.sku, name: form.name, type: form.type,
-          barcode: form.barcode, weightGrams: form.weightGrams,
-          retailPrice: form.retailPrice, wholesalePrice: form.wholesalePrice,
-          price: form.retailPrice, cost: form.cost, reorder: form.reorder,
-          isBundle: form.type === 'Bundle', note: form.note,
+          sku: selected.sku,
+          name: form.name,
+          type: form.type,
+          barcode: form.barcode,
+          weightGrams: form.weightGrams,
+          retailPrice: form.retailPrice,
+          wholesalePrice: form.wholesalePrice,
+          price: form.retailPrice,
+          cost: form.cost,
+          reorder: form.reorder,
+          isBundle: form.type === "Bundle",
+          note: form.note,
           baseUnit: form.baseUnit,
-        }
-        updateProduct(input)
+        };
+        updateProduct(input);
       }
-      closeModal()
+      closeModal();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'เกิดข้อผิดพลาด')
+      setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
     }
   }
 
   function handleToggleActive(p: Product) {
-    updateProduct({ sku: p.sku, isActive: !p.isActive })
+    updateProduct({ sku: p.sku, isActive: !p.isActive });
   }
 
   function handleDelete(sku: string) {
-    deleteProduct(sku)
-    setDeleteConfirm(null)
+    deleteProduct(sku);
+    setDeleteConfirm(null);
   }
 
   function openBomEditor(product: Product) {
     const rows = bundleComponents
-      .filter(component => component.bundleSku === product.sku)
-      .map(component => ({
+      .filter((component) => component.bundleSku === product.sku)
+      .map((component) => ({
         componentSku: component.componentSku,
         qty: component.qty,
-        unit: component.unit ?? 'piece',
-        componentType: component.componentType ?? 'material',
+        unit: component.unit ?? "piece",
+        componentType: component.componentType ?? "material",
         unitCostOverride: component.unitCostOverride ?? 0,
         yieldFactor: component.yieldFactor || 1,
-      }))
-    setBomRows(rows)
-    setBomProduct(product)
+      }));
+    setBomRows(rows);
+    setBomProduct(product);
   }
 
   function saveBom() {
-    if (!bomProduct) return
-    setBundleComponents({ bundleSku: bomProduct.sku, components: bomRows })
-    setBomProduct(null)
+    if (!bomProduct) return;
+    setBundleComponents({ bundleSku: bomProduct.sku, components: bomRows });
+    setBomProduct(null);
   }
 
   return (
     <div className="min-h-screen bg-canvas" style={{ background: c.canvas }}>
-      <TopBar t={t} title="SKU Master" subtitle="จัดการข้อมูลสินค้า (Master Data)" />
+      <TopBar
+        t={t}
+        title="SKU Master"
+        subtitle="จัดการข้อมูลสินค้า (Master Data)"
+      />
       <div className="px-8 py-6">
         <div className="flex justify-end mb-6">
-          <Button onClick={openAdd} className="bg-[var(--erp-accent)] text-white gap-1.5 h-9 px-4 text-xs font-semibold rounded-lg shadow-none cursor-pointer">
+          <Button
+            onClick={openAdd}
+            className="bg-[var(--erp-accent)] text-white gap-1.5 h-9 px-4 text-xs font-semibold rounded-lg shadow-none cursor-pointer"
+          >
             + เพิ่มสินค้า
           </Button>
         </div>
 
         {/* Stats */}
-        <SkuStats 
-          activeCount={active.length} 
-          lowStockCount={lowStock.length} 
-          outStockCount={outStock.length} 
-          bundleCount={bundles.length} 
+        <SkuStats
+          activeCount={active.length}
+          lowStockCount={lowStock.length}
+          outStockCount={outStock.length}
+          bundleCount={bundles.length}
         />
 
         {/* Filters */}
-        <SkuFilters 
+        <SkuFilters
           search={search}
           setSearch={setSearch}
           filterType={filterType}
@@ -208,69 +293,174 @@ export default function SkuPage() {
         />
 
         {/* Table */}
-        <div className="bg-card rounded-lg border border-border overflow-hidden" style={{ background: 'var(--erp-surface)', borderColor: 'var(--erp-border)' }}>
+        <div
+          className="bg-card rounded-lg border border-border overflow-hidden"
+          style={{
+            background: "var(--erp-surface)",
+            borderColor: "var(--erp-border)",
+          }}
+        >
           <Table className="w-full border-collapse">
-            <TableHeader className="bg-muted/50 border-b border-border" style={{ background: 'var(--erp-subtle)', borderColor: 'var(--erp-border)' }}>
+            <TableHeader
+              className="bg-muted/50 border-b border-border"
+              style={{
+                background: "var(--erp-subtle)",
+                borderColor: "var(--erp-border)",
+              }}
+            >
               <TableRow>
-                {['SKU', 'ชื่อสินค้า', 'ประเภท', 'ต้นทุน', 'ราคาขาย B2C', 'ราคา B2B', 'น้ำหนัก', 'สต็อก', 'Reorder', 'สถานะ', ''].map(h => (
-                  <TableHead key={h} className="p-3 text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap" style={{ color: 'var(--erp-ink3)' }}>{h}</TableHead>
+                {["SKU", "ชื่อสินค้า", "ประเภท", "สถานะ", ""].map((h) => (
+                  <TableHead
+                    key={h}
+                    className="p-3 text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    {h}
+                  </TableHead>
                 ))}
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={11} className="p-10 text-center text-muted-foreground text-sm">
+                  <TableCell
+                    colSpan={11}
+                    className="p-10 text-center text-muted-foreground text-sm"
+                  >
                     ไม่พบสินค้า
                   </TableCell>
                 </TableRow>
               )}
               {filtered.map((p) => (
-                <TableRow key={p.sku} className="hover:bg-muted/30 border-b border-border" style={{
-                  borderColor: 'var(--erp-subtle)',
-                  opacity: p.isActive ? 1 : 0.5,
-                }}>
+                <TableRow
+                  key={p.sku}
+                  className="hover:bg-muted/30 border-b border-border"
+                  style={{
+                    borderColor: "var(--erp-subtle)",
+                    opacity: p.isActive ? 1 : 0.5,
+                  }}
+                >
                   <TableCell className="p-3">
-                    <span className="font-mono text-xs font-bold text-[var(--erp-accent)] cursor-pointer"
-                      onClick={() => openView(p)}>{p.sku}</span>
+                    <span
+                      className="font-mono text-xs font-bold text-[var(--erp-accent)] cursor-pointer"
+                      onClick={() => openView(p)}
+                    >
+                      {p.sku}
+                    </span>
                   </TableCell>
                   <TableCell className="p-3">
-                    <div className="text-sm font-semibold text-foreground" style={{ color: 'var(--erp-ink)' }}>{p.name}</div>
-                    {p.barcode && <div className="text-xs text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>{p.barcode}</div>}
+                    <div
+                      className="text-sm font-semibold text-foreground"
+                      style={{ color: "var(--erp-ink)" }}
+                    >
+                      {p.name}
+                    </div>
+                    {p.barcode && (
+                      <div
+                        className="text-xs text-muted-foreground"
+                        style={{ color: "var(--erp-ink3)" }}
+                      >
+                        {p.barcode}
+                      </div>
+                    )}
                   </TableCell>
-                  <TableCell className="p-3"><CategoryBadge type={p.type} /></TableCell>
-                  <TableCell className="p-3 text-sm text-foreground" style={{ color: 'var(--erp-ink)' }}>{formatBaht(p.cost)}</TableCell>
-                  <TableCell className="p-3 text-sm font-semibold text-emerald-600 dark:text-emerald-500">{formatBaht(p.retailPrice)}</TableCell>
-                  <TableCell className="p-3 text-sm text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>{formatBaht(p.wholesalePrice)}</TableCell>
-                  <TableCell className="p-3 text-xs text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>{p.weightGrams > 0 ? `${p.weightGrams}g` : '-'}</TableCell>
                   <TableCell className="p-3">
+                    <CategoryBadge type={p.type} />
+                  </TableCell>
+                  {/* <TableCell
+                    className="p-3 text-sm text-foreground"
+                    style={{ color: "var(--erp-ink)" }}
+                  >
+                    {formatBaht(p.cost)}
+                  </TableCell>
+                  <TableCell className="p-3 text-sm font-semibold text-emerald-600 dark:text-emerald-500">
+                    {formatBaht(p.retailPrice)}
+                  </TableCell>
+                  <TableCell
+                    className="p-3 text-sm text-muted-foreground"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    {formatBaht(p.wholesalePrice)}
+                  </TableCell>
+                  <TableCell
+                    className="p-3 text-xs text-muted-foreground"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    {p.weightGrams > 0 ? `${p.weightGrams}g` : "-"}
+                  </TableCell> */}
+                  {/* <TableCell className="p-3">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-semibold text-foreground" style={{ color: 'var(--erp-ink)' }}>
-                        {p.isBundle ? calcBundleVirtualStock(p.sku) : p.stock.toLocaleString()}
+                      <span
+                        className="text-sm font-semibold text-foreground"
+                        style={{ color: "var(--erp-ink)" }}
+                      >
+                        {p.isBundle
+                          ? calcBundleVirtualStock(p.sku)
+                          : p.stock.toLocaleString()}
                       </span>
                       <StockBadge
-                        stock={p.isBundle ? calcBundleVirtualStock(p.sku) : p.stock}
+                        stock={
+                          p.isBundle ? calcBundleVirtualStock(p.sku) : p.stock
+                        }
                         reorder={p.reorder}
                         isBundle={p.isBundle}
                       />
                     </div>
-                  </TableCell>
-                  <TableCell className="p-3 text-sm text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>{p.reorder || '—'}</TableCell>
+                  </TableCell> */}
+                  {/* <TableCell
+                    className="p-3 text-sm text-muted-foreground"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    {p.reorder || "—"}
+                  </TableCell> */}
                   <TableCell className="p-3">
-                    <button onClick={() => handleToggleActive(p)} className={`
+                    <button
+                      onClick={() => handleToggleActive(p)}
+                      className={`
                       px-2.5 py-1 rounded-full border text-[11px] font-semibold cursor-pointer transition-colors
-                      ${p.isActive 
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-400' 
-                        : 'border-border bg-muted text-muted-foreground'
+                      ${
+                        p.isActive
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-400"
+                          : "border-border bg-muted text-muted-foreground"
                       }
-                    `} style={!p.isActive ? { borderColor: 'var(--erp-border)', background: 'var(--erp-subtle)', color: '#9CA3AF' } : undefined}>
-                      {p.isActive ? 'Active' : 'Inactive'}
+                    `}
+                      style={
+                        !p.isActive
+                          ? {
+                              borderColor: "var(--erp-border)",
+                              background: "var(--erp-subtle)",
+                              color: "#9CA3AF",
+                            }
+                          : undefined
+                      }
+                    >
+                      {p.isActive ? "Active" : "Inactive"}
                     </button>
                   </TableCell>
                   <TableCell className="p-3">
                     <div className="flex gap-1 flex-wrap">
-                      <Button onClick={() => openEdit(p)} variant="outline" size="xs" className="cursor-pointer border-border" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)', color: '#374151' }}>แก้ไข</Button>
-                      <Button onClick={() => setDeleteConfirm(p.sku)} variant="destructive" size="xs" className="cursor-pointer bg-[#FFF5F5] border-[#FEE2E2] hover:bg-destructive/10 text-destructive border" style={{ borderColor: '#FEE2E2' }}>ลบ</Button>
+                      <Button
+                        onClick={() => openEdit(p)}
+                        variant="outline"
+                        size="xs"
+                        className="cursor-pointer border-border"
+                        style={{
+                          borderColor: "var(--erp-border)",
+                          background: "var(--erp-surface)",
+                          color: "#374151",
+                        }}
+                      >
+                        แก้ไข
+                      </Button>
+                      <Button
+                        onClick={() => setDeleteConfirm(p.sku)}
+                        variant="destructive"
+                        size="xs"
+                        className="cursor-pointer bg-[#FFF5F5] border-[#FEE2E2] hover:bg-destructive/10 text-destructive border"
+                        style={{ borderColor: "#FEE2E2" }}
+                      >
+                        ลบ
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -278,10 +468,15 @@ export default function SkuPage() {
             </TableBody>
           </Table>
         </div>
-        <div className="mt-2 text-xs text-muted-foreground" style={{ color: 'var(--erp-ink3)' }}>แสดง {filtered.length} จาก {products.length} รายการ</div>
+        <div
+          className="mt-2 text-xs text-muted-foreground"
+          style={{ color: "var(--erp-ink3)" }}
+        >
+          แสดง {filtered.length} จาก {products.length} รายการ
+        </div>
 
         {/* Modals */}
-        {(modalMode === 'add' || modalMode === 'edit') && (
+        {(modalMode === "add" || modalMode === "edit") && (
           <SkuFormModal
             modalMode={modalMode}
             selectedSku={selected?.sku}
@@ -293,15 +488,22 @@ export default function SkuPage() {
           />
         )}
 
-        {modalMode === 'view' && selected && (
+        {modalMode === "view" && selected && (
           <SkuViewModal
             selected={selected}
             bundleComponents={bundleComponents}
             products={products}
             calcBundleVirtualStock={calcBundleVirtualStock}
             onClose={closeModal}
-            onEdit={() => { closeModal(); openEdit(selected) }}
-            onEditBom={() => { const product = selected; closeModal(); openBomEditor(product) }}
+            onEdit={() => {
+              closeModal();
+              openEdit(selected);
+            }}
+            onEditBom={() => {
+              const product = selected;
+              closeModal();
+              openBomEditor(product);
+            }}
           />
         )}
 
@@ -324,8 +526,7 @@ export default function SkuPage() {
             onConfirm={() => handleDelete(deleteConfirm)}
           />
         )}
-
       </div>
     </div>
-  )
+  );
 }

@@ -29,7 +29,8 @@ interface BOM {
 }
 
 interface PurchaseRequest {
-  id: string;
+  id: number | string;
+  code?: string;
   status: string;
   items: { sku: string; name: string; qty: number; note: string }[];
 }
@@ -37,11 +38,11 @@ interface PurchaseRequest {
 interface ConvertToPOSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  prId: string;
+  prId: number | string;
   purchaseRequests: PurchaseRequest[];
   products: Product[];
   bomsList: BOM[];
-  onSubmit: (prId: string, supplier: string, etaDate: string, costs: Record<string, number>) => void;
+  onSubmit: (prId: number | string, supplier: string, etaDate: string, costs: Record<string, number>) => void;
   showToast: (msg: string) => void;
 }
 

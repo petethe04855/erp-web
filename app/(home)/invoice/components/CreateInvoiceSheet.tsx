@@ -20,7 +20,8 @@ const due14 = new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0];
 const BLANK = { soRef: "", customer: "", issueDate: today, dueDate: due14, amount: 0 };
 
 interface SalesOrder {
-  id: string;
+  id: number | string;
+  code?: string;
   customer: string;
   amount: number;
 }

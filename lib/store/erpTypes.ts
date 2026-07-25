@@ -14,10 +14,11 @@ export type SalesOrderStatus =
 export type SalesOrderChannel = 'Manual' | 'LINE' | 'Shopee' | 'TikTok'
 export type InvoiceStatus = 'Paid' | 'Unpaid' | 'Partial' | 'Overdue'
 
-export type SalesOrderLine = { sku: string; qty: number }
+export type SalesOrderLine = { id?: number; salesOrderId?: number; productId?: number; sku: string; qty: number }
 
 export type SalesOrder = {
-  id: string
+  id: number | string
+  code?: string
   customer: string
   date: string
   amount: number
@@ -25,15 +26,18 @@ export type SalesOrder = {
   channel: SalesOrderChannel
   items: number
   lines: SalesOrderLine[]      // Gap 2: tracks reserved lines
-  qtRef: string | null
-  invRef: string | null
+  quotationId?: number | null
+  qtRef: number | string | null
+  invRef: number | string | null
   sourceRef: string | null     // Gap 6: platform order ID (TikTok ID, LINE ref, etc.)
   auditTrail: AuditEvent[]     // Gap 9
 }
 
 export type Invoice = {
-  id: string
-  soRef: string
+  id: number | string
+  code?: string
+  salesOrderId?: number | null
+  soRef: number | string
   customer: string
   issueDate: string
   dueDate: string
@@ -49,36 +53,41 @@ export type PurchaseRequestStatus = 'Draft' | 'Pending Approval' | 'Approved' | 
 export type PurchaseOrderStatus = 'Draft' | 'Sent' | 'Partial Received' | 'Completed'
 export type StockMovementType = 'IN' | 'OUT'
 
-export type PurchaseRequestItem = { sku: string; name: string; qty: number; note: string }
+export type PurchaseRequestItem = { id?: number; purchaseRequestId?: number; productId?: number; sku: string; name: string; qty: number; note: string }
 
 export type PurchaseRequest = {
-  id: string
+  id: number | string
+  code?: string
   requester: string
   reason: string
   neededDate: string
   date: string
   items: PurchaseRequestItem[]
   status: PurchaseRequestStatus
-  poRef: string | null
+  poRef: number | string | null
 }
 
 export type PurchaseOrderItem = {
-  sku: string; name: string; qty: number; unitCost: number; receivedQty: number
+  id?: number; purchaseOrderId?: number; productId?: number; sku: string; name: string; qty: number; unitCost: number; receivedQty: number
 }
 
 export type PurchaseOrder = {
-  id: string
+  id: number | string
+  code?: string
   supplier: string
   etaDate: string
   date: string
   items: PurchaseOrderItem[]
   status: PurchaseOrderStatus
-  prRef: string | null
+  purchaseRequestId?: number | null
+  prRef: number | string | null
   totalCost: number
   auditTrail: AuditEvent[]     // Gap 9
 }
 
 export type LandedCostLine = {
+  id?: number
+  goodsReceiveId?: number
   type: 'freight' | 'duty' | 'shipping' | 'other'
   amount: number
   allocatable: boolean
@@ -86,6 +95,9 @@ export type LandedCostLine = {
 }
 
 export type GoodsReceiveItem = {
+  id?: number
+  goodsReceiveId?: number
+  productId?: number
   sku: string
   qtyReceived: number
   lot: string
@@ -94,8 +106,10 @@ export type GoodsReceiveItem = {
 }
 
 export type GoodsReceive = {
-  id: string
-  poRef: string
+  id: number | string
+  code?: string
+  purchaseOrderId?: number | null
+  poRef: number | string
   receiveDate: string
   items: GoodsReceiveItem[]
   landedCosts?: LandedCostLine[]
@@ -103,11 +117,15 @@ export type GoodsReceive = {
 }
 
 export type StockMovement = {
-  id: string
+  id: number | string
+  code?: string
+  productId?: number
   sku: string
   type: StockMovementType
   qty: number
-  refDoc: string
+  refDoc: number | string
+  refDocType?: string
+  refDocId?: number | null
   date: string
   note: string
   changedBy: string            // Gap 9
@@ -126,6 +144,7 @@ export type ProductCategory =
   | 'Finished Product'
 
 export type Product = {
+  id?: number
   sku: string
   name: string
   type: ProductCategory
@@ -142,11 +161,15 @@ export type Product = {
   isActive: boolean
   note: string
   baseUnit?: string
+  bomId?: number | null
 }
 
 // BOM: defines which components (and quantities) make up a bundle SKU
 export type BundleComponent = {
+  id?: number
+  bundleProductId?: number
   bundleSku: string          // the bundle/set product
+  componentProductId?: number
   componentSku: string       // individual component
   qty: number
   unit?: 'piece' | 'g' | 'kg' | 'baht'
@@ -156,14 +179,18 @@ export type BundleComponent = {
 }
 
 export type StockLot = {       // Gap 1: lot-level tracking for FEFO
-  id: string
+  id: number | string
+  code?: string
+  productId?: number
   sku: string
   lot: string
   qty: number                  // original qty received
   remainingQty: number         // qty available for picking
   expiryDate: string           // yyyy-mm-dd, '' = no expiry
   receivedDate: string
+  goodsReceiveId?: number | null
   grRef: string
+  purchaseOrderId?: number | null
   poRef: string
   landedUnitCost?: number
 }

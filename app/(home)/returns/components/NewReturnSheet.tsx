@@ -50,7 +50,8 @@ interface Product {
 }
 
 interface SalesOrder {
-  id: string;
+  id: number | string;
+  code?: string;
   customer: string;
   channel: string;
   status: string;

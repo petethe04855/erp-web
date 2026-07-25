@@ -95,7 +95,7 @@ export default function SalesOrdersPage() {
     if (
       search &&
       !(
-        order.id.toLowerCase().includes(search.toLowerCase()) ||
+        String(order.code || order.id).toLowerCase().includes(search.toLowerCase()) ||
         order.customer.toLowerCase().includes(search.toLowerCase())
       )
     )
@@ -158,10 +158,10 @@ export default function SalesOrdersPage() {
     showToast("สร้าง Sales Order แล้ว");
   }
 
-  function handleCreateInvoice(soId: string) {
+  function handleCreateInvoice(soId: number | string) {
     try {
       const inv = createInvoiceFromSO(soId);
-      showToast(inv ? `สร้าง ${inv.id} แล้ว` : "สร้าง Invoice ไม่ได้");
+      showToast(inv ? `สร้าง ${inv.code || inv.id} แล้ว` : "สร้าง Invoice ไม่ได้");
     } catch (err: any) {
       showToast(err.message || "เกิดข้อผิดพลาดในการสร้าง Invoice");
     }
@@ -335,7 +335,7 @@ export default function SalesOrdersPage() {
             </TableHeader>
             <TableBody>
               {filtered.map((order, i) => {
-                const hasInv = invoices.some((inv) => inv.soRef === order.id);
+                const hasInv = invoices.some((inv) => inv.soRef === order.code || inv.soRef === String(order.id) || inv.salesOrderId === order.id);
                 return (
                   <TableRow
                     key={order.id}
@@ -344,7 +344,7 @@ export default function SalesOrdersPage() {
                   >
                     <TableCell className="p-3">
                       <Mono t={t} size={12} weight={500}>
-                        {order.id}
+                        {order.code || order.id}
                       </Mono>
                     </TableCell>
                     <TableCell className="p-3">

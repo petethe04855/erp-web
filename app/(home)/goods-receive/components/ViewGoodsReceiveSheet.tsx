@@ -53,7 +53,8 @@ interface POItem {
 }
 
 interface PurchaseOrder {
-  id: string;
+  id: number | string;
+  code?: string;
   supplier: string;
   items: POItem[];
 }
