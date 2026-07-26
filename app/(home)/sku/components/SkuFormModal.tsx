@@ -20,6 +20,10 @@ interface SkuFormModalProps {
 }
 
 const CATEGORIES: ProductCategory[] = [
+  "Cat",
+  "Dog",
+  "Bundle",
+  "Other",
   "Raw Material",
   "Packaging",
   "Sub-component",
@@ -139,7 +143,7 @@ export default function SkuFormModal({
             </NativeSelect>
           </div>
 
-          <div className="col-span-2">
+          <div className="col-span-1">
             <Label className="mb-1 block text-xs font-semibold text-muted-foreground">
               ต้นทุนต่อหน่วย (Cost / บาท)
             </Label>
@@ -159,6 +163,25 @@ export default function SkuFormModal({
                   cost: val === "" ? ("" as unknown as number) : Number(val),
                 }));
               }}
+            />
+          </div>
+          <div className="col-span-1">
+            <Label className="mb-1 block text-xs font-semibold text-muted-foreground">
+              จำนวนคงเหลือ (Stock)
+            </Label>
+            <Input
+              type="number"
+              min={0}
+              step="any"
+              value={form.stock}
+              onChange={(e) => {
+                const val = e.target.value;
+                setForm((f) => ({
+                  ...f,
+                  stock: val === "" ? ("" as unknown as number) : Number(val),
+                }));
+              }}
+              placeholder="0"
             />
           </div>
         </div>

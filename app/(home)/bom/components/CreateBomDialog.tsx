@@ -13,11 +13,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { readApiResponse } from "@/lib/apiResponse";
+import { useErpStore } from "@/lib/store/useErpStore";
 
 type Product = {
   sku: string;
   name: string;
   type: string;
+  cost?: number;
   baseUnit?: string;
 };
 
@@ -92,28 +94,40 @@ export function CreateBomDialog({
   const [rows, setRows] = useState<RowState[]>(emptyRows);
   const [saving, setSaving] = useState(false);
 
+  const storeProducts = useErpStore((s) => s.products);
+
   useEffect(() => {
     if (!open) return;
     fetch(`${getApiUrl()}/api/products`, { headers: getHeaders() })
       .then((response) => readApiResponse<Product[]>(response))
-      .then((items) => setProducts(items || []))
-      .catch(() => showToast("โหลด Item Master ไม่สำเร็จ"));
-  }, [open, showToast]);
+      .then((items) => {
+        const apiItems = items || [];
+        // Merge apiItems with storeProducts, preferring storeProducts if sku matches
+        const map = new Map<string, Product>();
+        for (const p of apiItems) map.set(p.sku, p);
+        for (const p of storeProducts) map.set(p.sku, p);
+        setProducts(Array.from(map.values()));
+      })
+      .catch(() => {
+        setProducts(storeProducts);
+      });
+  }, [open, storeProducts]);
 
   const outputs = useMemo(
     () =>
       products.filter(
         (item) =>
-          item.type === "Finished Product" || item.type === "Sub-component",
+          item.type === "Finished Product" ||
+          item.type === "Sub-component" ||
+          item.type === "Cat" ||
+          item.type === "Dog" ||
+          item.type === "Bundle",
       ),
     [products],
   );
 
   const parts = useMemo(
-    () =>
-      products.filter(
-        (item) => item.type !== "Finished Product" && item.sku !== outputSku,
-      ),
+    () => products.filter((item) => item.sku !== outputSku),
     [products, outputSku],
   );
 
@@ -208,7 +222,7 @@ export function CreateBomDialog({
         status: "Active",
         effectiveDate: new Date().toISOString().slice(0, 10),
         waste: 0,
-        cost: 0,
+        cost: estimatedTotalCost,
         components,
       });
       setOutputSku("");
@@ -225,9 +239,26 @@ export function CreateBomDialog({
     ? `BOM-${outputItem.sku}-V${previewVersion}`
     : "BOM-{SKU}-V1";
 
+  const estimatedTotalCost = useMemo(() => {
+    return rows.reduce((sum, row) => {
+      if (!row.componentSku || row.qty === "" || Number(row.qty) <= 0) return sum;
+      const part = parts.find((p) => p.sku === row.componentSku);
+      if (!part) return sum;
+      const netQty = Number(row.qty);
+      const scrap = row.scrapRate === "" ? 0 : Number(row.scrapRate);
+      const grossQty = scrap > 0 && scrap < 100 ? netQty / (1 - scrap / 100) : netQty;
+      return sum + grossQty * (part.cost || 0);
+    }, 0);
+  }, [rows, parts]);
+
+  const costPerUnit = useMemo(() => {
+    const qty = Number(outputQty) || 0;
+    return qty > 0 ? estimatedTotalCost / qty : 0;
+  }, [estimatedTotalCost, outputQty]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-[640px] p-0">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">
         <DialogHeader className="border-b border-border p-5">
           <DialogTitle
             className="text-base font-bold text-foreground"
@@ -246,19 +277,17 @@ export function CreateBomDialog({
             <Label className="mb-1 block text-xs font-semibold text-muted-foreground">
               ผลิตภัณฑ์ที่ได้
             </Label>
-            {/* <NativeSelect value={outputSku} onChange={(event) => setOutputSku(event.target.value)} className="w-full">
+            <NativeSelect
+              value={outputSku}
+              onChange={(event) => setOutputSku(event.target.value)}
+              className="w-full"
+            >
               {outputs.map((item) => (
                 <option key={item.sku} value={item.sku}>
                   {item.name} ({item.sku})
                 </option>
               ))}
-            </NativeSelect> */}
-            <Input
-              type="text"
-              value={outputSku}
-              onChange={(event) => setOutputSku(event.target.value)}
-              className="w-full"
-            />
+            </NativeSelect>
           </div>
 
           <div>
@@ -279,90 +308,110 @@ export function CreateBomDialog({
           </div>
 
           <div className="col-span-2 rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-xs">
-            <b>{previewCode}</b>
-            <div className="mt-1 text-muted-foreground">
-              Version {previewVersion} · ได้ {outputQty || 0}{" "}
-              {outputItem?.baseUnit || "หน่วย"}
+            <div className="flex items-center justify-between">
+              <b>{previewCode}</b>
+              <span className="font-semibold text-emerald-800">
+                ประมาณการต้นทุน: ฿{estimatedTotalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="mt-1 flex items-center justify-between text-muted-foreground">
+              <span>
+                Version {previewVersion} · ได้ {outputQty || 0}{" "}
+                {outputItem?.baseUnit || "หน่วย"}
+              </span>
+              <span>
+                (฿{costPerUnit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / {outputItem?.baseUnit || "หน่วย"})
+              </span>
             </div>
           </div>
 
-          {rows.map((row, index) => (
-            <div key={index} className="contents">
-              <div>
-                <div className="mb-1 flex items-center justify-between">
-                  <Label className="text-xs font-semibold text-muted-foreground">
-                    ส่วนประกอบ {index + 1}
-                  </Label>
-                  {rows.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setRows((current) =>
-                          current.filter((_, rIdx) => rIdx !== index),
-                        )
-                      }
-                      className="text-[10px] font-semibold text-rose-500 hover:underline cursor-pointer"
-                    >
-                      ลบแถว
-                    </button>
-                  )}
+          {rows.map((row, index) => {
+            const selectedPart = parts.find((p) => p.sku === row.componentSku);
+            return (
+              <div key={index} className="contents">
+                <div>
+                  <div className="mb-1 flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-muted-foreground">
+                      ส่วนประกอบ {index + 1}
+                      {selectedPart?.type && (
+                        <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-normal text-slate-600">
+                          {selectedPart.type}
+                        </span>
+                      )}
+                    </Label>
+                    {rows.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setRows((current) =>
+                            current.filter((_, rIdx) => rIdx !== index),
+                          )
+                        }
+                        className="text-[10px] font-semibold text-rose-500 hover:underline cursor-pointer"
+                      >
+                        ลบแถว
+                      </button>
+                    )}
+                  </div>
+                  <NativeSelect
+                    value={row.componentSku}
+                    onChange={(event) =>
+                      selectComponent(index, event.target.value)
+                    }
+                    className="w-full"
+                  >
+                    <option value="">-- ไม่ใช้ --</option>
+                    {parts.map((part) => (
+                      <option key={part.sku} value={part.sku}>
+                        {part.name} ({part.sku})
+                      </option>
+                    ))}
+                  </NativeSelect>
                 </div>
-                <NativeSelect
-                  value={row.componentSku}
-                  onChange={(event) =>
-                    selectComponent(index, event.target.value)
-                  }
-                  className="w-full"
-                >
-                  <option value="">-- ไม่ใช้ --</option>
-                  {parts.map((part) => (
-                    <option key={part.sku} value={part.sku}>
-                      {part.name} · {part.baseUnit || "ชิ้น"}
-                    </option>
-                  ))}
-                </NativeSelect>
+                <div>
+                  <Label className="mb-1 flex items-center justify-between text-xs font-semibold text-muted-foreground">
+                    <span>Net Qty</span>
+                    <span className="text-[10px] font-normal text-emerald-700">
+                      {selectedPart?.baseUnit || row.unit || ""}
+                    </span>
+                  </Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="any"
+                    value={row.qty}
+                    onChange={(event) =>
+                      updateRow(index, {
+                        qty:
+                          event.target.value === ""
+                            ? ""
+                            : Number(event.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label className="mb-1 block text-xs font-semibold text-muted-foreground">
+                    Scrap (%)
+                  </Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.1"
+                    value={row.scrapRate}
+                    onChange={(event) =>
+                      updateRow(index, {
+                        scrapRate:
+                          event.target.value === ""
+                            ? ""
+                            : Number(event.target.value),
+                      })
+                    }
+                  />
+                </div>
               </div>
-              <div>
-                <Label className="mb-1 block text-xs font-semibold text-muted-foreground">
-                  Net Qty
-                </Label>
-                <Input
-                  type="number"
-                  min={index === 0 ? 0.0001 : 0}
-                  step="any"
-                  value={row.qty}
-                  onChange={(event) =>
-                    updateRow(index, {
-                      qty:
-                        event.target.value === ""
-                          ? ""
-                          : Number(event.target.value),
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <Label className="mb-1 block text-xs font-semibold text-muted-foreground">
-                  Scrap (%)
-                </Label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={99.99}
-                  step="0.1"
-                  value={row.scrapRate}
-                  onChange={(event) =>
-                    updateRow(index, {
-                      scrapRate:
-                        event.target.value === ""
-                          ? ""
-                          : Number(event.target.value),
-                    })
-                  }
-                />
-              </div>
-            </div>
-          ))}
+            );
+          })}
 
           <div className="col-span-2 mt-1">
             <Button

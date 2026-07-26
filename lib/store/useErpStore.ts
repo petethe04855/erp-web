@@ -250,7 +250,7 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 		if (exists) throw new Error(`SKU "${input.sku}" already exists`)
 		const newProduct = {
 			...input,
-			stock: 0,
+			stock: input.stock || 0,
 			reservedQty: 0,
 			isActive: true,
 			barcode: input.barcode || '',

@@ -36,6 +36,7 @@ const EMPTY_FORM: CreateProductInput = {
   retailPrice: 0,
   wholesalePrice: 0,
   cost: 0,
+  stock: 0,
   reorder: 0,
   isBundle: false,
   note: "",
@@ -114,6 +115,7 @@ export default function SkuPage() {
       retailPrice: p.retailPrice,
       wholesalePrice: p.wholesalePrice,
       cost: p.cost,
+      stock: p.stock,
       reorder: p.reorder,
       isBundle: p.isBundle,
       note: p.note,
@@ -156,7 +158,10 @@ export default function SkuPage() {
       }
       try {
         if (modalMode === "add") {
-          addProduct({ ...form, isBundle: form.type === "Sub-component" });
+          addProduct({
+            ...form,
+            isBundle: form.type === "Sub-component" || form.type === "Finished Product",
+          });
         } else if (modalMode === "edit" && selected) {
           updateProduct({
             sku: selected.sku,
@@ -169,7 +174,8 @@ export default function SkuPage() {
             price: form.retailPrice,
             cost: form.cost,
             reorder: form.reorder,
-            isBundle: form.type === "Sub-component",
+            stock: form.stock,
+            isBundle: form.type === "Sub-component" || form.type === "Finished Product",
             note: form.note,
             baseUnit: form.baseUnit,
           });
@@ -394,9 +400,10 @@ export default function SkuPage() {
                         className="text-sm font-semibold text-foreground"
                         style={{ color: "var(--erp-ink)" }}
                       >
-                        {p.isBundle
-                          ? calcBundleVirtualStock(p.sku)
-                          : p.stock.toLocaleString()}
+                        {/* {p.isBundle
+                          ? `${calcBundleVirtualStock(p.sku).toLocaleString()} ชุด`
+                          : `${p.stock.toLocaleString()} ${p.baseUnit || "ชิ้น"}`} */}
+                        {p.stock.toLocaleString()} {p.baseUnit || "ชิ้น"}
                       </span>
                       <StockBadge
                         stock={

@@ -498,12 +498,13 @@ export type CreateProductInput = {
   wholesalePrice?: number
   cost: number
   reorder?: number
+  stock?: number
   isBundle?: boolean
   note?: string
   baseUnit?: string
 }
 
-export type UpdateProductInput = Partial<Omit<Product, 'sku' | 'reservedQty' | 'stock'>> & { sku: string }
+export type UpdateProductInput = Partial<Omit<Product, 'sku' | 'reservedQty' >> & { sku: string }
 
 export type SetBundleComponentsInput = {
   bundleSku: string
