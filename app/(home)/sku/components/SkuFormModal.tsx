@@ -4,7 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
-import type { ProductCategory, CreateProductInput } from "@/lib/store/erpWorkflow";
+import type {
+  ProductCategory,
+  CreateProductInput,
+} from "@/lib/store/erpWorkflow";
 
 interface SkuFormModalProps {
   modalMode: "add" | "edit";
@@ -38,13 +41,26 @@ export default function SkuFormModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div
         className="w-full max-w-[520px] rounded-xl border border-border bg-card p-7 shadow-2xl"
-        style={{ background: "var(--erp-surface)", borderColor: "var(--erp-border)" }}
+        style={{
+          background: "var(--erp-surface)",
+          borderColor: "var(--erp-border)",
+        }}
       >
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="m-0 text-base font-bold text-foreground" style={{ color: "var(--erp-ink)" }}>
-            {modalMode === "add" ? "สร้างสินค้า/วัตถุดิบ" : `แก้ไขสินค้า/วัตถุดิบ - ${selectedSku}`}
+          <h2
+            className="m-0 text-base font-bold text-foreground"
+            style={{ color: "var(--erp-ink)" }}
+          >
+            {modalMode === "add"
+              ? "สร้างสินค้า/วัตถุดิบ"
+              : `แก้ไขสินค้า/วัตถุดิบ - ${selectedSku}`}
           </h2>
-          <Button variant="ghost" size="xs" onClick={onClose} className="cursor-pointer">
+          <Button
+            variant="ghost"
+            size="xs"
+            onClick={onClose}
+            className="cursor-pointer"
+          >
             Close
           </Button>
         </div>
@@ -57,17 +73,23 @@ export default function SkuFormModal({
 
         <div className="grid grid-cols-2 gap-3.5">
           <div>
-            <Label className="mb-1 block text-xs font-semibold text-muted-foreground">รหัส SKU</Label>
+            <Label className="mb-1 block text-xs font-semibold text-muted-foreground">
+              รหัส SKU
+            </Label>
             <Input
               value={form.sku}
-              onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value.toUpperCase() }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, sku: e.target.value.toUpperCase() }))
+              }
               disabled={modalMode === "edit"}
               placeholder="เช่น RM-CHICKEN"
             />
           </div>
 
           <div>
-            <Label className="mb-1 block text-xs font-semibold text-muted-foreground">ชื่อรายการ</Label>
+            <Label className="mb-1 block text-xs font-semibold text-muted-foreground">
+              ชื่อรายการ
+            </Label>
             <Input
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
@@ -76,7 +98,9 @@ export default function SkuFormModal({
           </div>
 
           <div>
-            <Label className="mb-1 block text-xs font-semibold text-muted-foreground">ประเภท</Label>
+            <Label className="mb-1 block text-xs font-semibold text-muted-foreground">
+              ประเภท
+            </Label>
             <NativeSelect
               value={form.type}
               onChange={(e) =>
@@ -97,10 +121,14 @@ export default function SkuFormModal({
           </div>
 
           <div>
-            <Label className="mb-1 block text-xs font-semibold text-muted-foreground">หน่วยหลัก</Label>
+            <Label className="mb-1 block text-xs font-semibold text-muted-foreground">
+              หน่วยหลัก
+            </Label>
             <NativeSelect
               value={form.baseUnit ?? "ชิ้น"}
-              onChange={(e) => setForm((f) => ({ ...f, baseUnit: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, baseUnit: e.target.value }))
+              }
               className="w-full cursor-pointer"
             >
               {UNITS.map((unit) => (
@@ -110,6 +138,29 @@ export default function SkuFormModal({
               ))}
             </NativeSelect>
           </div>
+
+          <div className="col-span-2">
+            <Label className="mb-1 block text-xs font-semibold text-muted-foreground">
+              ต้นทุนต่อหน่วย (Cost / บาท)
+            </Label>
+            <Input
+              type="number"
+              min={0}
+              step="any"
+              value={
+                form.cost === 0 && typeof form.cost === "number"
+                  ? ""
+                  : form.cost
+              }
+              onChange={(e) => {
+                const val = e.target.value;
+                setForm((f) => ({
+                  ...f,
+                  cost: val === "" ? ("" as unknown as number) : Number(val),
+                }));
+              }}
+            />
+          </div>
         </div>
 
         <div className="mt-5 flex justify-end gap-2">
@@ -117,7 +168,11 @@ export default function SkuFormModal({
             variant="outline"
             onClick={onClose}
             className="cursor-pointer border-border"
-            style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)", color: "#374151" }}
+            style={{
+              borderColor: "var(--erp-border)",
+              background: "var(--erp-surface)",
+              color: "#374151",
+            }}
           >
             ยกเลิก
           </Button>

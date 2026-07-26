@@ -964,7 +964,7 @@ export function createErpWorkflowState(
       const newLots: StockLot[] = input.items.map((g, idx) => ({
         id: `LOT-${Date.now()}-${idx}-${g.sku}`,
         sku: g.sku, lot: g.lot, qty: g.qtyReceived, remainingQty: g.qtyReceived,
-        expiryDate: g.expiryDate, receivedDate: input.receiveDate, grRef: String(gr.code || gr.id), poRef: input.poRef,
+        expiryDate: g.expiryDate, receivedDate: input.receiveDate, grRef: String(gr.code || gr.id), poRef: String(input.poRef),
       }))
       // Gap 9: changedBy in movements
       const newMovements: StockMovement[] = input.items.map(g => ({

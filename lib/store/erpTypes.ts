@@ -310,7 +310,7 @@ export type CreatePurchaseOrderInput = {
 }
 
 export type CreateGoodsReceiveInput = {
-  poRef: string
+  poRef: string | number
   receiveDate: string
   items: Array<{ sku: string; qtyReceived: number; lot: string; expiryDate: string }>
   landedCosts?: LandedCostLine[]

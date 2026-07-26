@@ -42,6 +42,7 @@ export type CreateBomPayload = {
     componentSku: string;
     qty: number;
     unit: string;
+    scrapRate: number;
     componentType: "material" | "packaging";
     yieldFactor: number;
   }>;
@@ -59,6 +60,7 @@ type RowState = {
   componentSku: string;
   qty: number | "";
   unit: string;
+  scrapRate: number | "";
 };
 
 const getApiUrl = () =>
@@ -74,9 +76,7 @@ const getHeaders = () => {
 };
 
 const emptyRows: RowState[] = [
-  { componentSku: "", qty: "", unit: "" },
-  { componentSku: "", qty: "", unit: "" },
-  { componentSku: "", qty: "", unit: "" },
+  { componentSku: "", qty: "", unit: "", scrapRate: 0 },
 ];
 
 export function CreateBomDialog({
@@ -89,7 +89,6 @@ export function CreateBomDialog({
   const [products, setProducts] = useState<Product[]>([]);
   const [outputSku, setOutputSku] = useState("");
   const [outputQty, setOutputQty] = useState<number | "">(100);
-  const [waste, setWaste] = useState<number | "">(0);
   const [rows, setRows] = useState<RowState[]>(emptyRows);
   const [saving, setSaving] = useState(false);
 
@@ -124,21 +123,17 @@ export function CreateBomDialog({
     if (open && !outputSku && outputs.length > 0) setOutputSku(outputs[0].sku);
   }, [open, outputSku, outputs]);
 
-  function updateRow(
-    index: number,
-    field: "componentSku" | "qty",
-    value: string,
-  ) {
+  function updateRow(index: number, patch: Partial<RowState>) {
     setRows((current) =>
-      current.map((row, rowIndex) => {
-        if (rowIndex !== index) return row;
-        if (field === "componentSku") {
-          const item = parts.find((part) => part.sku === value);
-          return { ...row, componentSku: value, unit: item?.baseUnit || "" };
-        }
-        return { ...row, qty: value === "" ? "" : Number(value) };
-      }),
+      current.map((row, rowIndex) =>
+        rowIndex === index ? { ...row, ...patch } : row,
+      ),
     );
+  }
+
+  function selectComponent(index: number, sku: string) {
+    const item = parts.find((part) => part.sku === sku);
+    updateRow(index, { componentSku: sku, unit: item?.baseUnit || "" });
   }
 
   function nextVersion(sku: string) {
@@ -175,6 +170,7 @@ export function CreateBomDialog({
           componentSku: row.componentSku,
           qty: Number(row.qty),
           unit: item?.baseUnit || row.unit || "ชิ้น",
+          scrapRate: row.scrapRate === "" ? 0 : Number(row.scrapRate),
           componentType:
             item?.type === "Packaging"
               ? ("packaging" as const)
@@ -185,6 +181,14 @@ export function CreateBomDialog({
 
     if (!components.length) {
       showToast("กรุณาเลือกส่วนประกอบอย่างน้อย 1 รายการ");
+      return;
+    }
+    if (
+      components.some(
+        (component) => component.scrapRate < 0 || component.scrapRate >= 100,
+      )
+    ) {
+      showToast("Scrap ต้องอยู่ระหว่าง 0 ถึงน้อยกว่า 100%");
       return;
     }
 
@@ -203,13 +207,12 @@ export function CreateBomDialog({
         outputUnit: outputItem.baseUnit || "ชิ้น",
         status: "Active",
         effectiveDate: new Date().toISOString().slice(0, 10),
-        waste: Number(waste) || 0,
+        waste: 0,
         cost: 0,
         components,
       });
       setOutputSku("");
       setOutputQty(100);
-      setWaste(0);
       setRows(emptyRows);
       onOpenChange(false);
     } finally {
@@ -224,7 +227,7 @@ export function CreateBomDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-[560px] p-0">
+      <DialogContent className="w-full max-w-[640px] p-0">
         <DialogHeader className="border-b border-border p-5">
           <DialogTitle
             className="text-base font-bold text-foreground"
@@ -233,15 +236,23 @@ export function CreateBomDialog({
             สร้างสูตร BOM
           </DialogTitle>
           <p className="text-xs text-muted-foreground">
-            เลือกสินค้าที่ผลิตได้และกำหนดส่วนประกอบตามสูตรมาตรฐาน
+            ใส่ Net Qty ตามสูตร และ Scrap (%) เพื่อให้ระบบคำนวณ Gross Qty = Net
+            Qty / (1 - Scrap%)
           </p>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-3 p-5">
-          <div className="col-span-2">
+        <div className="grid grid-cols-[1fr_120px_100px] gap-3 p-5">
+          <div className="col-span-3">
             <Label className="mb-1 block text-xs font-semibold text-muted-foreground">
               ผลิตภัณฑ์ที่ได้
             </Label>
+            {/* <NativeSelect value={outputSku} onChange={(event) => setOutputSku(event.target.value)} className="w-full">
+              {outputs.map((item) => (
+                <option key={item.sku} value={item.sku}>
+                  {item.name} ({item.sku})
+                </option>
+              ))}
+            </NativeSelect> */}
             <Input
               type="text"
               value={outputSku}
@@ -256,7 +267,7 @@ export function CreateBomDialog({
             </Label>
             <Input
               type="number"
-              min={0.0001}
+              min={0}
               step="any"
               value={outputQty}
               onChange={(event) =>
@@ -267,33 +278,39 @@ export function CreateBomDialog({
             />
           </div>
 
-          <div>
-            <Label className="mb-1 block text-xs font-semibold text-muted-foreground">
-              Waste (%)
-            </Label>
-            <Input
-              type="number"
-              min={0}
-              step="0.1"
-              value={waste}
-              onChange={(event) =>
-                setWaste(
-                  event.target.value === "" ? "" : Number(event.target.value),
-                )
-              }
-            />
+          <div className="col-span-2 rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-xs">
+            <b>{previewCode}</b>
+            <div className="mt-1 text-muted-foreground">
+              Version {previewVersion} · ได้ {outputQty || 0}{" "}
+              {outputItem?.baseUnit || "หน่วย"}
+            </div>
           </div>
 
           {rows.map((row, index) => (
             <div key={index} className="contents">
               <div>
-                <Label className="mb-1 block text-xs font-semibold text-muted-foreground">
-                  ส่วนประกอบ {index + 1}
-                </Label>
+                <div className="mb-1 flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-muted-foreground">
+                    ส่วนประกอบ {index + 1}
+                  </Label>
+                  {rows.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setRows((current) =>
+                          current.filter((_, rIdx) => rIdx !== index),
+                        )
+                      }
+                      className="text-[10px] font-semibold text-rose-500 hover:underline cursor-pointer"
+                    >
+                      ลบแถว
+                    </button>
+                  )}
+                </div>
                 <NativeSelect
                   value={row.componentSku}
                   onChange={(event) =>
-                    updateRow(index, "componentSku", event.target.value)
+                    selectComponent(index, event.target.value)
                   }
                   className="w-full"
                 >
@@ -307,7 +324,7 @@ export function CreateBomDialog({
               </div>
               <div>
                 <Label className="mb-1 block text-xs font-semibold text-muted-foreground">
-                  ปริมาณ
+                  Net Qty
                 </Label>
                 <Input
                   type="number"
@@ -315,19 +332,53 @@ export function CreateBomDialog({
                   step="any"
                   value={row.qty}
                   onChange={(event) =>
-                    updateRow(index, "qty", event.target.value)
+                    updateRow(index, {
+                      qty:
+                        event.target.value === ""
+                          ? ""
+                          : Number(event.target.value),
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <Label className="mb-1 block text-xs font-semibold text-muted-foreground">
+                  Scrap (%)
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={99.99}
+                  step="0.1"
+                  value={row.scrapRate}
+                  onChange={(event) =>
+                    updateRow(index, {
+                      scrapRate:
+                        event.target.value === ""
+                          ? ""
+                          : Number(event.target.value),
+                    })
                   }
                 />
               </div>
             </div>
           ))}
 
-          <div className="col-span-2 rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-xs">
-            <b>{previewCode}</b>
-            <div className="mt-1 text-muted-foreground">
-              Version {previewVersion} · ได้ {outputQty || 0}{" "}
-              {outputItem?.baseUnit || "หน่วย"} · Waste {waste || 0}%
-            </div>
+          <div className="col-span-2 mt-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="xs"
+              onClick={() =>
+                setRows((current) => [
+                  ...current,
+                  { componentSku: "", qty: "", unit: "", scrapRate: 0 },
+                ])
+              }
+              className="cursor-pointer border-dashed border-border text-xs font-semibold hover:border-emerald-500 hover:text-emerald-600"
+            >
+              + เพิ่มส่วนประกอบ
+            </Button>
           </div>
         </div>
 

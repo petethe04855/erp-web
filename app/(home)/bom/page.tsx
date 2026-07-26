@@ -13,6 +13,7 @@ type BOMComponent = {
   componentName: string;
   qty: number;
   unit: string;
+  scrapRate?: number;
   unitCost?: number;
   unitCostOverride?: number;
   isSubComponent?: boolean;
@@ -66,6 +67,14 @@ async function createBOM(input: CreateBomPayload) {
   return readApiResponse<BOMSummary>(response);
 }
 
+async function deleteBOM(id: number) {
+  const response = await fetch(`${getApiUrl()}/api/boms/${id}`, {
+    method: "DELETE",
+    headers: getHeaders(),
+  });
+  return readApiResponse(response);
+}
+
 export default function BomPage() {
   const { tokens: t } = useTheme();
   const [toast, setToast] = useState("");
@@ -109,6 +118,17 @@ export default function BomPage() {
     }
   }
 
+  async function handleDeleteBOM(bom: BOMSummary) {
+    if (!confirm(`คุณต้องการลบสูตร BOM "${bom.name}" (${bom.code}) ใช่หรือไม่?`)) return;
+    try {
+      await deleteBOM(bom.id);
+      await loadBoms();
+      showToast(`ลบสูตร BOM แล้ว: ${bom.code}`);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "ลบสูตร BOM ไม่สำเร็จ");
+    }
+  }
+
   return (
     <div className="min-h-screen bg-canvas pb-16">
       <TopBar
@@ -148,13 +168,24 @@ export default function BomPage() {
           ) : (
             filteredBoms.map((bom) => (
               <Card key={bom.id} t={t} className="border border-border bg-card">
-                <div className="mb-2 flex flex-wrap gap-1.5">
-                  <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-extrabold text-emerald-700">
-                    {bom.status || "Active"}
-                  </span>
-                  <span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-extrabold text-amber-700">
-                    Waste {bom.waste || 0}%
-                  </span>
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-extrabold text-emerald-700">
+                      {bom.status || "Active"}
+                    </span>
+                    <span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-extrabold text-amber-700">
+                      Waste {bom.waste || 0}%
+                    </span>
+                  </div>
+                  <Button
+                    onClick={() => handleDeleteBOM(bom)}
+                    variant="destructive"
+                    size="xs"
+                    className="cursor-pointer border border-[#FEE2E2] bg-[#FFF5F5] text-destructive hover:bg-destructive/10"
+                    style={{ borderColor: "#FEE2E2" }}
+                  >
+                    ลบ
+                  </Button>
                 </div>
 
                 <h3 className="mb-1 text-sm font-bold" style={{ color: "var(--erp-ink)" }}>
@@ -178,6 +209,7 @@ export default function BomPage() {
                       </span>
                       <b>
                         {part.qty} {part.unit}
+                        {part.scrapRate ? ` · Scrap ${part.scrapRate}%` : ""}
                       </b>
                     </div>
                   ))}

@@ -309,7 +309,16 @@ export default function SkuPage() {
               }}
             >
               <TableRow>
-                {["SKU", "ชื่อสินค้า", "ประเภท", "สถานะ", ""].map((h) => (
+                {[
+                  "SKU",
+                  "ชื่อสินค้า",
+                  "ประเภท",
+                  "หน่วยหลัก",
+                  "ต้นทุน (Cost)",
+                  "คงเหลือ (Stock)",
+                  "สถานะ",
+                  "",
+                ].map((h) => (
                   <TableHead
                     key={h}
                     className="p-3 text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap"
@@ -324,7 +333,7 @@ export default function SkuPage() {
               {filtered.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={11}
+                    colSpan={8}
                     className="p-10 text-center text-muted-foreground text-sm"
                   >
                     ไม่พบสินค้า
@@ -367,28 +376,19 @@ export default function SkuPage() {
                   <TableCell className="p-3">
                     <CategoryBadge type={p.type} />
                   </TableCell>
-                  {/* <TableCell
-                    className="p-3 text-sm text-foreground"
-                    style={{ color: "var(--erp-ink)" }}
-                  >
-                    {formatBaht(p.cost)}
-                  </TableCell>
-                  <TableCell className="p-3 text-sm font-semibold text-emerald-600 dark:text-emerald-500">
-                    {formatBaht(p.retailPrice)}
-                  </TableCell>
-                  <TableCell
-                    className="p-3 text-sm text-muted-foreground"
-                    style={{ color: "var(--erp-ink3)" }}
-                  >
-                    {formatBaht(p.wholesalePrice)}
-                  </TableCell>
                   <TableCell
                     className="p-3 text-xs text-muted-foreground"
                     style={{ color: "var(--erp-ink3)" }}
                   >
-                    {p.weightGrams > 0 ? `${p.weightGrams}g` : "-"}
-                  </TableCell> */}
-                  {/* <TableCell className="p-3">
+                    {p.baseUnit || "piece"}
+                  </TableCell>
+                  <TableCell
+                    className="p-3 text-sm font-medium text-foreground"
+                    style={{ color: "var(--erp-ink)" }}
+                  >
+                    {formatBaht(p.cost)}
+                  </TableCell>
+                  <TableCell className="p-3">
                     <div className="flex items-center gap-1.5">
                       <span
                         className="text-sm font-semibold text-foreground"
@@ -406,13 +406,7 @@ export default function SkuPage() {
                         isBundle={p.isBundle}
                       />
                     </div>
-                  </TableCell> */}
-                  {/* <TableCell
-                    className="p-3 text-sm text-muted-foreground"
-                    style={{ color: "var(--erp-ink3)" }}
-                  >
-                    {p.reorder || "—"}
-                  </TableCell> */}
+                  </TableCell>
                   <TableCell className="p-3">
                     <button
                       onClick={() => handleToggleActive(p)}
