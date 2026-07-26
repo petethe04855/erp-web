@@ -55,10 +55,7 @@ export default function TikTokOrdersPage() {
   const avgOrder = activeOrders.length ? totalGmv / activeOrders.length : 0;
 
   async function handleSyncSettlement() {
-    const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("tiktok_access_token")
-        : null;
+    const token = "configured";
     if (!token) {
       setSyncMsg("กรุณาตั้งค่า Access Token ที่หน้า TikTok Setup ก่อน");
       return;
@@ -67,12 +64,9 @@ export default function TikTokOrdersPage() {
     setSyncMsg(null);
     try {
       const authToken = localStorage.getItem("chawy_token");
-      const res = await fetch(
-        `/api/tiktok/settlement?access_token=${encodeURIComponent(token)}`,
-        {
-          headers: { Authorization: authToken ? `Bearer ${authToken}` : "" },
-        },
-      );
+      const res = await fetch("/api/tiktok/settlement", {
+        headers: { Authorization: authToken ? `Bearer ${authToken}` : "" },
+      });
       const json = (await res.json()) as {
         settlements?: SettlementRecord[];
         error?: string;

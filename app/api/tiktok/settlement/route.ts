@@ -36,12 +36,13 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = req.nextUrl
-  const accessToken = (searchParams.get('access_token') ?? '').trim()
+  const accessToken = process.env.TIKTOK_ACCESS_TOKEN?.trim()
   const startTimeStr = searchParams.get('start_time')
   const endTimeStr = searchParams.get('end_time')
 
   if (!accessToken) {
-    return NextResponse.json({ error: 'access_token is required' }, { status: 400 })
+    console.error('[TikTok] Missing TIKTOK_ACCESS_TOKEN in environment')
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   // Default: last 14 days
