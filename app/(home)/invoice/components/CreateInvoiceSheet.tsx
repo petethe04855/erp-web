@@ -17,7 +17,13 @@ import { useTheme } from "@/lib/design/ThemeContext";
 
 const today = new Date().toISOString().split("T")[0];
 const due14 = new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0];
-const BLANK = { soRef: "", customer: "", issueDate: today, dueDate: due14, amount: 0 };
+const BLANK = {
+  soRef: "",
+  customer: "",
+  issueDate: today,
+  dueDate: due14,
+  amount: 0,
+};
 
 interface SalesOrder {
   id: number | string;
@@ -98,13 +104,19 @@ export function CreateInvoiceSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex h-full w-[min(520px,100vw)] flex-col border-l bg-card text-card-foreground shadow-2xl outline-none">
         <SheetHeader className="mb-4">
-          <SheetTitle className="text-base font-bold text-foreground" style={{ color: "var(--erp-ink)" }}>
+          <SheetTitle
+            className="text-base font-bold text-foreground"
+            style={{ color: "var(--erp-ink)" }}
+          >
             สร้างใบแจ้งหนี้
           </SheetTitle>
         </SheetHeader>
         <SheetBody className="grid gap-4 overflow-y-auto">
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               Sales Order อ้างอิง
             </Label>
             <NativeSelect
@@ -122,41 +134,59 @@ export function CreateInvoiceSheet({
           </div>
 
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               ลูกค้า *
             </Label>
             <Input
               value={form.customer}
-              onChange={(e) => setForm((f) => ({ ...f, customer: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, customer: e.target.value }))
+              }
               placeholder="ชื่อลูกค้า"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+              <Label
+                className="text-xs font-semibold text-muted-foreground mb-1 block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
                 วันที่ออกใบ
               </Label>
               <Input
                 type="date"
                 value={form.issueDate}
-                onChange={(e) => setForm((f) => ({ ...f, issueDate: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, issueDate: e.target.value }))
+                }
               />
             </div>
             <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+              <Label
+                className="text-xs font-semibold text-muted-foreground mb-1 block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
                 ครบกำหนดชำระ
               </Label>
               <Input
                 type="date"
                 value={form.dueDate}
-                onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, dueDate: e.target.value }))
+                }
               />
             </div>
           </div>
 
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               มูลค่า (บาท) *
             </Label>
             <Input
@@ -166,7 +196,10 @@ export function CreateInvoiceSheet({
               onChange={(e) =>
                 setForm((f) => ({
                   ...f,
-                  amount: e.target.value === "" ? "" : parseFloat(e.target.value) || 0,
+                  amount:
+                    e.target.value === ""
+                      ? ""
+                      : parseFloat(e.target.value) || 0,
                 }))
               }
               placeholder="0.00"
@@ -178,7 +211,11 @@ export function CreateInvoiceSheet({
             variant="outline"
             onClick={() => onOpenChange(false)}
             className="cursor-pointer border-border"
-            style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)", color: "#374151" }}
+            style={{
+              borderColor: "var(--erp-border)",
+              background: "var(--erp-surface)",
+              color: "#374151",
+            }}
           >
             ยกเลิก
           </Button>
