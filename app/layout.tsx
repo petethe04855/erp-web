@@ -3,10 +3,9 @@ import './globals.css'
 import { ThemeProvider } from '@/lib/design/ThemeContext'
 import BodyStyle from '@/components/BodyStyle'
 import AuthGuard from '@/components/AuthGuard'
-import { Geist } from "next/font/google";
-import { cn } from "@/lib/utils";
+import localFont from "next/font/local";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const geist = localFont({ src: "./(home)/fonts/GeistVF.woff", variable: "--font-sans" });
 
 export const metadata: Metadata = {
   title: 'Chawy ERP — ชาวี Pet Food System',
@@ -15,15 +14,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="th" className={cn("font-sans", geist.variable)}>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="th" className={geist.variable}>
       <body style={{ margin: 0, minHeight: '100vh', display: 'flex' }}>
         <ThemeProvider>
           <BodyStyle />

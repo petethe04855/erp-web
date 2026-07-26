@@ -29,8 +29,8 @@
   --erp-info-bg: rgba(30,95,139,0.08);
   --erp-expense: #C2410C;
   --erp-radius: 6px;
-  --erp-font-sans: 'IBM Plex Sans Thai', 'Inter', system-ui, sans-serif;
-  --erp-font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --erp-font-sans: var(--font-sans), system-ui, sans-serif;
+  --erp-font-mono: ui-monospace, monospace;
   --brand: var(--erp-accent);
   --brand-green: var(--erp-pos);
   --brand-amber: var(--erp-warn);
