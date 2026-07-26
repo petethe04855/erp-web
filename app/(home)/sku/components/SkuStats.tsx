@@ -1,32 +1,95 @@
-'use client'
-import React from 'react'
+"use client";
+
+import { CircleX, Layers3, Package, TriangleAlert } from "lucide-react";
 
 interface SkuStatsProps {
-  activeCount: number
-  lowStockCount: number
-  outStockCount: number
-  bundleCount: number
+  activeCount: number;
+  lowStockCount: number;
+  outStockCount: number;
+  bundleCount: number;
 }
 
-export default function SkuStats({ activeCount, lowStockCount, outStockCount, bundleCount }: SkuStatsProps) {
-  const stats = [
-    { label: 'SKU ทั้งหมด',   value: activeCount,     icon: '📦', color: 'text-[var(--erp-accent)]', bg: 'bg-[var(--erp-accent-bg)]' },
-    { label: 'ใกล้หมด',       value: lowStockCount,   icon: '⚠️',  color: 'text-amber-600 dark:text-amber-400', bg: 'bg-[#FEF3C7] dark:bg-amber-950/20' },
-    { label: 'หมดสต็อก',      value: outStockCount,   icon: '🛑', color: 'text-rose-600 dark:text-rose-400', bg: 'bg-[#FEE2E2] dark:bg-rose-950/20' },
-    { label: 'สินค้าเซ็ต',    value: bundleCount,    icon: '🛍️', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-[#D1FAE5] dark:bg-emerald-950/20' },
-  ]
+const stats = [
+  {
+    key: "all",
+    label: "SKU ทั้งหมด",
+    valueKey: "activeCount",
+    icon: Package,
+    color: "var(--erp-accent)",
+  },
+  {
+    key: "low",
+    label: "ใกล้หมด",
+    valueKey: "lowStockCount",
+    icon: TriangleAlert,
+    color: "var(--erp-warn)",
+  },
+  {
+    key: "out",
+    label: "หมดสต็อก",
+    valueKey: "outStockCount",
+    icon: CircleX,
+    color: "var(--erp-neg)",
+  },
+  {
+    key: "bundle",
+    label: "สินค้าเซ็ต",
+    valueKey: "bundleCount",
+    icon: Layers3,
+    color: "var(--erp-pos)",
+  },
+] as const;
 
+export default function SkuStats(props: SkuStatsProps) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-      {stats.map(s => (
-        <div key={s.label} className={`rounded-xl p-3.5 ${s.bg}`}>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-lg">{s.icon}</span>
-            <span className={`text-[11px] font-semibold ${s.color}`}>{s.label}</span>
+    <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+      {stats.map((stat) => {
+        const Icon = stat.icon;
+
+        return (
+          <div
+            key={stat.key}
+            className="rounded-lg border p-4"
+            style={{
+              background: "var(--erp-surface)",
+              borderColor: "var(--erp-border)",
+            }}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="size-1.5 rounded-full opacity-60"
+                    style={{ background: stat.color }}
+                  />
+                  <span
+                    className="text-xs font-medium"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
+                    {stat.label}
+                  </span>
+                </div>
+                <div
+                  className="mt-1.5 text-2xl font-semibold tabular-nums"
+                  style={{ color: "var(--erp-ink)" }}
+                >
+                  {props[stat.valueKey]}
+                </div>
+              </div>
+              <div
+                className="flex size-9 shrink-0 items-center justify-center rounded-md"
+                style={{
+                  color: "var(--erp-ink3)",
+                  background: "var(--erp-subtle)",
+                }}
+              >
+                <Icon aria-hidden="true" className="size-4" strokeWidth={1.75} />
+              </div>
+            </div>
           </div>
-          <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
-        </div>
-      ))}
+        );
+      })}
     </div>
-  )
+  );
 }

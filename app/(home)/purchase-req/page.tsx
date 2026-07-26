@@ -38,7 +38,7 @@ export default function PurchaseReqPage() {
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [convertOpen, setConvertOpen] = useState(false);
-  const [convertPrId, setConvertPrId] = useState("");
+  const [convertPrId, setConvertPrId] = useState<number | string>("");
   const [bomsList, setBomsList] = useState<any[]>([]);
 
   async function loadBOMs() {
@@ -102,24 +102,24 @@ export default function PurchaseReqPage() {
     showToast(`สร้าง ${pr.id} แล้ว`);
   }
 
-  function handleStatusChange(prId: string, status: PurchaseRequestStatus) {
+  function handleStatusChange(prId: number | string, status: PurchaseRequestStatus) {
     const updated = updatePRStatus(prId, status);
-    if (updated) showToast(`${prId} → ${status}`);
+    if (updated) showToast(`${updated.code || prId} → ${status}`);
   }
 
-  function openConvertToPO(prId: string) {
+  function openConvertToPO(prId: number | string) {
     setConvertPrId(prId);
     setConvertOpen(true);
   }
 
   function handleConvert(
-    prId: string,
+    prId: number | string,
     supplier: string,
     etaDate: string,
     costs: Record<string, number>,
   ) {
     const po = convertPRtoPO(prId, supplier, etaDate, costs);
-    if (po) showToast(`${prId} → ${po.id} แล้ว`);
+    if (po) showToast(`${prId} → ${po.code || po.id} แล้ว`);
   }
 
   return (
@@ -288,7 +288,7 @@ export default function PurchaseReqPage() {
                   >
                     <TableCell className="p-4 px-5 align-middle">
                       <Mono t={t} size={12} weight={500}>
-                        {pr.id}
+                        {pr.code || pr.id}
                       </Mono>
                     </TableCell>
                     <TableCell className="p-4 px-5 align-middle">
@@ -384,7 +384,6 @@ export default function PurchaseReqPage() {
         open={open}
         onOpenChange={setOpen}
         products={products}
-        bomsList={bomsList}
         onSubmit={handleCreatePR}
         showToast={showToast}
       />

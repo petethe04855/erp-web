@@ -39,20 +39,24 @@ export default function UsersPage() {
   }
 
   function userEmail(user: AppUser) {
-    return user.email || `${user.id.toLowerCase()}@chawy.local`;
+    return user.email || `${String(user.id).toLowerCase()}@chawy.local`;
   }
 
   const displayUsers = storeUsers;
   const active = displayUsers.filter((user) => user.isActive !== false).length;
   const canManageUsers = currentUser.role === "owner";
 
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+
   async function handleCreateSubmit(data: {
     id: string;
     email: string;
-    name: string;
+    firstname: string;
+    lastname: string;
     role: UserRole;
-    password: string;
+    isActive: boolean;
   }) {
+    setIsCreatingUser(true);
     try {
       const newUser = await createUser(data);
       showToast(
@@ -60,8 +64,11 @@ export default function UsersPage() {
           ? `สร้างผู้ใช้ ${data.email} สำเร็จ แต่ส่งอีเมลแจ้งเตือนไม่สำเร็จ`
           : `สร้างผู้ใช้ ${data.email} สำเร็จ`,
       );
+      setCreateOpen(false);
     } catch (err: any) {
       showToast(err.message || "สร้างผู้ใช้ไม่สำเร็จ");
+    } finally {
+      setIsCreatingUser(false);
     }
   }
 
@@ -70,26 +77,33 @@ export default function UsersPage() {
     setEditOpen(true);
   }
 
+  const [isUpdatingUser, setIsUpdatingUser] = useState(false);
+
   async function handleEditSubmit(data: {
     id: string;
     email?: string;
-    name: string;
+    firstname: string;
+    lastname: string;
     role: UserRole;
-    password?: string;
+    isActive: boolean;
   }) {
+    setIsUpdatingUser(true);
     try {
       await updateUser(data.id, data);
       showToast(`แก้ไขผู้ใช้ ${data.email || data.id} สำเร็จ`);
+      setEditOpen(false);
     } catch (err: any) {
       showToast(err.message || "แก้ไขผู้ใช้ไม่สำเร็จ");
+    } finally {
+      setIsUpdatingUser(false);
     }
   }
 
   async function handleStatusChange(user: AppUser) {
     const nextActive = user.isActive === false;
-    setBusyUserId(user.id);
+    setBusyUserId(String(user.id));
     try {
-      await updateUserStatus(user.id, nextActive);
+      await updateUserStatus(String(user.id), nextActive);
       showToast(
         `${nextActive ? "เปิด" : "ปิด"}การใช้งาน ${userEmail(user)} สำเร็จ`,
       );
@@ -111,9 +125,9 @@ export default function UsersPage() {
 
   async function handleDelete(user: AppUser) {
     if (!window.confirm(`ลบผู้ใช้ ${userEmail(user)} ใช่ไหม?`)) return;
-    setBusyUserId(user.id);
+    setBusyUserId(String(user.id));
     try {
-      await deleteUser(user.id);
+      await deleteUser(String(user.id));
       showToast(`ลบผู้ใช้ ${userEmail(user)} สำเร็จ`);
     } catch (err: any) {
       showToast(err.message || "ลบผู้ใช้ไม่สำเร็จ");
@@ -357,6 +371,7 @@ export default function UsersPage() {
         onOpenChange={setCreateOpen}
         onSubmit={handleCreateSubmit}
         showToast={showToast}
+        isSubmitting={isCreatingUser}
       />
 
       <EditUserSheet
@@ -365,6 +380,7 @@ export default function UsersPage() {
         initialData={selectedUser}
         onSubmit={handleEditSubmit}
         showToast={showToast}
+        isSubmitting={isUpdatingUser}
       />
     </div>
   );

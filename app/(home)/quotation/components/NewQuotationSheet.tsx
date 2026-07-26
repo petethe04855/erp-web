@@ -52,7 +52,12 @@ interface NewQuotationSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   products: Product[];
-  onSubmit: (data: { customer: string; leadSource: LeadSource; validUntil: string; lines: Line[] }) => void;
+  onSubmit: (data: {
+    customer: string;
+    leadSource: LeadSource;
+    validUntil: string;
+    lines: Line[];
+  }) => void;
   showToast: (msg: string) => void;
 }
 
@@ -96,7 +101,7 @@ export function NewQuotationSheet({
     setForm((f) => ({
       ...f,
       lines: f.lines.map((line, idx) =>
-        idx === i ? { ...line, [field]: val } : line
+        idx === i ? { ...line, [field]: val } : line,
       ),
     }));
   }
@@ -123,28 +128,42 @@ export function NewQuotationSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex h-full w-[min(540px,100vw)] flex-col border-l bg-card text-card-foreground shadow-2xl outline-none">
         <SheetHeader className="mb-4">
-          <SheetTitle className="text-base font-bold text-foreground" style={{ color: "var(--erp-ink)" }}>
+          <SheetTitle
+            className="text-base font-bold text-foreground"
+            style={{ color: "var(--erp-ink)" }}
+          >
             New Quotation
           </SheetTitle>
-          <div className="text-xs text-muted-foreground" style={{ color: "var(--erp-ink3)" }}>
+          <div
+            className="text-xs text-muted-foreground"
+            style={{ color: "var(--erp-ink3)" }}
+          >
             Total {formatBaht(lineTotal)}
           </div>
         </SheetHeader>
-        <SheetBody className="grid gap-4 overflow-y-auto">
+        <SheetBody className="flex flex-col gap-4 overflow-y-auto">
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               Customer
             </Label>
             <Input
               value={form.customer}
-              onChange={(e) => setForm((f) => ({ ...f, customer: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, customer: e.target.value }))
+              }
               placeholder="Customer name"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+              <Label
+                className="text-xs font-semibold text-muted-foreground mb-1 block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
                 Lead source
               </Label>
               <NativeSelect
@@ -157,25 +176,35 @@ export function NewQuotationSheet({
                 }
               >
                 {LEAD_SOURCES.map((source) => (
-                  <option key={source} value={source}>{source}</option>
+                  <option key={source} value={source}>
+                    {source}
+                  </option>
                 ))}
               </NativeSelect>
             </div>
             <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+              <Label
+                className="text-xs font-semibold text-muted-foreground mb-1 block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
                 Valid until
               </Label>
               <Input
                 type="date"
                 value={form.validUntil}
-                onChange={(e) => setForm((f) => ({ ...f, validUntil: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, validUntil: e.target.value }))
+                }
               />
             </div>
           </div>
 
           <div>
             <div className="flex justify-between items-center mb-2">
-              <span className="text-xs font-bold text-foreground" style={{ color: "var(--erp-ink2)" }}>
+              <span
+                className="text-xs font-bold text-foreground"
+                style={{ color: "var(--erp-ink2)" }}
+              >
                 Items
               </span>
               <Button
@@ -188,7 +217,10 @@ export function NewQuotationSheet({
               </Button>
             </div>
 
-            <div className="border border-border rounded-lg overflow-hidden" style={{ borderColor: "var(--erp-border)" }}>
+            <div
+              className="border border-border rounded-lg overflow-hidden"
+              style={{ borderColor: "var(--erp-border)" }}
+            >
               <Table className="w-full border-collapse">
                 <TableBody>
                   {form.lines.map((line, i) => {
@@ -202,7 +234,9 @@ export function NewQuotationSheet({
                         <TableCell className="p-2 align-middle">
                           <NativeSelect
                             value={line.sku}
-                            onChange={(e) => updateLine(i, "sku", e.target.value)}
+                            onChange={(e) =>
+                              updateLine(i, "sku", e.target.value)
+                            }
                             className="text-xs cursor-pointer w-full"
                           >
                             <option value="">Select product</option>
@@ -213,7 +247,10 @@ export function NewQuotationSheet({
                             ))}
                           </NativeSelect>
                           {line.sku && (
-                            <div className="text-[10px] mt-1" style={{ color: "var(--erp-ink3)" }}>
+                            <div
+                              className="text-[10px] mt-1"
+                              style={{ color: "var(--erp-ink3)" }}
+                            >
                               {getProductName(line.sku)}
                             </div>
                           )}
@@ -228,7 +265,9 @@ export function NewQuotationSheet({
                               updateLine(
                                 i,
                                 "qty",
-                                val === "" ? "" : Math.max(1, parseInt(val) || 0)
+                                val === ""
+                                  ? ""
+                                  : Math.max(1, parseInt(val) || 0),
                               );
                             }}
                             className="h-9 text-xs p-1 text-center font-mono"
@@ -236,7 +275,9 @@ export function NewQuotationSheet({
                         </TableCell>
                         <TableCell className="p-2 align-middle text-right w-24">
                           <Mono t={t} size={12}>
-                            {product ? formatBaht(product.price * line.qty) : "—"}
+                            {product
+                              ? formatBaht(product.price * line.qty)
+                              : "—"}
                           </Mono>
                         </TableCell>
                         <TableCell className="p-2 align-middle text-center w-10">
@@ -267,7 +308,11 @@ export function NewQuotationSheet({
               variant="outline"
               onClick={() => onOpenChange(false)}
               className="cursor-pointer border-border"
-              style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)", color: "#374151" }}
+              style={{
+                borderColor: "var(--erp-border)",
+                background: "var(--erp-surface)",
+                color: "#374151",
+              }}
             >
               Cancel
             </Button>

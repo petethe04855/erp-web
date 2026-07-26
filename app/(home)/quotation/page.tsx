@@ -62,14 +62,14 @@ export default function QuotationPage() {
     showToast(`สร้าง ${newQt.id} แล้ว`);
   }
 
-  function transition(id: string, status: QuotationStatus, note: string) {
+  function transition(id: number | string, status: QuotationStatus, note: string) {
     const updated = updateQuotationStatus(id, status, note);
-    if (updated) showToast(`${id} → ${status}`);
+    if (updated) showToast(`${updated.code || id} → ${status}`);
   }
 
-  function convertToSO(id: string) {
+  function convertToSO(id: number | string) {
     const salesOrder = convertQuotationToSalesOrder(id);
-    if (salesOrder) showToast(`${id} → ${salesOrder.id} แล้ว`);
+    if (salesOrder) showToast(`${id} → ${salesOrder.code || salesOrder.id} แล้ว`);
   }
 
   return (
@@ -173,7 +173,7 @@ export default function QuotationPage() {
                     <TableCell className="p-4 px-5 align-middle">
                       <div className="flex flex-col gap-2">
                         <Mono t={t} size={12} weight={500}>
-                          {q.id}
+                          {q.code || q.id}
                         </Mono>
                         <div className="flex gap-1.5 flex-wrap">
                           {q.status === "Draft" && (

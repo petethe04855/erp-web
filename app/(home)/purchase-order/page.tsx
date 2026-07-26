@@ -60,9 +60,9 @@ export default function PurchaseOrderPage() {
     showToast(`สร้าง ${po.id} แล้ว`);
   }
 
-  function handleStatusChange(poId: string, status: PurchaseOrderStatus) {
+  function handleStatusChange(poId: number | string, status: PurchaseOrderStatus) {
     const updated = updatePOStatus(poId, status);
-    if (updated) showToast(`${poId} → ${status}`);
+    if (updated) showToast(`${updated.code || poId} → ${status}`);
   }
 
   async function handleExport() {
@@ -253,7 +253,7 @@ export default function PurchaseOrderPage() {
                     <TableCell className="p-4 px-5 align-middle">
                       <div className="flex items-center gap-2">
                         <Mono t={t} size={12} weight={500}>
-                          {po.id}
+                          {po.code || po.id}
                         </Mono>
                         {po.status === "Draft" && (
                           <Button

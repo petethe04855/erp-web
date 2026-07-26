@@ -10,13 +10,13 @@ import {
   type QuotationStatus,
 } from '../mockData.ts'
 import type {
-  AuditEvent, Quotation, QuotationLine, LeadSource,
+  AuditEvent, Quotation, QuotationLine,
   SalesOrderStatus, SalesOrderChannel, InvoiceStatus,
   SalesOrderLine, SalesOrder, Invoice,
   PurchaseRequestStatus, PurchaseOrderStatus, StockMovementType,
-  PurchaseRequestItem, PurchaseRequest,
+  PurchaseRequest,
   PurchaseOrderItem, PurchaseOrder,
-  GoodsReceiveItem, GoodsReceive, StockMovement, LandedCostLine,
+  GoodsReceive, StockMovement,
   Product, StockLot, ProductCategory, BundleComponent,
   SamplingStatus, SamplingRecipient, SamplingCampaign,
   AppUser,
@@ -35,17 +35,18 @@ import type {
   LiveSession, LiveStatus,
   ApplySettlementInput,
   ErpSettings,
-  LivePayrollSettings,
   ContentScheduleItem, ContentScheduleStatus,
 } from './erpTypes.ts'
+
+export type { LandedCostLine, PurchaseRequestItem, GoodsReceiveItem } from './erpTypes.ts'
 
 export type {
   SalesOrderStatus, SalesOrderChannel, InvoiceStatus,
   SalesOrderLine, SalesOrder, Invoice,
   PurchaseRequestStatus, PurchaseOrderStatus, StockMovementType,
-  PurchaseRequestItem, PurchaseRequest,
+  PurchaseRequest,
   PurchaseOrderItem, PurchaseOrder,
-  GoodsReceiveItem, GoodsReceive, StockMovement, LandedCostLine,
+  GoodsReceive, StockMovement,
   Product, StockLot, ProductCategory, BundleComponent,
   SamplingStatus, SamplingRecipient, SamplingCampaign,
   AppUser,
@@ -101,26 +102,26 @@ export type ErpWorkflowState = {
 
 export type ErpWorkflowActions = {
   createQuotation: (input: CreateQuotationInput) => Quotation
-  updateQuotationStatus: (id: string, status: QuotationStatus, note: string) => Quotation | null
-  convertQuotationToSalesOrder: (quotationId: string) => SalesOrder | null
+  updateQuotationStatus: (id: number | string, status: QuotationStatus, note: string) => Quotation | null
+  convertQuotationToSalesOrder: (quotationId: number | string) => SalesOrder | null
   createSalesOrder: (input: CreateSalesOrderInput) => SalesOrder
-  updateSalesOrderStatus: (soId: string, status: SalesOrderStatus) => SalesOrder | null
+  updateSalesOrderStatus: (soId: number | string, status: SalesOrderStatus) => SalesOrder | null
   createInvoice: (input: CreateInvoiceInput) => Invoice
-  createInvoiceFromSO: (salesOrderId: string) => Invoice | null
-  recordPayment: (invoiceId: string, amount: number) => Invoice | null
+  createInvoiceFromSO: (salesOrderId: number | string) => Invoice | null
+  recordPayment: (invoiceId: number | string, amount: number) => Invoice | null
   createPurchaseRequest: (input: CreatePurchaseRequestInput) => PurchaseRequest
-  updatePRStatus: (prId: string, status: PurchaseRequestStatus) => PurchaseRequest | null
-  convertPRtoPO: (prId: string, supplier: string, etaDate: string, itemCosts: Record<string, number>) => PurchaseOrder | null
+  updatePRStatus: (prId: number | string, status: PurchaseRequestStatus) => PurchaseRequest | null
+  convertPRtoPO: (prId: number | string, supplier: string, etaDate: string, itemCosts: Record<string, number>) => PurchaseOrder | null
   createPurchaseOrder: (input: CreatePurchaseOrderInput) => PurchaseOrder
-  updatePOStatus: (poId: string, status: PurchaseOrderStatus) => PurchaseOrder | null
+  updatePOStatus: (poId: number | string, status: PurchaseOrderStatus) => PurchaseOrder | null
   createGoodsReceive: (input: CreateGoodsReceiveInput) => GoodsReceive | null
   createSamplingCampaign: (input: CreateSamplingCampaignInput) => SamplingCampaign   // Gap 5
   addSamplingRecipient: (input: AddSamplingRecipientInput) => SamplingCampaign | null // Gap 5
-  updateSamplingStatus: (id: string, status: SamplingStatus) => SamplingCampaign | null // Gap 5
+  updateSamplingStatus: (id: number | string, status: SamplingStatus) => SamplingCampaign | null // Gap 5
   setCurrentUser: (user: AppUser) => void  // Gap 7
   createGoodsIssue: (input: CreateGoodsIssueInput) => GoodsIssue | null
   createStockReturn: (input: CreateStockReturnInput) => StockReturn
-  updateStockReturnStatus: (id: string, status: 'Completed' | 'Cancelled') => StockReturn | null
+  updateStockReturnStatus: (id: number | string, status: 'Completed' | 'Cancelled') => StockReturn | null
   createStockAdjustment: (input: CreateStockAdjustmentInput) => StockAdjustment
   createStockTransfer: (input: CreateStockTransferInput) => StockTransfer | null
   createExpense: (input: CreateExpenseInput) => Expense
@@ -549,9 +550,9 @@ function nowIso()   { return new Date().toISOString().slice(0, 16) }
 function addDaysIso(days: number) {
   const d = new Date(); d.setDate(d.getDate() + days); return d.toISOString().split('T')[0]
 }
-function nextId(prefix: string, ids: string[]) {
-  const max = ids.reduce((h, id) => {
-    const n = Number(id.replace(prefix, '')); return Number.isFinite(n) ? Math.max(h, n) : h
+function nextId(prefix: string, ids: Array<number | string>) {
+  const max = ids.reduce<number>((h, id) => {
+    const n = Number(String(id).replace(prefix, '')); return Number.isFinite(n) ? Math.max(h, n) : h
   }, 0)
   return `${prefix}${String(max + 1).padStart(4, '0')}`
 }
@@ -609,7 +610,7 @@ function audit(trail: AuditEvent[] | undefined | null, action: string, by: strin
 
 // Gap 1: FEFO — deduct from lots sorted by earliest expiry first
 function fefoDeduct(
-  lots: StockLot[], sku: string, qty: number, refDoc: string, date: string, by: string,
+  lots: StockLot[], sku: string, qty: number, refDoc: number | string, date: string, by: string,
 ): { lots: StockLot[]; movements: StockMovement[] } {
   const skuLots = lots
     .filter(l => l.sku === sku && l.remainingQty > 0)
@@ -819,7 +820,7 @@ export function createErpWorkflowState(
       if (!so || so.status !== 'Completed') return null
       const existing = state.invoices.find(inv => inv.soRef === salesOrderId)
       if (existing) return existing
-      const inv = get().createInvoice({ soRef: so.id, customer: so.customer, amount: so.amount })
+      const inv = get().createInvoice({ soRef: String(so.code || so.id), customer: so.customer, amount: so.amount })
       set(s => ({ salesOrders: s.salesOrders.map(o => o.id === salesOrderId ? { ...o, invRef: inv.id } : o) }))
       return inv
     },
@@ -963,7 +964,7 @@ export function createErpWorkflowState(
       const newLots: StockLot[] = input.items.map((g, idx) => ({
         id: `LOT-${Date.now()}-${idx}-${g.sku}`,
         sku: g.sku, lot: g.lot, qty: g.qtyReceived, remainingQty: g.qtyReceived,
-        expiryDate: g.expiryDate, receivedDate: input.receiveDate, grRef: gr.id, poRef: input.poRef,
+        expiryDate: g.expiryDate, receivedDate: input.receiveDate, grRef: String(gr.code || gr.id), poRef: String(input.poRef),
       }))
       // Gap 9: changedBy in movements
       const newMovements: StockMovement[] = input.items.map(g => ({

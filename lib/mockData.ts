@@ -68,14 +68,15 @@ export type LeadSource = 'Live' | 'LINE' | 'Facebook' | 'Shopee' | 'Walk-in' | '
 export type AuditEvent = { action: string; by: string; at: string; note: string }
 export type QuotationLine = { sku: string; qty: number; reservedQty: number }
 export type Quotation = {
-  id: string
+  id: number | string
+  code?: string
   customer: string
   date: string
   validUntil: string
   amount: number
   status: QuotationStatus
   items: number
-  soRef: string | null
+  soRef: number | string | null
   leadSource: LeadSource
   lines: QuotationLine[]
   reservedStock: boolean

@@ -30,19 +30,13 @@ interface Product {
   sku: string;
   name: string;
   cost: number;
-}
-
-interface BOM {
-  code: string;
-  name: string;
-  cost: number;
+  type?: string;
 }
 
 interface NewRequestSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   products: Product[];
-  bomsList: BOM[];
   onSubmit: (pr: {
     requester: string;
     reason: string;
@@ -56,7 +50,6 @@ export function NewRequestSheet({
   open,
   onOpenChange,
   products,
-  bomsList,
   onSubmit,
   showToast,
 }: NewRequestSheetProps) {
@@ -64,6 +57,9 @@ export function NewRequestSheet({
   const c = t.color;
 
   const [form, setForm] = useState(BLANK);
+  const purchasableProducts = products.filter(
+    (p) => p.type === "Raw Material" || p.type === "Packaging",
+  );
 
   function addLine() {
     setForm((f) => ({ ...f, items: [...f.items, { ...BLANK_LINE }] }));
@@ -79,12 +75,11 @@ export function NewRequestSheet({
       items: f.items.map((line, idx) => {
         if (idx !== i) return line;
         if (field === "sku") {
-          const prod = products.find((p) => p.sku === val);
-          const bom = bomsList.find((b) => b.code === val);
+          const prod = purchasableProducts.find((p) => p.sku === val);
           return {
             ...line,
             sku: val as string,
-            name: prod?.name || bom?.name || "",
+            name: prod?.name || "",
           };
         }
         return { ...line, [field]: val };
@@ -218,18 +213,11 @@ export function NewRequestSheet({
                           onChange={(e) => updateLine(i, "sku", e.target.value)}
                           className="text-xs cursor-pointer w-full"
                         >
-                          <option value="">Select product / BOM</option>
-                          <optgroup label="Products / Raw Materials">
-                            {products.map((p) => (
+                          <option value="">Select raw material / packaging</option>
+                          <optgroup label="Raw Material / Packaging">
+                            {purchasableProducts.map((p) => (
                               <option key={p.sku} value={p.sku}>
                                 {p.name} ({p.sku})
-                              </option>
-                            ))}
-                          </optgroup>
-                          <optgroup label="BOMs (Recipes)">
-                            {bomsList.map((b) => (
-                              <option key={b.code} value={b.code}>
-                                {b.name} ({b.code})
                               </option>
                             ))}
                           </optgroup>

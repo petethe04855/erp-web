@@ -34,6 +34,9 @@ export default function SalesOrderFormPanel({
   onSubmit
 }: SalesOrderFormPanelProps) {
   const c = t.color
+  const sellableProducts = products.filter(p =>
+    p.type === 'Finished Product' || p.type === 'Bundle' || p.type === 'Cat' || p.type === 'Dog'
+  )
 
   const addLine = () => setForm(f => ({ ...f, lines: [...f.lines, { sku: '', qty: 1 }] }))
   const removeLine = (i: number) => setForm(f => ({ ...f, lines: f.lines.filter((_, idx) => idx !== i) }))
@@ -86,12 +89,12 @@ export default function SalesOrderFormPanel({
           <Button variant="ghost" size="sm" onClick={addLine} className="cursor-pointer text-muted-foreground">+ เพิ่มสินค้า</Button>
         </div>
         {form.lines.map((line, i) => {
-          const product = products.find(p => p.sku === line.sku)
+          const product = sellableProducts.find(p => p.sku === line.sku)
           return (
             <div key={i} className="grid grid-cols-[1fr_80px_100px_28px] gap-2 items-center">
               <NativeSelect value={line.sku} onChange={e => updateLine(i, 'sku', e.target.value)} className="w-full cursor-pointer">
                 <option value="">-- เลือกสินค้า --</option>
-                {products.map(p => <option key={p.sku} value={p.sku}>{p.name}</option>)}
+                {sellableProducts.map(p => <option key={p.sku} value={p.sku}>{p.name}</option>)}
               </NativeSelect>
               <Input type="number" min={1} value={line.qty} onChange={e => updateLine(i, 'qty', e.target.value === '' ? '' : parseInt(e.target.value) || 0)} className="text-center" />
               <Mono t={t} size={12} style={{ textAlign: 'right', display: 'block' }}>{product ? fmtBaht(product.price * Number(line.qty)) : '—'}</Mono>

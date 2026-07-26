@@ -16,7 +16,7 @@ import { useTheme } from "@/lib/design/ThemeContext";
 interface RecordPaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  invoiceId: string;
+  invoiceId: number | string;
   outstanding: number;
   onSubmit: (amount: number) => void;
   showToast: (msg: string) => void;

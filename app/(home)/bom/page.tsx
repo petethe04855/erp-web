@@ -1,83 +1,50 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Card, Mono, PageBody, TopBar } from "@/components/ui";
+import { Card, PageBody, TopBar } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
 import { readApiResponse } from "@/lib/apiResponse";
 import { useTheme } from "@/lib/design/ThemeContext";
-import { useErpStore } from "@/lib/store/useErpStore";
-import type { PurchaseRequest } from "@/lib/store/erpWorkflow";
-import { CreateBomDialog } from "./components/CreateBomDialog";
+import { CreateBomDialog, type CreateBomPayload } from "./components/CreateBomDialog";
+
+type BOMComponent = {
+  componentSku: string;
+  componentName: string;
+  qty: number;
+  unit: string;
+  scrapRate?: number;
+  unitCost?: number;
+  unitCostOverride?: number;
+  isSubComponent?: boolean;
+};
 
 type BOMSummary = {
   id: number;
   code: string;
   name: string;
+  version?: number;
+  status: string;
+  kind?: string;
+  waste?: number;
+  fgSku?: string;
   outputQty: number;
   outputUnit: string;
-  status: string;
   effectiveDate: string;
   cost: number;
   componentCount: number;
+  components?: BOMComponent[];
 };
 
-type BOMLine = {
-  sku: string;
-  name: string;
-  category: string;
-  unit: string;
-  qtyPerUnit: number;
-  requiredQty: number;
-  stockQty: number;
-  shortage: number;
-  unitCost: number;
-  costPerFinishedUnit: number;
-  prValue: number;
-  canCreatePr: boolean;
-};
-
-type BOMDetail = {
-  sku: string;
-  name: string;
-  productionQty: number;
-  componentCount: number;
-  prRequired: number;
-  readyItems: number;
-  totalPrValue: number;
-  totalCostPerUnit: number;
-  bomCode?: string;
-  bomName?: string;
-  bomOutputQty?: number;
-  bomUnit?: string;
-  bomStatus?: string;
-  bomEffectiveDate?: string;
-  lines: BOMLine[];
-};
-
-const getApiUrl = () =>
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 const getHeaders = () => {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("chawy_token") : "";
+  const token = typeof window !== "undefined" ? localStorage.getItem("chawy_token") : "";
   return {
     "Content-Type": "application/json",
     Authorization: token ? `Bearer ${token}` : "",
   };
 };
-
-function formatQty(n: number, unit: string) {
-  return `${n.toLocaleString("th-TH", { maximumFractionDigits: 2 })} ${unit || "หน่วย"}`;
-}
 
 function formatBaht(n: number, digits = 2) {
   return `฿${n.toLocaleString("th-TH", {
@@ -86,97 +53,12 @@ function formatBaht(n: number, digits = 2) {
   })}`;
 }
 
-function todayPlus(days: number) {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
-function categoryLabel(category: string) {
-  if (category === "expense") return "ค่าใช้จ่าย";
-  if (category === "packaging") return "บรรจุภัณฑ์";
-  return "วัตถุดิบ";
-}
-
 async function fetchBOMs() {
-  const response = await fetch(`${getApiUrl()}/api/boms`, {
-    headers: getHeaders(),
-  });
+  const response = await fetch(`${getApiUrl()}/api/boms`, { headers: getHeaders() });
   return readApiResponse<BOMSummary[]>(response);
 }
 
-async function fetchBOMDetail(sku: string, productionQty: number) {
-  const response = await fetch(
-    `${getApiUrl()}/api/boms/${encodeURIComponent(sku)}?productionQty=${productionQty}`,
-    { headers: getHeaders() },
-  );
-  return readApiResponse<BOMDetail>(response);
-}
-
-async function createPRFromBOM(
-  sku: string,
-  input: {
-    requester: string;
-    reason: string;
-    neededDate: string;
-    productionQty: number;
-  },
-) {
-  const response = await fetch(
-    `${getApiUrl()}/api/boms/${encodeURIComponent(sku)}/purchase-request`,
-    {
-      method: "POST",
-      headers: getHeaders(),
-      body: JSON.stringify(input),
-    },
-  );
-  return readApiResponse<PurchaseRequest>(response);
-}
-
-async function saveBOM(sku: string, input: any) {
-  const response = await fetch(
-    `${getApiUrl()}/api/boms/${encodeURIComponent(sku)}`,
-    {
-      method: "PUT",
-      headers: getHeaders(),
-      body: JSON.stringify(input),
-    },
-  );
-  return readApiResponse<BOMDetail>(response);
-}
-
-async function recalculateCost(sku: string) {
-  const response = await fetch(
-    `${getApiUrl()}/api/boms/${encodeURIComponent(sku)}/recalculate`,
-    {
-      method: "POST",
-      headers: getHeaders(),
-    },
-  );
-  return readApiResponse<BOMDetail>(response);
-}
-
-async function duplicateBOM(sku: string, targetSku: string) {
-  const response = await fetch(
-    `${getApiUrl()}/api/boms/${encodeURIComponent(sku)}/duplicate`,
-    {
-      method: "POST",
-      headers: getHeaders(),
-      body: JSON.stringify({ targetSku }),
-    },
-  );
-  return readApiResponse<BOMDetail>(response);
-}
-
-async function createBOM(input: {
-  code: string;
-  name: string;
-  outputQty: number;
-  outputUnit: string;
-  status: string;
-  effectiveDate: string;
-  cost: number;
-}) {
+async function createBOM(input: CreateBomPayload) {
   const response = await fetch(`${getApiUrl()}/api/boms`, {
     method: "POST",
     headers: getHeaders(),
@@ -185,35 +67,34 @@ async function createBOM(input: {
   return readApiResponse<BOMSummary>(response);
 }
 
+async function deleteBOM(id: number) {
+  const response = await fetch(`${getApiUrl()}/api/boms/${id}`, {
+    method: "DELETE",
+    headers: getHeaders(),
+  });
+  return readApiResponse(response);
+}
+
 export default function BomPage() {
   const { tokens: t } = useTheme();
-  const c = t.color;
   const [toast, setToast] = useState("");
   const [boms, setBoms] = useState<BOMSummary[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [showAddRmModal, setShowAddRmModal] = useState(false);
-
+  const [showCreate, setShowCreate] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredBoms = useMemo(() => {
-    if (!searchQuery) return boms;
-    const q = searchQuery.toLowerCase();
-    return boms.filter(
-      (bom) =>
-        bom.code.toLowerCase().includes(q) ||
-        bom.name.toLowerCase().includes(q),
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return boms;
+    return boms.filter((bom) =>
+      [bom.code, bom.name, bom.fgSku || ""].some((value) => value.toLowerCase().includes(q)),
     );
   }, [boms, searchQuery]);
 
   async function loadBoms() {
-    setLoading(true);
     try {
-      const data = await fetchBOMs();
-      setBoms(data || []);
-    } catch (err) {
-      showToast("ไม่สามารถดึงข้อมูลสูตรการผลิตได้");
-    } finally {
-      setLoading(false);
+      setBoms((await fetchBOMs()) || []);
+    } catch {
+      showToast("โหลดสูตร BOM ไม่สำเร็จ");
     }
   }
 
@@ -221,216 +102,136 @@ export default function BomPage() {
     loadBoms();
   }, []);
 
-  function showToast(msg: string) {
-    setToast(msg);
-    window.setTimeout(() => setToast(""), 3600);
+  function showToast(message: string) {
+    setToast(message);
+    window.setTimeout(() => setToast(""), 3000);
   }
 
-  async function handleCreateBOM(newBom: {
-    code: string;
-    name: string;
-    outputQty: number;
-    outputUnit: string;
-    status: string;
-    effectiveDate: string;
-    cost: number;
-  }) {
+  async function handleCreateBOM(newBom: CreateBomPayload) {
     try {
       await createBOM(newBom);
       await loadBoms();
-      showToast(`สร้างสูตรการผลิต ${newBom.code} สำเร็จ!`);
+      showToast(`สร้างสูตร BOM แล้ว: ${newBom.code}`);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "สร้างสูตรไม่สำเร็จ");
+      showToast(err instanceof Error ? err.message : "สร้างสูตร BOM ไม่สำเร็จ");
       throw err;
     }
   }
 
+  async function handleDeleteBOM(bom: BOMSummary) {
+    if (!confirm(`คุณต้องการลบสูตร BOM "${bom.name}" (${bom.code}) ใช่หรือไม่?`)) return;
+    try {
+      await deleteBOM(bom.id);
+      await loadBoms();
+      showToast(`ลบสูตร BOM แล้ว: ${bom.code}`);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "ลบสูตร BOM ไม่สำเร็จ");
+    }
+  }
+
   return (
-    <div
-      className="min-h-screen bg-canvas pb-16"
-      style={{ background: c.canvas }}
-    >
+    <div className="min-h-screen bg-canvas pb-16">
       <TopBar
         t={t}
-        breadcrumb={["Chawy", "Inventory", "Materials"]}
-        title="จัดการวัตถุดิบและบรรจุภัณฑ์"
-        subtitle="แสดงรายการและราคาต้นทุนของวัตถุดิบและบรรจุภัณฑ์ทั้งหมดในระบบ"
-        right={
-          <div className="flex items-center gap-2">
-            {toast && (
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-500 pr-2">
-                {toast}
-              </span>
-            )}
-          </div>
-        }
+        breadcrumb={["Chawy ERP", "Production", "BOM"]}
+        title="สูตร BOM"
+        subtitle="จัดการสูตรหลายชั้น วัตถุดิบย่อย Waste ต้นทุน และเวอร์ชัน"
+        right={toast ? <span className="pr-2 text-xs font-semibold text-emerald-600">{toast}</span> : null}
       />
 
       <PageBody t={t}>
-        <div className="flex items-center justify-between gap-4 mb-4">
-          <div className="relative flex-1 max-w-[360px]">
-            <Input
-              type="text"
-              placeholder="ค้นหาสูตรการผลิตด้วย SKU, รหัส หรือชื่อสูตร..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full"
-            />
-          </div>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <Input
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="ค้นหา BOM, SKU หรือชื่อสูตร..."
+            className="max-w-[360px]"
+          />
           <Button
-            onClick={() => setShowAddRmModal(true)}
-            className="cursor-pointer bg-[var(--erp-accent)] text-white hover:opacity-90 border-none shadow-none"
+            onClick={() => setShowCreate(true)}
+            className="cursor-pointer border-none bg-[var(--erp-accent)] text-white shadow-none hover:opacity-90"
           >
-            + สร้างข้อมูลวัตถุดิบ
+            + สร้างสูตร BOM
           </Button>
         </div>
 
-        <Card
-          t={t}
-          pad={false}
-          className="overflow-hidden mb-4 border border-border bg-card"
-          style={{
-            borderColor: "var(--erp-border)",
-            background: "var(--erp-surface)",
-          }}
-        >
-          <div
-            className="p-5 border-b border-border"
-            style={{ borderColor: "var(--erp-border)" }}
-          >
-            <div
-              className="text-sm font-semibold text-foreground"
-              style={{ color: "var(--erp-ink)" }}
-            >
-              รายการสูตรการผลิตทั้งหมด (Bill of Materials Master)
-            </div>
-            <div
-              className="text-xs text-muted-foreground mt-1"
-              style={{ color: "var(--erp-ink3)" }}
-            >
-              แสดงสูตรการผลิตและต้นทุนการผลิตต่อหน่วยตามโครงสร้างสูตรทั้งหมดที่มีในระบบ
-            </div>
-          </div>
-          <Table className="w-full border-collapse">
-            <TableHeader
-              className="bg-muted/50 border-b border-border"
-              style={{
-                background: "var(--erp-subtle)",
-                borderColor: "var(--erp-border)",
-              }}
-            >
-              <TableRow>
-                <TableHead
-                  className="p-3 text-xs font-bold text-muted-foreground uppercase text-left"
-                  style={{ color: "var(--erp-ink3)" }}
-                >
-                  รหัสสูตร (BOM Code)
-                </TableHead>
-                <TableHead
-                  className="p-3 text-xs font-bold text-muted-foreground uppercase text-left"
-                  style={{ color: "var(--erp-ink3)" }}
-                >
-                  ชื่อสูตรการผลิต (BOM Name)
-                </TableHead>
-                <TableHead
-                  className="p-3 text-xs font-bold text-muted-foreground uppercase text-right"
-                  style={{ color: "var(--erp-ink3)" }}
-                >
-                  ปริมาณผลผลิต
-                </TableHead>
-                <TableHead
-                  className="p-3 text-xs font-bold text-muted-foreground uppercase text-right"
-                  style={{ color: "var(--erp-ink3)" }}
-                >
-                  ต้นทุนอ้างอิง
-                </TableHead>
-                <TableHead
-                  className="p-3 text-xs font-bold text-muted-foreground uppercase text-left"
-                  style={{ color: "var(--erp-ink3)" }}
-                >
-                  สถานะ
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredBoms.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="p-5 text-center text-muted-foreground text-sm"
-                    style={{ color: "var(--erp-ink3)" }}
+        <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
+          {filteredBoms.length === 0 ? (
+            <Card t={t} className="text-center md:col-span-2">
+              <h3 className="mb-1 text-sm font-bold" style={{ color: "var(--erp-ink)" }}>
+                ยังไม่มีสูตร BOM
+              </h3>
+              <div className="text-xs" style={{ color: "var(--erp-ink3)" }}>
+                สร้างข้อมูลสินค้า วัตถุดิบ และสูตรก่อนเริ่มการผลิต
+              </div>
+            </Card>
+          ) : (
+            filteredBoms.map((bom) => (
+              <Card key={bom.id} t={t} className="border border-border bg-card">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-extrabold text-emerald-700">
+                      {bom.status || "Active"}
+                    </span>
+                    <span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-extrabold text-amber-700">
+                      Waste {bom.waste || 0}%
+                    </span>
+                  </div>
+                  <Button
+                    onClick={() => handleDeleteBOM(bom)}
+                    variant="destructive"
+                    size="xs"
+                    className="cursor-pointer border border-[#FEE2E2] bg-[#FFF5F5] text-destructive hover:bg-destructive/10"
+                    style={{ borderColor: "#FEE2E2" }}
                   >
-                    ไม่พบข้อมูลสูตรการผลิตในระบบ
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredBoms.map((row, i) => {
-                  const statusColor =
-                    row.status === "Active"
-                      ? c.pos
-                      : row.status === "Inactive"
-                        ? c.neg
-                        : c.ink3;
-                  return (
-                    <TableRow
-                      key={row.id}
-                      className="hover:bg-muted/30 border-b border-border"
-                      style={{ borderColor: "var(--erp-subtle)" }}
+                    ลบ
+                  </Button>
+                </div>
+
+                <h3 className="mb-1 text-sm font-bold" style={{ color: "var(--erp-ink)" }}>
+                  {bom.name}
+                </h3>
+                <div className="mb-3 text-[10px]" style={{ color: "var(--erp-ink3)" }}>
+                  {bom.code} · Version {bom.version || 1} · ได้ {bom.outputQty} {bom.outputUnit}
+                </div>
+
+                <div className="divide-y divide-stone-100">
+                  {(bom.components || []).map((part) => (
+                    <div
+                      key={`${bom.id}-${part.componentSku}`}
+                      className={`grid grid-cols-[1fr_auto] gap-2 py-2 text-[11px] ${
+                        part.isSubComponent ? "rounded-md bg-stone-50 px-2" : ""
+                      }`}
                     >
-                      <TableCell className="p-3">
-                        <Mono t={t} size={12} weight={600}>
-                          {row.code}
-                        </Mono>
-                      </TableCell>
-                      <TableCell className="p-3">
-                        <span
-                          className="text-sm font-semibold text-foreground"
-                          style={{ color: "var(--erp-ink)" }}
-                        >
-                          {row.name}
-                        </span>
-                      </TableCell>
-                      <TableCell className="p-3 text-right">
-                        <span
-                          className="text-xs text-foreground"
-                          style={{ color: "var(--erp-ink)" }}
-                        >
-                          {row.outputQty || 0} {row.outputUnit || "ชิ้น"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="p-3 text-right">
-                        <Mono
-                          t={t}
-                          size={12}
-                          weight={600}
-                          style={{ color: "var(--erp-pos)" }}
-                        >
-                          {formatBaht(row.cost || 0)}
-                        </Mono>
-                      </TableCell>
-                      <TableCell className="p-3">
-                        <span
-                          className="text-[11px] font-semibold rounded px-2 py-0.5"
-                          style={{
-                            color: statusColor,
-                            background: `${statusColor}18`,
-                          }}
-                        >
-                          {row.status || "Draft"}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </Card>
+                      <span style={{ color: "var(--erp-ink)" }}>
+                        {part.isSubComponent ? "▾ Sub-component: " : ""}
+                        {part.componentName || part.componentSku}
+                      </span>
+                      <b>
+                        {part.qty} {part.unit}
+                        {part.scrapRate ? ` · Scrap ${part.scrapRate}%` : ""}
+                      </b>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-3 flex items-center justify-between gap-3 text-[11px] font-extrabold">
+                  <span>ต้นทุนจากสต็อกปัจจุบัน</span>
+                  <span>
+                    {formatBaht(bom.cost || 0)} · {formatBaht((bom.cost || 0) / Math.max(bom.outputQty || 1, 1))}
+                    /{bom.outputUnit}
+                  </span>
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
       </PageBody>
 
       <CreateBomDialog
-        open={showAddRmModal}
-        onOpenChange={setShowAddRmModal}
+        open={showCreate}
+        onOpenChange={setShowCreate}
+        existingBoms={boms}
         onCreate={handleCreateBOM}
         showToast={showToast}
       />
