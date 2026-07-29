@@ -27,6 +27,7 @@ const ROUTE_RESOURCES: Record<string, ErpResource[]> = {
 	'/pl': ['salesOrders', 'expenses', 'tiktokOrders'],
 	'/budget': ['budgets', 'expenses'],
 	'/tiktok-orders': ['tiktokOrders', 'liveSessions'],
+	'/tiktok-products': [],
 	'/live-sessions': ['liveSessions', 'contentSchedule', 'settings'],
 	'/manual-order': ['manualOrders', 'products'],
 	'/sampling': ['samplingCampaigns', 'products'],
