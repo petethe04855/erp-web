@@ -16,12 +16,14 @@ import {
 import { readApiResponse } from "@/lib/apiResponse";
 import { useTheme } from "@/lib/design/ThemeContext";
 
-type UnknownRecord = Record<string, unknown>;
+type UnknownRecord = Record<string, any>;
 type TikTokProduct = {
   id: string;
   name: string;
   status: string;
   skus: string[];
+  stock: number | null;
+  price: string;
 };
 
 const getApiUrl = () =>
@@ -45,7 +47,48 @@ function asString(value: unknown) {
     : "";
 }
 
-function extractProducts(payload: unknown): { products: TikTokProduct[]; total: number } {
+function asNumber(value: unknown): number | null {
+  const number = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function stockFromRecord(record: UnknownRecord): number | null {
+  for (const value of [
+    record.available_stock,
+    record.available_quantity,
+    record.stock,
+    record.quantity,
+  ]) {
+    const stock = asNumber(value);
+    if (stock !== null) return stock;
+  }
+  const inventoryEntries = Array.isArray(record.inventory)
+    ? record.inventory.map(asRecord)
+    : [];
+  const inventoryQuantity = inventoryEntries
+    .map((item) => asNumber(item.quantity))
+    .filter((quantity): quantity is number => quantity !== null);
+  if (inventoryQuantity.length) {
+    return inventoryQuantity.reduce((total, quantity) => total + quantity, 0);
+  }
+
+  const inventory = asRecord(record.inventory || record.stock_info);
+  for (const value of [
+    inventory.available_stock,
+    inventory.available_quantity,
+    inventory.stock,
+    inventory.quantity,
+  ]) {
+    const stock = asNumber(value);
+    if (stock !== null) return stock;
+  }
+  return null;
+}
+
+function extractProducts(payload: unknown): {
+  products: TikTokProduct[];
+  total: number;
+} {
   const data = asRecord(payload);
   const nested = asRecord(data.data);
   const source = [
@@ -63,15 +106,34 @@ function extractProducts(payload: unknown): { products: TikTokProduct[]; total: 
         return asString(value.seller_sku || value.sku_id || value.id);
       })
       .filter(Boolean);
+    const skuStocks = skuItems
+      .map((sku) => stockFromRecord(asRecord(sku)))
+      .filter((stock): stock is number => stock !== null);
+    const skuStock = skuStocks.length
+      ? skuStocks.reduce((total, stock) => total + stock, 0)
+      : null;
+    const firstSkuPrice = skuItems[0]
+      ? asRecord(asRecord(skuItems[0]).price)
+      : {};
+    const rawPrice =
+      product.price?.tax_exclusive_price || firstSkuPrice.tax_exclusive_price;
+
     return {
       id: asString(product.product_id || product.id),
       name: asString(product.title || product.name) || "Untitled product",
       status: asString(product.status) || "-",
       skus,
+      stock: stockFromRecord(product) ?? skuStock,
+      price: asString(rawPrice) || "-",
     };
   });
-  const total = Number(data.total_count || data.total || nested.total_count || nested.total);
-  return { products, total: Number.isFinite(total) && total >= 0 ? total : products.length };
+  const total = Number(
+    data.total_count || data.total || nested.total_count || nested.total,
+  );
+  return {
+    products,
+    total: Number.isFinite(total) && total >= 0 ? total : products.length,
+  };
 }
 
 export default function TikTokProductsPage() {
@@ -80,6 +142,7 @@ export default function TikTokProductsPage() {
   const [products, setProducts] = useState<TikTokProduct[]>([]);
   const [totalProducts, setTotalProducts] = useState(0);
   const [rawResponse, setRawResponse] = useState<unknown>(null);
+  const [outgoingRequest, setOutgoingRequest] = useState<unknown>(null);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,18 +152,22 @@ export default function TikTokProductsPage() {
     setError(null);
     try {
       const response = await fetch(
-        `${getApiUrl()}/api/tiktok/products?status=ACTIVATE&page_size=100`,
+        `${getApiUrl()}/api/tiktok/products?status=ACTIVATE&page_size=100&debug=true`,
         { headers: authHeaders(), cache: "no-store" },
       );
       const payload = await readApiResponse<unknown>(response);
-      const result = extractProducts(payload);
+      const debugPayload = asRecord(payload);
+      const tiktokResponse = debugPayload.response ?? payload;
+      const result = extractProducts(tiktokResponse);
       setProducts(result.products);
       setTotalProducts(result.total);
-      setRawResponse(payload);
+      setRawResponse(tiktokResponse);
+      setOutgoingRequest(debugPayload.outgoingRequest ?? null);
     } catch (err) {
       setProducts([]);
       setTotalProducts(0);
       setRawResponse(null);
+      setOutgoingRequest(null);
       setError(
         err instanceof Error
           ? err.message
@@ -124,6 +191,10 @@ export default function TikTokProductsPage() {
       ),
     );
   }, [products, query]);
+  const totalStock = useMemo(
+    () => products.reduce((total, product) => total + (product.stock ?? 0), 0),
+    [products],
+  );
 
   return (
     <div className="min-h-screen pb-16" style={{ background: c.canvas }}>
@@ -144,7 +215,7 @@ export default function TikTokProductsPage() {
         }
       />
 
-      <div className="mx-auto flex max-w-[1280px] flex-col gap-6 p-6 md:p-8">
+      <div className="mx-auto flex max-w-full flex-col gap-6 p-6 md:p-8">
         <Card
           t={t}
           className="border p-5"
@@ -154,9 +225,20 @@ export default function TikTokProductsPage() {
           }}
         >
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-6">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--erp-accent-soft)] text-[var(--erp-accent)]">
                 <PackageSearch size={21} />
+              </div>
+              <div>
+                <p
+                  className="text-2xl font-bold"
+                  style={{ color: "var(--erp-ink)" }}
+                >
+                  {totalStock}
+                </p>
+                <p className="text-xs" style={{ color: "var(--erp-ink3)" }}>
+                  คงเหลือรวม
+                </p>
               </div>
               <div>
                 <p
@@ -208,7 +290,13 @@ export default function TikTokProductsPage() {
             background: "var(--erp-surface)",
           }}
         >
-          <div className="border-b px-5 py-3 text-xs" style={{ borderColor: "var(--erp-border)", color: "var(--erp-ink3)" }}>
+          <div
+            className="border-b px-5 py-3 text-xs"
+            style={{
+              borderColor: "var(--erp-border)",
+              color: "var(--erp-ink3)",
+            }}
+          >
             แสดง {filteredProducts.length} จาก {totalProducts} รายการ
           </div>
           <Table>
@@ -217,6 +305,8 @@ export default function TikTokProductsPage() {
                 <TableHead>สินค้า</TableHead>
                 <TableHead>Product ID</TableHead>
                 <TableHead>SKU</TableHead>
+                <TableHead>ราคา</TableHead>
+                <TableHead>คงเหลือ</TableHead>
                 <TableHead>สถานะ</TableHead>
               </TableRow>
             </TableHeader>
@@ -224,7 +314,7 @@ export default function TikTokProductsPage() {
               {loading ? (
                 <TableRow>
                   <TableCell
-                    colSpan={4}
+                    colSpan={5}
                     className="py-12 text-center text-sm"
                     style={{ color: "var(--erp-ink3)" }}
                   >
@@ -234,7 +324,7 @@ export default function TikTokProductsPage() {
               ) : filteredProducts.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={4}
+                    colSpan={5}
                     className="py-12 text-center text-sm"
                     style={{ color: "var(--erp-ink3)" }}
                   >
@@ -265,6 +355,18 @@ export default function TikTokProductsPage() {
                     >
                       {product.skus.join(", ") || "-"}
                     </TableCell>
+                    <TableCell
+                      className="font-semibold"
+                      style={{ color: "var(--erp-ink)" }}
+                    >
+                      {product.price ?? "-"}
+                    </TableCell>
+                    <TableCell
+                      className="font-semibold"
+                      style={{ color: "var(--erp-ink)" }}
+                    >
+                      {product.stock ?? "-"}
+                    </TableCell>
                     <TableCell>
                       <span className="rounded-full bg-[var(--erp-accent-soft)] px-2 py-1 text-xs font-semibold text-[var(--erp-accent)]">
                         {product.status}
@@ -277,7 +379,7 @@ export default function TikTokProductsPage() {
           </Table>
         </Card>
 
-        {rawResponse !== null && (
+        {/* {rawResponse !== null && (
           <details className="rounded-xl border p-4" style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}>
             <summary className="cursor-pointer text-sm font-semibold" style={{ color: "var(--erp-ink)" }}>
               API response — /api/tiktok/products?status=ACTIVATE&page_size=100
@@ -286,7 +388,18 @@ export default function TikTokProductsPage() {
               {JSON.stringify(rawResponse, null, 2)}
             </pre>
           </details>
-        )}
+        )} */}
+
+        {/* {outgoingRequest !== null && (
+          <details className="rounded-xl border p-4" style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)" }}>
+            <summary className="cursor-pointer text-sm font-semibold" style={{ color: "var(--erp-ink)" }}>
+              Outgoing request (redacted)
+            </summary>
+            <pre className="mt-4 max-h-[480px] overflow-auto rounded-lg p-4 text-xs" style={{ color: "var(--erp-ink)", background: "var(--erp-canvas)" }}>
+              {JSON.stringify(outgoingRequest, null, 2)}
+            </pre>
+          </details>
+        )} */}
       </div>
     </div>
   );
