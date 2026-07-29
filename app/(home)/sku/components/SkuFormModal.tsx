@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { ValidationAlert } from "@/components/ValidationAlert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -69,11 +70,7 @@ export default function SkuFormModal({
           </Button>
         </div>
 
-        {error && (
-          <div className="mb-3.5 rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-600">
-            {error}
-          </div>
-        )}
+        <ValidationAlert message={error} />
 
         <div className="grid grid-cols-2 gap-3.5">
           <div>

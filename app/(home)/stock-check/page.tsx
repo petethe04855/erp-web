@@ -61,6 +61,14 @@ export default function StockCheckPage() {
   const totalVariance = variances.reduce((s, v) => s + v.variance, 0);
 
   function handleSubmit() {
+    const belowReserved = products.find((p) => {
+      const actualQty = parseInt(counts[p.sku]) || 0;
+      return actualQty < p.reservedQty;
+    });
+    if (belowReserved) {
+      showToast(`นับ ${belowReserved.name} ไม่ได้: ยอดจริงต้องไม่น้อยกว่าที่จองขาย ${belowReserved.reservedQty} ชิ้น`);
+      return;
+    }
     const items = products.map((p) => ({
       sku: p.sku,
       actualQty: parseInt(counts[p.sku]) || 0,

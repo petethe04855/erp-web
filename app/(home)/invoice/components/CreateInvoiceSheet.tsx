@@ -14,6 +14,7 @@ import {
   SheetFooter,
 } from "@/components/ui/sheet";
 import { useTheme } from "@/lib/design/ThemeContext";
+import { ValidationAlert } from "@/components/ValidationAlert";
 
 const today = new Date().toISOString().split("T")[0];
 const due14 = new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0];
@@ -63,6 +64,7 @@ export function CreateInvoiceSheet({
     dueDate: string;
     amount: number | "";
   }>(BLANK);
+  const [validationError, setValidationError] = useState("");
 
   function onSoSelect(soId: string) {
     const so = eligibleSOs.find((s) => s.id === soId);
@@ -79,13 +81,16 @@ export function CreateInvoiceSheet({
   }
 
   function handleSubmit() {
-    if (!form.customer) return;
+    if (!form.customer) {
+      setValidationError("กรุณากรอกชื่อลูกค้า");
+      return;
+    }
     if (form.amount === "" || Number(form.amount) <= 0) {
-      showToast("กรุณากรอกมูลค่าที่มากกว่า 0");
+      setValidationError("กรุณากรอกมูลค่าที่มากกว่า 0");
       return;
     }
     if (form.dueDate < form.issueDate) {
-      showToast("วันครบกำหนดต้อง >= วันที่ออก");
+      setValidationError("วันครบกำหนดต้อง >= วันที่ออก");
       return;
     }
 
@@ -96,6 +101,7 @@ export function CreateInvoiceSheet({
       dueDate: form.dueDate,
       amount: Number(form.amount),
     });
+    setValidationError("");
     setForm(BLANK);
     onOpenChange(false);
   }
@@ -111,6 +117,7 @@ export function CreateInvoiceSheet({
             สร้างใบแจ้งหนี้
           </SheetTitle>
         </SheetHeader>
+        <ValidationAlert message={validationError} />
         <SheetBody className="grid gap-4 overflow-y-auto">
           <div>
             <Label

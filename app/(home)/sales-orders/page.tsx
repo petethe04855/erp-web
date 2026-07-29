@@ -66,6 +66,10 @@ function formatDateShort(date: string) {
   return `${months[d.getMonth()]} ${String(d.getDate()).padStart(2, "0")}`;
 }
 
+function fmtBaht2(value: number) {
+  return `฿${Number.isFinite(value) ? value.toFixed(2) : '0.00'}`;
+}
+
 export default function SalesOrdersPage() {
   const { tokens: t } = useTheme();
   const c = t.color;
@@ -79,6 +83,7 @@ export default function SalesOrdersPage() {
   );
 
   const [open, setOpen] = useState(false);
+  const [formError, setFormError] = useState("");
   const [form, setForm] = useState<{
     customer: string;
     date: string;
@@ -114,7 +119,13 @@ export default function SalesOrdersPage() {
 
   const lineTotal = form.lines.reduce((s, line) => {
     const product = products.find((p) => p.sku === line.sku);
-    return s + (product ? product.price * Number(line.qty) : 0);
+    // Bundle cost is recalculated whenever its BOM is saved; use that value
+    // for the SO amount rather than a stale manually-entered selling price.
+    const unitPrice = Number(
+      line.bomUnitCost ?? (product?.isBundle ? product.cost : (product?.retailPrice ?? product?.price ?? 0)),
+    );
+    const qty = Number(line.qty);
+    return s + (Number.isFinite(unitPrice) && Number.isFinite(qty) ? unitPrice * qty : 0);
   }, 0);
 
   const itemsShipped = filtered.reduce((s, order) => s + order.items, 0);
@@ -127,32 +138,54 @@ export default function SalesOrdersPage() {
     setTimeout(() => setToast(""), 3000);
   }
 
-  function handleSubmit() {
-    if (!form.customer) return;
+  async function handleSubmit() {
+    if (!form.customer) {
+      setFormError("กรุณากรอกชื่อลูกค้า");
+      return;
+    }
     const hasInvalidLine = form.lines.some(
       (l) => l.qty === "" || Number(l.qty) <= 0,
     );
     if (hasInvalidLine) {
-      showToast("กรุณากรอกจำนวนสินค้าให้ถูกต้อง (มากกว่า 0)");
+      setFormError("กรุณากรอกจำนวนสินค้าให้ถูกต้อง (มากกว่า 0)");
+      return;
+    }
+    const quantitiesByBom = new Map<string, { qty: number; max: number }>();
+    for (const line of form.lines) {
+      if (!line.sku || line.bomAvailableQty === undefined) continue;
+      const key = String(line.bomId ?? line.sku);
+      const current = quantitiesByBom.get(key) ?? { qty: 0, max: line.bomAvailableQty };
+      current.qty += Number(line.qty);
+      quantitiesByBom.set(key, current);
+    }
+    const overBomCapacity = Array.from(quantitiesByBom.values()).find(item => item.qty > item.max);
+    if (overBomCapacity) {
+      setFormError(`จำนวนสินค้าเกินกำลังผลิตจาก BOM (สูงสุด ${overBomCapacity.max} ชิ้น)`);
       return;
     }
     const validLines = form.lines
       .filter((line) => line.sku)
       .map((line) => ({ ...line, qty: Number(line.qty) }));
     if (validLines.length === 0) {
-      showToast("กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ");
+      setFormError("กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ");
       return;
     }
-    createSalesOrder({
-      customer: form.customer,
-      date: form.date,
-      amount: lineTotal || 0,
-      status: "Pending",
-      channel: form.channel as "Manual" | "LINE" | "Shopee" | "TikTok",
-      items: validLines.length || 1,
-      qtRef: form.qtRef || null,
-      lines: validLines,
-    });
+    try {
+      await createSalesOrder({
+        customer: form.customer,
+        date: form.date,
+        amount: lineTotal || 0,
+        status: "Pending",
+        channel: form.channel as "Manual" | "LINE" | "Shopee" | "TikTok",
+        items: validLines.length || 1,
+        qtRef: form.qtRef || null,
+        lines: validLines,
+      });
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "สร้าง Sales Order ไม่สำเร็จ");
+      return;
+    }
+    setFormError("");
     setForm(BLANK);
     setOpen(false);
     showToast("สร้าง Sales Order แล้ว");
@@ -209,7 +242,10 @@ export default function SalesOrdersPage() {
             <Button
               variant="default"
               size="sm"
-              onClick={() => setOpen(true)}
+              onClick={() => {
+                setFormError("");
+                setOpen(true);
+              }}
               className="cursor-pointer bg-[var(--erp-accent)] text-white hover:opacity-90 shadow-none border-none"
             >
               + New Order
@@ -375,7 +411,7 @@ export default function SalesOrdersPage() {
                     </TableCell>
                     <TableCell className="p-3 text-right">
                       <Mono t={t} size={13} weight={600}>
-                        {fmtBaht(order.amount)}
+                        {fmtBaht2(order.amount)}
                       </Mono>
                     </TableCell>
                     <TableCell className="p-3">
@@ -410,11 +446,15 @@ export default function SalesOrdersPage() {
       <SalesOrderFormPanel
         t={t}
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={() => {
+          setFormError("");
+          setOpen(false);
+        }}
         form={form}
         setForm={setForm}
         products={products}
         lineTotal={lineTotal}
+        error={formError}
         onSubmit={handleSubmit}
       />
     </div>

@@ -9,6 +9,10 @@ import {
 	type BundleComponent,
 	type SamplingCampaign,
 	type SamplingRecipient,
+	type GoodsIssue,
+	type CreateGoodsIssueInput,
+	type SalesOrder,
+	type CreateSalesOrderInput,
 } from '@/lib/store/erpWorkflow'
 import type { AppUser, ErpSettings } from '@/lib/store/erpTypes'
 import { readApiResponse } from '@/lib/apiResponse'
@@ -114,7 +118,7 @@ export type ErpResource = keyof typeof ERP_RESOURCE_ENDPOINTS
 const loadedResources = new Set<ErpResource>()
 const loadingResources = new Map<ErpResource, Promise<void>>()
 
-interface CustomErpStore extends ErpWorkflowStore {
+interface CustomErpStore extends Omit<ErpWorkflowStore, 'createGoodsIssue' | 'createSalesOrder'> {
 	users: AppUser[]
 	fetchInitialState: () => Promise<void>
 	loadResources: (resources: ErpResource[], force?: boolean) => Promise<void>
@@ -123,6 +127,8 @@ interface CustomErpStore extends ErpWorkflowStore {
 	updateUserStatus: (id: string, isActive: boolean) => Promise<AppUser>
 	deleteUser: (id: string) => Promise<void>
 	updateExpense: (id: string, input: Partial<any>) => Promise<void>
+	createGoodsIssue: (input: CreateGoodsIssueInput) => Promise<GoodsIssue | null>
+	createSalesOrder: (input: CreateSalesOrderInput) => Promise<SalesOrder>
 }
 
 export const useErpStore = create<CustomErpStore>((set, get) => {
@@ -159,7 +165,12 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 		await Promise.all(resources.map(async resource => {
 			if (!force && loadedResources.has(resource)) return
 			const existing = loadingResources.get(resource)
-			if (existing) return existing
+			if (existing) {
+				if (!force) return existing
+				// Do not let a response started before a stock mutation win over the
+				// post-mutation refresh. Finish it, then request current server data.
+				await existing
+			}
 
 			const request = (async () => {
 				try {
@@ -346,6 +357,7 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 			let required = comp.qty / (comp.yieldFactor || 1)
 			if (comp.unit === 'g' && prod.baseUnit === 'kg') required /= 1000
 			if (comp.unit === 'kg' && prod.baseUnit === 'g') required *= 1000
+			required = Math.ceil(required)
 			virtualQty = Math.min(virtualQty, Math.floor(available / required))
 		}
 		return virtualQty === Infinity ? 0 : virtualQty
@@ -389,16 +401,14 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 	},
 
 	// ── Sales Orders ──
-	createSalesOrder: (input) => {
-		const salesOrder = workflow.createSalesOrder(input)
-		fetch(`${getApiUrl()}/api/sales-orders`, {
+	createSalesOrder: async (input) => {
+		const response = await fetch(`${getApiUrl()}/api/sales-orders`, {
 			method: 'POST',
 			headers: getHeaders(),
-			body: JSON.stringify(salesOrder),
-		}).then(res => {
-			if (res.ok) get().fetchInitialState()
+			body: JSON.stringify(input),
 		})
-
+		const salesOrder = await readApiResponse<SalesOrder>(response)
+		await get().loadResources(['salesOrders', 'products'], true)
 		return salesOrder
 	},
 
@@ -604,17 +614,21 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 	},
 
 	// ── Goods Issue ──
-	createGoodsIssue: (input) => {
-		const goodsIssue = workflow.createGoodsIssue(input)
-		if (!goodsIssue) return null
-		fetch(`${getApiUrl()}/api/goods-issues`, {
-			method: 'POST',
-			headers: getHeaders(),
-			body: JSON.stringify(goodsIssue),
-		}).then(res => {
-			if (res.ok) get().fetchInitialState()
-		})
-		return goodsIssue
+	createGoodsIssue: async (input) => {
+		try {
+			const response = await fetch(`${getApiUrl()}/api/goods-issues`, {
+				method: 'POST',
+				headers: getHeaders(),
+				body: JSON.stringify(input),
+			})
+			const goodsIssue = await readApiResponse<GoodsIssue>(response)
+			// Goods Issue changes stock totals, FEFO lots, and the movement ledger.
+			// Force-refresh these resources even when the user has not opened their pages yet.
+			await get().loadResources(['products', 'stockLots', 'stockMovements', 'goodsIssues'], true)
+			return goodsIssue
+		} catch {
+			return null
+		}
 	},
 
 	// ── Returns ──

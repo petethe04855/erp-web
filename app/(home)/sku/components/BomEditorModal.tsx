@@ -68,6 +68,7 @@ export default function BomEditorModal({
                 let required = r.qty / (r.yieldFactor || 1)
                 if (r.unit === 'g' && cp.baseUnit === 'kg') required /= 1000
                 if (r.unit === 'kg' && cp.baseUnit === 'g') required *= 1000
+                required = Math.ceil(required)
                 const canMake = Math.floor(avail / required)
                 return (
                   <div key={r.componentSku} className="text-xs text-muted-foreground">
@@ -83,6 +84,7 @@ export default function BomEditorModal({
                 let required = r.qty / (r.yieldFactor || 1)
                 if (r.unit === 'g' && cp.baseUnit === 'kg') required /= 1000
                 if (r.unit === 'kg' && cp.baseUnit === 'g') required *= 1000
+                required = Math.ceil(required)
                 return Math.floor(Math.max(0, cp.stock - cp.reservedQty) / required)
               }))} ชุด
             </div>

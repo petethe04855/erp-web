@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/sheet";
 import { useTheme } from "@/lib/design/ThemeContext";
 import { formatBaht } from "@/lib/mockData";
+import { ValidationAlert } from "@/components/ValidationAlert";
 
 type ItemLine = {
   sku: string;
@@ -56,6 +57,7 @@ export function CreatePOSheet({
   const c = t.color;
 
   const [form, setForm] = useState(BLANK);
+  const [validationError, setValidationError] = useState("");
 
   const lineTotal = form.items.reduce(
     (s, line) => s + Number(line.qty) * Number(line.unitCost),
@@ -101,7 +103,7 @@ export function CreatePOSheet({
         Number(i.unitCost) < 0,
     );
     if (hasInvalidItem) {
-      showToast("กรุณากรอกจำนวนและราคาสินค้าให้ถูกต้อง");
+      setValidationError("กรุณากรอกจำนวนและราคาสินค้าให้ถูกต้อง");
       return;
     }
     const validItems = form.items
@@ -113,7 +115,7 @@ export function CreatePOSheet({
         unitCost: Number(i.unitCost),
       }));
     if (!form.supplier || !form.etaDate || validItems.length === 0) {
-      showToast("กรุณากรอกซัพพลายเออร์ วัน ETA และรายการ");
+      setValidationError("กรุณากรอกซัพพลายเออร์ วัน ETA และรายการ");
       return;
     }
 
@@ -122,6 +124,7 @@ export function CreatePOSheet({
       etaDate: form.etaDate,
       items: validItems,
     });
+    setValidationError("");
     setForm(BLANK);
     onOpenChange(false);
   }
@@ -143,6 +146,7 @@ export function CreatePOSheet({
             Total {formatBaht(lineTotal)}
           </div>
         </SheetHeader>
+        <ValidationAlert message={validationError} />
         <SheetBody className="space-y-3">
           <div>
             <Label

@@ -20,7 +20,7 @@ const ROUTE_RESOURCES: Record<string, ErpResource[]> = {
 	'/bom': ['products', 'bundleComponents'],
 	'/stock': ['products', 'stockLots'],
 	'/goods-receive': ['goodsReceives', 'purchaseOrders'],
-	'/goods-issue': ['products', 'goodsIssues'],
+	'/goods-issue': ['products', 'stockLots', 'stockMovements', 'goodsIssues'],
 	'/stock-transfer': ['products', 'stockTransfers'],
 	'/stock-check': ['products', 'stockAdjustments'],
 	'/expenses': ['expenses'],

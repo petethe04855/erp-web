@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/sheet";
 import type { GoodsIssueReason } from "@/lib/store/erpWorkflow";
 import { useTheme } from "@/lib/design/ThemeContext";
+import { ValidationAlert } from "@/components/ValidationAlert";
 
 const REASONS: GoodsIssueReason[] = [
   "ตัวอย่าง",
@@ -38,6 +39,7 @@ interface Product {
   name: string;
   stock: number;
   reservedQty: number;
+  isBundle?: boolean;
 }
 
 interface GoodsIssueSheetProps {
@@ -48,7 +50,7 @@ interface GoodsIssueSheetProps {
     qty: number;
     reason: GoodsIssueReason;
     note: string;
-  }) => boolean;
+  }) => Promise<boolean> | boolean;
   products: Product[];
   showToast: (msg: string) => void;
 }
@@ -69,25 +71,29 @@ export function GoodsIssueSheet({
     reason: GoodsIssueReason;
     note: string;
   }>(BLANK);
+  const [validationError, setValidationError] = useState("");
 
   const selectedProduct = products.find((p) => p.sku === form.sku);
   const available = selectedProduct
     ? selectedProduct.stock - selectedProduct.reservedQty
     : 0;
-  const isOverStock = !!form.sku && Number(form.qty) > available;
+  const isOverStock = !!form.sku && !selectedProduct?.isBundle && Number(form.qty) > available;
 
-  function handleSubmit() {
-    if (!form.sku) return;
+  async function handleSubmit() {
+    if (!form.sku) {
+      setValidationError("กรุณาเลือกสินค้า");
+      return;
+    }
     if (form.qty === "" || Number(form.qty) < 1) {
-      showToast("กรุณากรอกจำนวนอย่างน้อย 1 ชิ้น");
+      setValidationError("กรุณากรอกจำนวนอย่างน้อย 1 ชิ้น");
       return;
     }
     if (isOverStock) {
-      showToast("จำนวนเกินสต๊อกพร้อมเบิก");
+      setValidationError("จำนวนเกินสต๊อกพร้อมเบิก");
       return;
     }
 
-    const success = onSubmit({
+    const success = await onSubmit({
       sku: form.sku,
       qty: Number(form.qty),
       reason: form.reason,
@@ -95,6 +101,7 @@ export function GoodsIssueSheet({
     });
 
     if (success) {
+      setValidationError("");
       setForm(BLANK);
       onOpenChange(false);
     }
@@ -114,6 +121,7 @@ export function GoodsIssueSheet({
             Issue Goods
           </SheetTitle>
         </SheetHeader>
+        <ValidationAlert message={validationError} />
         <SheetBody className="space-y-3">
           <div>
             <Label

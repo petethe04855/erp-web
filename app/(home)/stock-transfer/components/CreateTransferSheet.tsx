@@ -15,6 +15,7 @@ import {
   SheetFooter,
 } from "@/components/ui/sheet";
 import { useTheme } from "@/lib/design/ThemeContext";
+import { ValidationAlert } from "@/components/ValidationAlert";
 
 const LOCATIONS = [
   "คลังหลัก",
@@ -73,6 +74,7 @@ export function CreateTransferSheet({
   const c = t.color;
 
   const [form, setForm] = useState<TransferFormState>(BLANK_FORM);
+  const [validationError, setValidationError] = useState("");
 
   const selectedProduct = products.find((p) => p.sku === form.sku);
   const available = selectedProduct
@@ -81,17 +83,20 @@ export function CreateTransferSheet({
   const isOverStock = !!form.sku && Number(form.qty) > available;
 
   const handleFormSubmit = () => {
-    if (!form.sku) return;
+    if (!form.sku) {
+      setValidationError("กรุณาเลือกสินค้า");
+      return;
+    }
     if (form.qty === "" || Number(form.qty) < 1) {
-      showToast("กรุณากรอกจำนวนอย่างน้อย 1 ชิ้น");
+      setValidationError("กรุณากรอกจำนวนอย่างน้อย 1 ชิ้น");
       return;
     }
     if (isOverStock) {
-      showToast(`จำนวนเกินสต๊อกที่พร้อมโอน (${available} ชิ้น)`);
+      setValidationError(`จำนวนเกินสต๊อกที่พร้อมโอน (${available} ชิ้น)`);
       return;
     }
     if (form.fromLocation === form.toLocation) {
-      showToast("ต้นทางและปลายทางต้องไม่เหมือนกัน");
+      setValidationError("ต้นทางและปลายทางต้องไม่เหมือนกัน");
       return;
     }
 
@@ -103,6 +108,7 @@ export function CreateTransferSheet({
       note: form.note,
     });
 
+    setValidationError("");
     setForm(BLANK_FORM);
     onOpenChange(false);
   };
@@ -119,6 +125,7 @@ export function CreateTransferSheet({
           </div>
         </SheetHeader>
 
+        <ValidationAlert message={validationError} />
         <SheetBody className="grid gap-5 overflow-y-auto">
           <div className="flex flex-col gap-4">
             <div>

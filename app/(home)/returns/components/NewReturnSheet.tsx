@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/sheet";
 import { useTheme } from "@/lib/design/ThemeContext";
 import type { ReturnReason, ReturnCondition } from "@/lib/store/erpWorkflow";
+import { ValidationAlert } from "@/components/ValidationAlert";
 
 const REASONS: ReturnReason[] = [
   "สินค้าชำรุด",
@@ -86,6 +87,7 @@ export function NewReturnSheet({
   const c = t.color;
 
   const [form, setForm] = useState<FormState>(BLANK);
+  const [validationError, setValidationError] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -96,12 +98,16 @@ export function NewReturnSheet({
   const completedSOs = salesOrders.filter((o) => o.status === "Completed");
 
   function handleSubmit() {
+	if (!form.soRef) {
+		setValidationError("กรุณาเลือก Sales Order ที่จัดส่งสำเร็จ");
+		return;
+	}
     if (!form.sku) {
-      showToast("กรุณาเลือกสินค้า");
+      setValidationError("กรุณาเลือกสินค้า");
       return;
     }
     if (form.qty === "" || Number(form.qty) < 1) {
-      showToast("กรุณากรอกจำนวนอย่างน้อย 1 ชิ้น");
+      setValidationError("กรุณากรอกจำนวนอย่างน้อย 1 ชิ้น");
       return;
     }
     onSubmit({
@@ -113,6 +119,7 @@ export function NewReturnSheet({
       note: form.note,
       channel: form.channel,
     });
+    setValidationError("");
     onOpenChange(false);
   }
 
@@ -133,6 +140,7 @@ export function NewReturnSheet({
             บันทึกการรับสินค้ากลับจากลูกค้า
           </div>
         </SheetHeader>
+        <ValidationAlert message={validationError} />
         <SheetBody className="space-y-3">
           <div>
             <Label
@@ -153,7 +161,7 @@ export function NewReturnSheet({
                 }));
               }}
             >
-              <option value="">No SO reference</option>
+			  <option value="">Select completed Sales Order</option>
               {completedSOs.map((o) => (
                 <option key={o.id} value={o.id}>
                   {o.id} — {o.customer}
@@ -299,7 +307,7 @@ export function NewReturnSheet({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={!form.sku}
+			disabled={!form.soRef || !form.sku || form.qty === "" || Number(form.qty) < 1}
             className="bg-[var(--erp-accent)] text-white hover:opacity-90 border-none shadow-none cursor-pointer disabled:opacity-45"
           >
             Save Return

@@ -17,6 +17,7 @@ import {
 import { useTheme } from "@/lib/design/ThemeContext";
 import { formatBaht, type LeadSource } from "@/lib/mockData";
 import { Mono } from "@/components/ui";
+import { ValidationAlert } from "@/components/ValidationAlert";
 
 type Line = { sku: string; qty: number };
 const LEAD_SOURCES: LeadSource[] = [
@@ -72,6 +73,7 @@ export function NewQuotationSheet({
   const c = t.color;
 
   const [form, setForm] = useState(BLANK_FORM);
+  const [validationError, setValidationError] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -109,7 +111,7 @@ export function NewQuotationSheet({
   function handleSubmit() {
     const validLines = form.lines.filter((l) => l.sku && l.qty > 0);
     if (!form.customer || !form.validUntil || validLines.length === 0) {
-      showToast("กรุณากรอกลูกค้า วันหมดอายุ และสินค้า");
+      setValidationError("กรุณากรอกลูกค้า วันหมดอายุ และสินค้า");
       return;
     }
     onSubmit({
@@ -118,6 +120,7 @@ export function NewQuotationSheet({
       leadSource: form.leadSource,
       lines: validLines,
     });
+    setValidationError("");
     onOpenChange(false);
   }
 
@@ -141,6 +144,7 @@ export function NewQuotationSheet({
             Total {formatBaht(lineTotal)}
           </div>
         </SheetHeader>
+        <ValidationAlert message={validationError} />
         <SheetBody className="flex flex-col gap-4 overflow-y-auto">
           <div>
             <Label

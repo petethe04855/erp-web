@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/sheet";
 import { useTheme } from "@/lib/design/ThemeContext";
 import { formatBaht } from "@/lib/mockData";
+import { ValidationAlert } from "@/components/ValidationAlert";
 
 const CHANNELS = ["LINE", "Instagram", "Facebook", "Offline", "Other"];
 const CHANNEL_ICON: Record<string, string> = {
@@ -76,6 +77,7 @@ export function CreateOrderSheet({
   const c = t.color;
 
   const [form, setForm] = useState(BLANK);
+  const [validationError, setValidationError] = useState("");
 
   const lineTotal = form.lines.reduce((s, l) => {
     const p = products.find((prod) => prod.sku === l.sku);
@@ -98,19 +100,22 @@ export function CreateOrderSheet({
   }
 
   function handleSubmit() {
-    if (!form.customer) return;
+    if (!form.customer) {
+      setValidationError("กรุณากรอกชื่อลูกค้า");
+      return;
+    }
     const hasInvalidLine = form.lines.some(
       (l) => l.qty === "" || Number(l.qty) <= 0
     );
     if (hasInvalidLine) {
-      alert("กรุณากรอกจำนวนสินค้าให้ถูกต้อง (มากกว่า 0)");
+      setValidationError("กรุณากรอกจำนวนสินค้าให้ถูกต้อง (มากกว่า 0)");
       return;
     }
     const validLines = form.lines
       .filter((l) => l.sku)
       .map((l) => ({ ...l, qty: Number(l.qty) }));
     if (validLines.length === 0) {
-      alert("กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ");
+      setValidationError("กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ");
       return;
     }
 
@@ -122,6 +127,7 @@ export function CreateOrderSheet({
       items: validLines.length || 1,
       notes: form.notes,
     });
+    setValidationError("");
     setForm(BLANK);
     onOpenChange(false);
   }
@@ -134,6 +140,7 @@ export function CreateOrderSheet({
             สร้างออร์เดอร์ใหม่
           </SheetTitle>
         </SheetHeader>
+        <ValidationAlert message={validationError} />
         <SheetBody className="grid gap-4 overflow-y-auto">
           <div className="grid grid-cols-2 gap-4">
             <div>

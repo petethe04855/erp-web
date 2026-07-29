@@ -26,7 +26,6 @@ type BOMSummary = {
   version?: number;
   status: string;
   kind?: string;
-  waste?: number;
   fgSku?: string;
   outputQty: number;
   outputUnit: string;
@@ -135,7 +134,7 @@ export default function BomPage() {
         t={t}
         breadcrumb={["Chawy ERP", "Production", "BOM"]}
         title="สูตร BOM"
-        subtitle="จัดการสูตรหลายชั้น วัตถุดิบย่อย Waste ต้นทุน และเวอร์ชัน"
+        subtitle="จัดการสูตรหลายชั้น วัตถุดิบย่อย ต้นทุน และเวอร์ชัน"
         right={toast ? <span className="pr-2 text-xs font-semibold text-emerald-600">{toast}</span> : null}
       />
 
@@ -170,11 +169,11 @@ export default function BomPage() {
               <Card key={bom.id} t={t} className="border border-border bg-card">
                 <div className="mb-2 flex items-center justify-between">
                   <div className="flex flex-wrap gap-1.5">
+                    <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-extrabold text-blue-700">
+                      ผลผลิตมาตรฐาน: {bom.outputQty} {bom.outputUnit || "ชิ้น"}
+                    </span>
                     <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-extrabold text-emerald-700">
                       {bom.status || "Active"}
-                    </span>
-                    <span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-extrabold text-amber-700">
-                      Waste {bom.waste || 0}%
                     </span>
                   </div>
                   <Button
@@ -188,11 +187,14 @@ export default function BomPage() {
                   </Button>
                 </div>
 
-                <h3 className="mb-1 text-sm font-bold" style={{ color: "var(--erp-ink)" }}>
-                  {bom.name}
+                <h3 className="mb-0.5 text-sm font-bold flex items-center gap-1.5" style={{ color: "var(--erp-ink)" }}>
+                  <span>{bom.name}</span>
+                  {bom.fgSku && (
+                    <span className="text-[11px] font-normal text-muted-foreground">({bom.fgSku})</span>
+                  )}
                 </h3>
                 <div className="mb-3 text-[10px]" style={{ color: "var(--erp-ink3)" }}>
-                  {bom.code} · Version {bom.version || 1} · ได้ {bom.outputQty} {bom.outputUnit}
+                  {bom.code} · Version {bom.version || 1}
                 </div>
 
                 <div className="divide-y divide-stone-100">

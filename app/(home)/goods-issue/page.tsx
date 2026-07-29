@@ -62,13 +62,13 @@ export default function GoodsIssuePage() {
     setTimeout(() => setToast(""), 3000);
   }
 
-  function handleCreateGoodsIssue(form: {
+  async function handleCreateGoodsIssue(form: {
     sku: string;
     qty: number;
     reason: GoodsIssueReason;
     note: string;
   }) {
-    const result = createGoodsIssue({
+    const result = await createGoodsIssue({
       sku: form.sku,
       qty: form.qty,
       reason: form.reason,

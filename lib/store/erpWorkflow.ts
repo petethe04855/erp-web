@@ -587,11 +587,16 @@ function expandBundleLines(
   for (const line of lines) {
     const prod = products.find(p => p.sku === line.sku)
     if (prod?.isBundle) {
-      const comps = bundleComponents.filter(c => c.bundleSku === line.sku)
+      const comps = bundleComponents.filter(c => c.bundleSku === line.sku && c.componentType !== 'expense')
       for (const comp of comps) {
+        const component = products.find(p => p.sku === comp.componentSku)
+        let required = comp.qty / (comp.yieldFactor || 1)
+        if (comp.unit === 'g' && component?.baseUnit === 'kg') required /= 1000
+        if (comp.unit === 'kg' && component?.baseUnit === 'g') required *= 1000
+        const qty = Math.ceil(required * line.qty)
         const existing = expanded.find(e => e.sku === comp.componentSku)
-        if (existing) { existing.qty += comp.qty * line.qty }
-        else { expanded.push({ sku: comp.componentSku, qty: comp.qty * line.qty }) }
+        if (existing) { existing.qty += qty }
+        else { expanded.push({ sku: comp.componentSku, qty }) }
       }
     } else {
       const existing = expanded.find(e => e.sku === line.sku)
@@ -765,7 +770,7 @@ export function createErpWorkflowState(
       }
       let updatedProducts = state.products
       // Gap 2: release reserve on cancel or complete
-      if ((status === 'Cancelled' || status === 'Completed') && so.lines.length > 0)
+      if (so.status !== 'Completed' && (status === 'Cancelled' || status === 'Completed') && so.lines.length > 0)
         updatedProducts = applyReserve(state.products, so.lines, -1, state.bundleComponents)
 
       // Gap 1: FEFO deduction when completing an SO that has lot data
@@ -785,6 +790,31 @@ export function createErpWorkflowState(
           salesOrders: s.salesOrders.map(o => o.id === soId ? updated : o),
           products: updatedProducts, stockLots: currentLots,
           stockMovements: [...newMovements, ...s.stockMovements],
+        }))
+        return updated
+      }
+
+      // Keep the stock-check balance correct even when historical lots are not available.
+      if (so.status !== 'Completed' && status === 'Completed' && so.lines.length > 0) {
+        const deducted = expandBundleLines(so.lines, state.products, state.bundleComponents)
+        const fallbackMovements: StockMovement[] = deducted.map(line => ({
+          id: `SM-${Date.now()}-${line.sku}`,
+          sku: line.sku,
+          type: 'OUT' as StockMovementType,
+          qty: line.qty,
+          refDoc: soId,
+          date: todayIso(),
+          note: `Sales order ${so.code || so.id}`,
+          changedBy: by,
+        }))
+        updatedProducts = updatedProducts.map(product => {
+          const line = deducted.find(item => item.sku === product.sku)
+          return line ? { ...product, stock: Math.max(0, product.stock - line.qty) } : product
+        })
+        set(s => ({
+          salesOrders: s.salesOrders.map(o => o.id === soId ? updated : o),
+          products: updatedProducts,
+          stockMovements: [...fallbackMovements, ...s.stockMovements],
         }))
         return updated
       }
@@ -1052,15 +1082,21 @@ export function createErpWorkflowState(
 
       if (product.isBundle) {
         // Bundle: validate and deduct each component
-        const comps = bundleComponents.filter(c => c.bundleSku === input.sku)
-        for (const comp of comps) {
+        const comps = bundleComponents.filter(c => c.bundleSku === input.sku && c.componentType !== 'expense')
+        const componentNeeds = comps.map(comp => {
           const cp = products.find(p => p.sku === comp.componentSku)
-          const need = comp.qty * input.qty
-          if (!cp || cp.stock - cp.reservedQty < need) return null
+          let required = comp.qty / (comp.yieldFactor || 1)
+          if (comp.unit === 'g' && cp?.baseUnit === 'kg') required /= 1000
+          if (comp.unit === 'kg' && cp?.baseUnit === 'g') required *= 1000
+          return { comp, needed: Math.ceil(required * input.qty) }
+        })
+        for (const { comp, needed } of componentNeeds) {
+          const cp = products.find(p => p.sku === comp.componentSku)
+          if (!cp || cp.stock - cp.reservedQty < needed) return null
         }
-        const componentMovements: StockMovement[] = comps.map(comp => ({
+        const componentMovements: StockMovement[] = componentNeeds.map(({ comp, needed }) => ({
           id: `SM-${Date.now()}-${comp.componentSku}`, sku: comp.componentSku,
-          type: 'OUT' as StockMovementType, qty: comp.qty * input.qty,
+          type: 'OUT' as StockMovementType, qty: needed,
           refDoc: id, date: todayIso(),
           note: `Bundle GI: ${input.sku} × ${input.qty} → ${comp.componentSku}`,
           changedBy: by,
@@ -1069,9 +1105,10 @@ export function createErpWorkflowState(
           goodsIssues: [issue, ...s.goodsIssues],
           stockMovements: [...componentMovements, ...s.stockMovements],
           products: s.products.map(p => {
-            const comp = comps.find(c => c.componentSku === p.sku)
-            if (!comp) return p
-            return { ...p, stock: Math.max(0, p.stock - comp.qty * input.qty) }
+            const needed = componentNeeds
+              .filter(({ comp }) => comp.componentSku === p.sku)
+              .reduce((total, item) => total + item.needed, 0)
+            return needed ? { ...p, stock: Math.max(0, p.stock - needed) } : p
           }),
         }))
         return issue
@@ -1169,6 +1206,8 @@ export function createErpWorkflowState(
       const id = nextId('ADJ-2026-', get().stockAdjustments.map(a => a.id))
       const items: StockAdjustmentItem[] = input.items.map(i => {
         const p = products.find(p => p.sku === i.sku)!
+        if (i.actualQty < 0 || i.actualQty < (p?.reservedQty ?? 0))
+          throw new Error(`จำนวนตรวจนับของ ${p?.name ?? i.sku} ต้องไม่น้อยกว่าจำนวนที่จองขาย`)
         return { sku: i.sku, skuName: p?.name ?? i.sku, systemQty: p?.stock ?? 0, actualQty: i.actualQty, variance: i.actualQty - (p?.stock ?? 0) }
       })
       const adj: StockAdjustment = { id, date: todayIso(), checkedBy: by, note: input.note, items }
@@ -1228,7 +1267,7 @@ export function createErpWorkflowState(
 
     createStockTransfer(input) {
       const product = get().products.find(p => p.sku === input.sku)
-      if (!product || product.stock < input.qty) return null
+	  if (!product || input.qty <= 0 || product.stock - product.reservedQty < input.qty) return null
       const by = get().currentUser.name
       const id = nextId('TRF-2026-', get().stockTransfers.map(t => t.id))
       const transfer: StockTransfer = {
