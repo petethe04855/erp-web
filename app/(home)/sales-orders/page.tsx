@@ -67,7 +67,7 @@ function formatDateShort(date: string) {
 }
 
 function fmtBaht2(value: number) {
-  return `฿${Number.isFinite(value) ? value.toFixed(2) : '0.00'}`;
+  return `฿${Number.isFinite(value) ? value.toFixed(2) : "0.00"}`;
 }
 
 export default function SalesOrdersPage() {
@@ -100,7 +100,9 @@ export default function SalesOrdersPage() {
     if (
       search &&
       !(
-        String(order.code || order.id).toLowerCase().includes(search.toLowerCase()) ||
+        String(order.code || order.id)
+          .toLowerCase()
+          .includes(search.toLowerCase()) ||
         order.customer.toLowerCase().includes(search.toLowerCase())
       )
     )
@@ -122,10 +124,16 @@ export default function SalesOrdersPage() {
     // Bundle cost is recalculated whenever its BOM is saved; use that value
     // for the SO amount rather than a stale manually-entered selling price.
     const unitPrice = Number(
-      line.bomUnitCost ?? (product?.isBundle ? product.cost : (product?.retailPrice ?? product?.price ?? 0)),
+      line.bomUnitCost ??
+        (product?.isBundle
+          ? product.cost
+          : (product?.retailPrice ?? product?.price ?? 0)),
     );
     const qty = Number(line.qty);
-    return s + (Number.isFinite(unitPrice) && Number.isFinite(qty) ? unitPrice * qty : 0);
+    return (
+      s +
+      (Number.isFinite(unitPrice) && Number.isFinite(qty) ? unitPrice * qty : 0)
+    );
   }, 0);
 
   const itemsShipped = filtered.reduce((s, order) => s + order.items, 0);
@@ -154,13 +162,20 @@ export default function SalesOrdersPage() {
     for (const line of form.lines) {
       if (!line.sku || line.bomAvailableQty === undefined) continue;
       const key = String(line.bomId ?? line.sku);
-      const current = quantitiesByBom.get(key) ?? { qty: 0, max: line.bomAvailableQty };
+      const current = quantitiesByBom.get(key) ?? {
+        qty: 0,
+        max: line.bomAvailableQty,
+      };
       current.qty += Number(line.qty);
       quantitiesByBom.set(key, current);
     }
-    const overBomCapacity = Array.from(quantitiesByBom.values()).find(item => item.qty > item.max);
+    const overBomCapacity = Array.from(quantitiesByBom.values()).find(
+      (item) => item.qty > item.max,
+    );
     if (overBomCapacity) {
-      setFormError(`จำนวนสินค้าเกินกำลังผลิตจาก BOM (สูงสุด ${overBomCapacity.max} ชิ้น)`);
+      setFormError(
+        `จำนวนสินค้าเกินกำลังผลิตจาก BOM (สูงสุด ${overBomCapacity.max} ชิ้น)`,
+      );
       return;
     }
     const validLines = form.lines
@@ -182,7 +197,9 @@ export default function SalesOrdersPage() {
         lines: validLines,
       });
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "สร้าง Sales Order ไม่สำเร็จ");
+      setFormError(
+        error instanceof Error ? error.message : "สร้าง Sales Order ไม่สำเร็จ",
+      );
       return;
     }
     setFormError("");
@@ -194,7 +211,9 @@ export default function SalesOrdersPage() {
   function handleCreateInvoice(soId: number | string) {
     try {
       const inv = createInvoiceFromSO(soId);
-      showToast(inv ? `สร้าง ${inv.code || inv.id} แล้ว` : "สร้าง Invoice ไม่ได้");
+      showToast(
+        inv ? `สร้าง ${inv.code || inv.id} แล้ว` : "สร้าง Invoice ไม่ได้",
+      );
     } catch (err: any) {
       showToast(err.message || "เกิดข้อผิดพลาดในการสร้าง Invoice");
     }
@@ -371,7 +390,12 @@ export default function SalesOrdersPage() {
             </TableHeader>
             <TableBody>
               {filtered.map((order, i) => {
-                const hasInv = invoices.some((inv) => inv.soRef === order.code || inv.soRef === String(order.id) || inv.salesOrderId === order.id);
+                const hasInv = invoices.some(
+                  (inv) =>
+                    inv.soRef === order.code ||
+                    inv.soRef === String(order.id) ||
+                    inv.salesOrderId === order.id,
+                );
                 return (
                   <TableRow
                     key={order.id}
@@ -406,7 +430,7 @@ export default function SalesOrdersPage() {
                     </TableCell>
                     <TableCell className="p-3 text-right">
                       <Mono t={t} size={12} color={c.ink2}>
-                        {order.items}
+                        {order.lines[0].qty}
                       </Mono>
                     </TableCell>
                     <TableCell className="p-3 text-right">

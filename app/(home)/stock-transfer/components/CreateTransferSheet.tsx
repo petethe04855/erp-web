@@ -139,7 +139,7 @@ export function CreateTransferSheet({
                 }
               >
                 <option value="">-- เลือกสินค้า --</option>
-                {products.map((p) => {
+                {products.filter((p) => p.stock - p.reservedQty > 0).map((p) => {
                   const avail = p.stock - p.reservedQty;
                   return (
                     <option key={p.sku} value={p.sku}>
