@@ -285,6 +285,41 @@ test('direct finished-goods receipt rejects a duplicate SKU lot', () => {
   assert.equal(store.getState().createGoodsReceive(input), null)
 })
 
+test('Sales Entry reserves stock, completes with FEFO, and is idempotent', () => {
+  const store = freshStore()
+  store.setState(state => ({
+    salesOrders: [],
+    products: state.products.map(product => product.sku === 'CAT-CHK-30'
+      ? { ...product, stock: 10, reservedQty: 0, type: 'Finished Product' as const }
+      : product),
+    stockLots: [
+      ...state.stockLots.filter(lot => lot.sku !== 'CAT-CHK-30'),
+      { id: 'FEFO-LATE', sku: 'CAT-CHK-30', lot: 'LATE', qty: 6, remainingQty: 6, expiryDate: '2027-12-31', receivedDate: '2026-08-02', grRef: 'TEST', poRef: '', landedUnitCost: 50 },
+      { id: 'FEFO-EARLY', sku: 'CAT-CHK-30', lot: 'EARLY', qty: 4, remainingQty: 4, expiryDate: '2026-12-31', receivedDate: '2026-08-01', grRef: 'TEST', poRef: '', landedUnitCost: 40 },
+    ],
+    stockMovements: [],
+  }))
+
+  const sale = store.getState().createSalesOrder({
+    customer: 'Phase 2 Customer', amount: 720, channel: 'Manual',
+    lines: [{ sku: 'CAT-CHK-30', qty: 6, unitPrice: 120 }],
+  })
+  assert.equal(store.getState().products.find(p => p.sku === 'CAT-CHK-30')!.reservedQty, 6)
+
+  store.getState().updateSalesOrderStatus(sale.id, 'Completed')
+  const early = store.getState().stockLots.find(lot => lot.id === 'FEFO-EARLY')!
+  const late = store.getState().stockLots.find(lot => lot.id === 'FEFO-LATE')!
+  assert.equal(early.remainingQty, 0)
+  assert.equal(late.remainingQty, 4)
+  assert.equal(store.getState().products.find(p => p.sku === 'CAT-CHK-30')!.stock, 4)
+  assert.equal(store.getState().products.find(p => p.sku === 'CAT-CHK-30')!.reservedQty, 0)
+  const movementCount = store.getState().stockMovements.length
+
+  store.getState().updateSalesOrderStatus(sale.id, 'Completed')
+  assert.equal(store.getState().stockMovements.length, movementCount)
+  assert.equal(store.getState().products.find(p => p.sku === 'CAT-CHK-30')!.stock, 4)
+})
+
 // ── 9. TiktokOrder and ManualOrder types exist ──────────────────
 test('TiktokOrder and ManualOrder types exist in erpTypes', () => {
   const tt: TiktokOrder = {

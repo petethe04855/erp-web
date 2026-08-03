@@ -14,7 +14,16 @@ export type SalesOrderStatus =
 export type SalesOrderChannel = 'Manual' | 'LINE' | 'Shopee' | 'TikTok'
 export type InvoiceStatus = 'Paid' | 'Unpaid' | 'Partial' | 'Overdue'
 
-export type SalesOrderLine = { id?: number; salesOrderId?: number; productId?: number; sku: string; qty: number }
+export type SalesStockAllocation = {
+  id?: number; salesOrderId: number; salesOrderLineId: number; stockLotId: number
+  sku: string; lot: string; qty: number; unitCost: number; totalCost: number; expiryDate: string
+}
+
+export type SalesOrderLine = {
+  id?: number; salesOrderId?: number; productId?: number; sku: string; qty: number
+  unitPrice?: number; lineTotal?: number; unitCost?: number; totalCost?: number
+  allocations?: SalesStockAllocation[]
+}
 
 export type SalesOrder = {
   id: number | string
@@ -22,6 +31,7 @@ export type SalesOrder = {
   customer: string
   date: string
   amount: number
+  totalCogs?: number
   status: SalesOrderStatus
   channel: SalesOrderChannel
   items: number

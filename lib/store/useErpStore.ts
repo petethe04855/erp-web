@@ -424,7 +424,7 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 			body: JSON.stringify(input),
 		})
 		const salesOrder = await readApiResponse<SalesOrder>(response)
-		await get().loadResources(['salesOrders', 'products'], true)
+		await get().loadResources(['salesOrders', 'products', 'stockLots', 'stockMovements'], true)
 		return salesOrder
 	},
 
@@ -434,8 +434,12 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 			method: 'PUT',
 			headers: getHeaders(),
 			body: JSON.stringify({ status }),
-		}).then(res => {
-			if (res.ok) get().fetchInitialState()
+		}).then(async res => {
+			await readApiResponse<SalesOrder>(res)
+			await get().loadResources(['salesOrders', 'products', 'stockLots', 'stockMovements'], true)
+		}).catch(error => {
+			console.error('Failed to update Sales Entry status', error)
+			get().loadResources(['salesOrders', 'products', 'stockLots', 'stockMovements'], true)
 		})
 		return updated
 	},

@@ -121,14 +121,7 @@ export default function SalesOrdersPage() {
 
   const lineTotal = form.lines.reduce((s, line) => {
     const product = products.find((p) => p.sku === line.sku);
-    // Bundle cost is recalculated whenever its BOM is saved; use that value
-    // for the SO amount rather than a stale manually-entered selling price.
-    const unitPrice = Number(
-      line.bomUnitCost ??
-        (product?.isBundle
-          ? product.cost
-          : (product?.retailPrice ?? product?.price ?? 0)),
-    );
+    const unitPrice = Number(line.unitPrice ?? product?.retailPrice ?? 0);
     const qty = Number(line.qty);
     return (
       s +
@@ -158,29 +151,22 @@ export default function SalesOrdersPage() {
       setFormError("กรุณากรอกจำนวนสินค้าให้ถูกต้อง (มากกว่า 0)");
       return;
     }
-    const quantitiesByBom = new Map<string, { qty: number; max: number }>();
+    const quantitiesBySku = new Map<string, number>();
     for (const line of form.lines) {
-      if (!line.sku || line.bomAvailableQty === undefined) continue;
-      const key = String(line.bomId ?? line.sku);
-      const current = quantitiesByBom.get(key) ?? {
-        qty: 0,
-        max: line.bomAvailableQty,
-      };
-      current.qty += Number(line.qty);
-      quantitiesByBom.set(key, current);
+      if (!line.sku) continue;
+      quantitiesBySku.set(line.sku, (quantitiesBySku.get(line.sku) ?? 0) + Number(line.qty));
     }
-    const overBomCapacity = Array.from(quantitiesByBom.values()).find(
-      (item) => item.qty > item.max,
-    );
-    if (overBomCapacity) {
-      setFormError(
-        `จำนวนสินค้าเกินกำลังผลิตจาก BOM (สูงสุด ${overBomCapacity.max} ชิ้น)`,
-      );
-      return;
+    for (const [sku, qty] of quantitiesBySku) {
+      const product = products.find((item) => item.sku === sku);
+      const available = product ? product.stock - product.reservedQty : 0;
+      if (qty > available) {
+        setFormError(`Stock ${sku} ไม่พอ: ต้องการ ${qty}, พร้อมขาย ${Math.max(0, available)}`);
+        return;
+      }
     }
     const validLines = form.lines
       .filter((line) => line.sku)
-      .map((line) => ({ ...line, qty: Number(line.qty) }));
+      .map((line) => ({ sku: line.sku, qty: Number(line.qty), unitPrice: Number(line.unitPrice) }));
     if (validLines.length === 0) {
       setFormError("กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ");
       return;
@@ -205,7 +191,7 @@ export default function SalesOrdersPage() {
     setFormError("");
     setForm(BLANK);
     setOpen(false);
-    showToast("สร้าง Sales Order แล้ว");
+    showToast("สร้าง Sales Entry และจอง Stock แล้ว");
   }
 
   function handleCreateInvoice(soId: number | string) {
@@ -236,7 +222,7 @@ export default function SalesOrdersPage() {
       <TopBar
         t={t}
         breadcrumb={["Chawy", "Sales", "Orders"]}
-        title="Sales Orders"
+        title="Sales Entry"
         subtitle={`${salesOrders.length} orders · ${fmtBaht(salesOrders.reduce((s, order) => s + order.amount, 0))} total`}
         right={
           <div className="flex items-center gap-2">
@@ -375,12 +361,13 @@ export default function SalesOrdersPage() {
                   "Date",
                   "Items",
                   "Amount",
+                  "COGS",
                   "Status",
                   "Action",
                 ].map((h, i) => (
                   <TableHead
                     key={h}
-                    className={`p-3 text-[11px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap ${i === 4 || i === 5 || i === 7 ? "text-right" : "text-left"}`}
+                    className={`p-3 text-[11px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap ${i === 4 || i === 5 || i === 6 || i === 8 ? "text-right" : "text-left"}`}
                     style={{ color: "var(--erp-ink3)" }}
                   >
                     {h}
@@ -430,12 +417,17 @@ export default function SalesOrdersPage() {
                     </TableCell>
                     <TableCell className="p-3 text-right">
                       <Mono t={t} size={12} color={c.ink2}>
-                        {order.lines[0].qty}
+                        {order.lines.reduce((sum, line) => sum + line.qty, 0)}
                       </Mono>
                     </TableCell>
                     <TableCell className="p-3 text-right">
                       <Mono t={t} size={13} weight={600}>
                         {fmtBaht2(order.amount)}
+                      </Mono>
+                    </TableCell>
+                    <TableCell className="p-3 text-right" title={order.lines.flatMap((line) => line.allocations ?? []).map((allocation) => `${allocation.lot}: ${allocation.qty} × ฿${allocation.unitCost.toFixed(2)}`).join("\n")}>
+                      <Mono t={t} size={12} color={c.ink2}>
+                        {order.status === "Completed" ? fmtBaht2(order.totalCogs ?? 0) : "—"}
                       </Mono>
                     </TableCell>
                     <TableCell className="p-3">

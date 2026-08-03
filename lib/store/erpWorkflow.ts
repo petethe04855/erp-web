@@ -763,6 +763,8 @@ export function createErpWorkflowState(
       const state = get()
       const so = state.salesOrders.find(o => o.id === soId)
       if (!so || so.status === 'Cancelled') return null
+      if (so.status === status) return so
+      if (so.status === 'Completed') return null
       const by = state.currentUser.name
       const updated: SalesOrder = {
         ...so, status,
@@ -770,7 +772,7 @@ export function createErpWorkflowState(
       }
       let updatedProducts = state.products
       // Gap 2: release reserve on cancel or complete
-      if (so.status !== 'Completed' && (status === 'Cancelled' || status === 'Completed') && so.lines.length > 0)
+      if ((status === 'Cancelled' || status === 'Completed') && so.lines.length > 0)
         updatedProducts = applyReserve(state.products, so.lines, -1, state.bundleComponents)
 
       // Gap 1: FEFO deduction when completing an SO that has lot data
@@ -795,7 +797,7 @@ export function createErpWorkflowState(
       }
 
       // Keep the stock-check balance correct even when historical lots are not available.
-      if (so.status !== 'Completed' && status === 'Completed' && so.lines.length > 0) {
+      if (status === 'Completed' && so.lines.length > 0) {
         const deducted = expandBundleLines(so.lines, state.products, state.bundleComponents)
         const fallbackMovements: StockMovement[] = deducted.map(line => ({
           id: `SM-${Date.now()}-${line.sku}`,
