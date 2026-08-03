@@ -261,6 +261,7 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 		if (exists) throw new Error(`SKU "${input.sku}" already exists`)
 		const newProduct = {
 			...input,
+			type: 'Finished Product',
 			stock: input.stock || 0,
 			reservedQty: 0,
 			isActive: true,
@@ -268,7 +269,7 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 			weightGrams: input.weightGrams || 0,
 			wholesalePrice: input.wholesalePrice || 0,
 			reorder: input.reorder || 0,
-			isBundle: input.isBundle || false,
+			isBundle: false,
 			note: input.note || '',
 			price: input.retailPrice,
 			baseUnit: input.baseUnit || 'piece',
@@ -280,8 +281,9 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 			method: 'POST',
 			headers: getHeaders(),
 			body: JSON.stringify(newProduct),
-		}).then(res => readApiResponse<Product>(res)).then(data => {
+		}).then(res => readApiResponse<Product>(res)).then(async data => {
 			set(s => ({ products: s.products.map(product => product.sku === newProduct.sku ? data : product) }))
+			await get().loadResources(['products', 'stockLots', 'stockMovements'], true)
 		}).catch(error => {
 			console.error('Failed to create product', error)
 		})
@@ -290,15 +292,29 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 	},
 
 	updateProduct: (input) => {
+		const current = get().products.find(p => p.sku === input.sku)
+		if (!current) return null
+		const { newSku, ...changes } = input
+		const updated = {
+			...current,
+			...changes,
+			sku: newSku?.trim().toUpperCase() || current.sku,
+			type: 'Finished Product',
+			isBundle: false,
+		} as Product
+		set(s => ({ products: s.products.map(p => p.sku === input.sku ? updated : p) }))
 		fetch(`${getApiUrl()}/api/products/${input.sku}`, {
 			method: 'PUT',
 			headers: getHeaders(),
 			body: JSON.stringify(input),
-		}).then(res => {
-			if (res.ok) get().fetchInitialState()
+		}).then(async res => {
+			await readApiResponse<Product>(res)
+			await get().loadResources(['products', 'stockLots', 'stockMovements'], true)
+		}).catch(error => {
+			console.error('Failed to update product', error)
+			set(s => ({ products: s.products.map(p => p.sku === updated.sku ? current : p) }))
 		})
-		const current = get().products.find(p => p.sku === input.sku)
-		return current ? { ...current, ...input } as Product : null
+		return updated
 	},
 
 	deleteProduct: (sku) => {

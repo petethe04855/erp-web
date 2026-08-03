@@ -255,6 +255,36 @@ test('goods receive rejects over-receive', () => {
   assert.equal(gr, null, 'should reject over-receive')
 })
 
+test('finished goods can be received directly without PR or PO', () => {
+  const store = freshStore()
+  const before = store.getState().products.find(p => p.sku === 'CAT-CHK-30')!.stock
+
+  const receipt = store.getState().createGoodsReceive({
+    receiveDate: '2026-08-02',
+    items: [{
+      sku: 'CAT-CHK-30', qtyReceived: 25, lot: 'FG-20260802-A',
+      expiryDate: '2027-08-02', landedUnitCost: 42,
+    }],
+  })
+
+  assert.ok(receipt)
+  assert.equal(receipt.poRef, undefined)
+  assert.equal(receipt.items[0].landedUnitCost, 42)
+  assert.equal(store.getState().products.find(p => p.sku === 'CAT-CHK-30')!.stock, before + 25)
+  assert.ok(store.getState().stockLots.some(lot => lot.sku === 'CAT-CHK-30' && lot.lot === 'FG-20260802-A'))
+  assert.ok(store.getState().stockMovements.some(movement => movement.refDoc === receipt.id && movement.type === 'IN'))
+})
+
+test('direct finished-goods receipt rejects a duplicate SKU lot', () => {
+  const store = freshStore()
+  const input = {
+    receiveDate: '2026-08-02',
+    items: [{ sku: 'CAT-CHK-30', qtyReceived: 5, lot: 'FG-DUPLICATE', expiryDate: '', landedUnitCost: 40 }],
+  }
+  assert.ok(store.getState().createGoodsReceive(input))
+  assert.equal(store.getState().createGoodsReceive(input), null)
+})
+
 // ── 9. TiktokOrder and ManualOrder types exist ──────────────────
 test('TiktokOrder and ManualOrder types exist in erpTypes', () => {
   const tt: TiktokOrder = {

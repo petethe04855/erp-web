@@ -15,7 +15,6 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
-import type { LandedCostLine } from "@/lib/store/erpWorkflow";
 import { ReceiveGoodsSheet } from "./components/ReceiveGoodsSheet";
 import { ViewGoodsReceiveSheet } from "./components/ViewGoodsReceiveSheet";
 
@@ -24,15 +23,12 @@ export default function GoodsReceivePage() {
   const c = t.color;
   const grList = useErpStore((s) => s.goodsReceives);
   const poList = useErpStore((s) => s.purchaseOrders);
+  const products = useErpStore((s) => s.products);
   const createGR = useErpStore((s) => s.createGoodsReceive);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedGR, setSelectedGR] = useState<any | null>(null);
   const [toast, setToast] = useState("");
-
-  const eligiblePOs = poList.filter(
-    (po) => po.status === "Sent" || po.status === "Partial Received",
-  );
 
   const rows = useMemo(() => {
     return grList.map((gr) => {
@@ -53,7 +49,7 @@ export default function GoodsReceivePage() {
       const qty = gr.items.reduce((sum, item) => sum + item.qtyReceived, 0);
       return {
         ...gr,
-        supplier: po?.supplier ?? "Unknown supplier",
+        supplier: po?.supplier ?? "รับเข้าคลังโดยตรง",
         value,
         landedValue,
         qty,
@@ -70,27 +66,24 @@ export default function GoodsReceivePage() {
   }
 
   function handleCreateGR(data: {
-    poRef: string;
     receiveDate: string;
     items: {
       sku: string;
       qtyReceived: number;
       lot: string;
       expiryDate: string;
+      landedUnitCost: number;
     }[];
-    landedCosts: LandedCostLine[];
   }) {
     const gr = createGR({
-      poRef: data.poRef,
       receiveDate: data.receiveDate,
       items: data.items,
-      landedCosts: data.landedCosts,
     });
     if (!gr) {
       showToast("ไม่สามารถรับสินค้าได้");
       return false;
     }
-    showToast(`สร้าง ${gr.id} แล้ว · อัปเดต LOT/stock และคำนวณ Landed Cost`);
+    showToast(`สร้าง ${gr.id} แล้ว · อัปเดต Lot และสต็อกเรียบร้อย`);
     return true;
   }
 
@@ -300,7 +293,7 @@ export default function GoodsReceivePage() {
       <ReceiveGoodsSheet
         open={createOpen}
         onOpenChange={setCreateOpen}
-        eligiblePOs={eligiblePOs}
+        products={products}
         onSubmit={handleCreateGR}
         showToast={showToast}
       />

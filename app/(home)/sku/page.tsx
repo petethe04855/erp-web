@@ -1,6 +1,6 @@
 "use client";
 import { useTheme } from "@/lib/design/ThemeContext";
-import { TopBar, CategoryBadge, StockBadge } from "@/components/ui";
+import { TopBar, StockBadge } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -12,12 +12,7 @@ import {
 } from "@/components/ui/table";
 import { useState } from "react";
 import { useErpStore } from "@/lib/store/useErpStore";
-import type {
-  Product,
-  ProductCategory,
-  CreateProductInput,
-  UpdateProductInput,
-} from "@/lib/store/erpWorkflow";
+import type { Product, CreateProductInput } from "@/lib/store/erpWorkflow";
 
 // Import Sub-Components
 import SkuStats from "./components/SkuStats";
@@ -25,12 +20,11 @@ import SkuFilters from "./components/SkuFilters";
 import SkuFormModal from "./components/SkuFormModal";
 import SkuViewModal from "./components/SkuViewModal";
 import DeleteConfirmModal from "./components/DeleteConfirmModal";
-import BomEditorModal, { type BomRow } from "./components/BomEditorModal";
 
 const EMPTY_FORM: CreateProductInput = {
   sku: "",
   name: "",
-  type: "Raw Material",
+  type: "Finished Product",
   barcode: "",
   weightGrams: 0,
   retailPrice: 0,
@@ -54,15 +48,11 @@ export default function SkuPage() {
   const { tokens: t } = useTheme();
   const c = t.color;
   const products = useErpStore((s) => s.products);
-  const bundleComponents = useErpStore((s) => s.bundleComponents);
   const addProduct = useErpStore((s) => s.addProduct);
   const updateProduct = useErpStore((s) => s.updateProduct);
   const deleteProduct = useErpStore((s) => s.deleteProduct);
-  const calcBundleVirtualStock = useErpStore((s) => s.calcBundleVirtualStock);
-  const setBundleComponents = useErpStore((s) => s.setBundleComponents);
 
   const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState<ProductCategory | "All">("All");
   const [filterActive, setFilterActive] = useState<
     "all" | "active" | "inactive"
   >("active");
@@ -71,8 +61,6 @@ export default function SkuPage() {
   const [form, setForm] = useState<CreateProductInput>(EMPTY_FORM);
   const [error, setError] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [bomProduct, setBomProduct] = useState<Product | null>(null);
-  const [bomRows, setBomRows] = useState<BomRow[]>([]);
 
   // Filtered list
   const filtered = products.filter((p) => {
@@ -82,20 +70,15 @@ export default function SkuPage() {
       p.sku.toLowerCase().includes(q) ||
       p.name.toLowerCase().includes(q) ||
       p.barcode.includes(q);
-    const matchType = filterType === "All" || p.type === filterType;
     const matchActive =
       filterActive === "all" ||
       (filterActive === "active" ? p.isActive : !p.isActive);
-    return matchSearch && matchType && matchActive;
+    return matchSearch && matchActive;
   });
 
   // Stats
   const active = products.filter((p) => p.isActive);
-  const lowStock = active.filter(
-    (p) => !p.isBundle && p.stock > 0 && p.stock < p.reorder,
-  );
   const outStock = active.filter((p) => !p.isBundle && p.stock === 0);
-  const bundles = active.filter((p) => p.isBundle);
 
   // Handlers
   function openAdd() {
@@ -137,55 +120,6 @@ export default function SkuPage() {
   }
 
   function handleSave() {
-    const demoItemTypes: ProductCategory[] = [
-      "Raw Material",
-      "Packaging",
-      "Sub-component",
-      "Finished Product",
-    ];
-    if (demoItemTypes.includes(form.type)) {
-      if (!form.sku.trim()) {
-        setError("กรุณากรอก SKU");
-        return;
-      }
-      if (!form.name.trim()) {
-        setError("กรุณากรอกชื่อรายการ");
-        return;
-      }
-      if (!form.baseUnit) {
-        setError("กรุณาเลือกหน่วยหลัก");
-        return;
-      }
-      try {
-        if (modalMode === "add") {
-          addProduct({
-            ...form,
-            isBundle: form.type === "Sub-component" || form.type === "Finished Product",
-          });
-        } else if (modalMode === "edit" && selected) {
-          updateProduct({
-            sku: selected.sku,
-            name: form.name,
-            type: form.type,
-            barcode: form.barcode,
-            weightGrams: form.weightGrams,
-            retailPrice: form.retailPrice,
-            wholesalePrice: form.wholesalePrice,
-            price: form.retailPrice,
-            cost: form.cost,
-            reorder: form.reorder,
-            stock: form.stock,
-            isBundle: form.type === "Sub-component" || form.type === "Finished Product",
-            note: form.note,
-            baseUnit: form.baseUnit,
-          });
-        }
-        closeModal();
-      } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
-      }
-      return;
-    }
     if (!form.sku.trim()) {
       setError("กรุณากรอก SKU");
       return;
@@ -194,38 +128,33 @@ export default function SkuPage() {
       setError("กรุณากรอกชื่อสินค้า");
       return;
     }
-    if (form.type !== "Other" && form.retailPrice <= 0) {
+    if (form.retailPrice <= 0) {
       setError("ราคาขายต้องมากกว่า 0");
-      return;
-    }
-    if (form.cost <= 0) {
-      setError("ต้นทุนต้องมากกว่า 0");
-      return;
-    }
-    if (form.type !== "Other" && (!form.weightGrams || form.weightGrams <= 0)) {
-      setError("น้ำหนักสินค้าต้องมากกว่า 0");
       return;
     }
     try {
       if (modalMode === "add") {
-        addProduct({ ...form, isBundle: form.type === "Bundle" });
+        addProduct({
+          ...form,
+          type: "Finished Product",
+          cost: 0,
+          stock: Math.max(0, Math.floor(Number(form.stock) || 0)),
+          isBundle: false,
+          baseUnit: "piece",
+        });
       } else if (modalMode === "edit" && selected) {
-        const input: UpdateProductInput = {
+        updateProduct({
           sku: selected.sku,
+          newSku: form.sku.trim().toUpperCase(),
           name: form.name,
-          type: form.type,
           barcode: form.barcode,
-          weightGrams: form.weightGrams,
           retailPrice: form.retailPrice,
-          wholesalePrice: form.wholesalePrice,
+          wholesalePrice: form.retailPrice,
           price: form.retailPrice,
-          cost: form.cost,
-          reorder: form.reorder,
-          isBundle: form.type === "Bundle",
+          stock: Math.max(0, Math.floor(Number(form.stock) || 0)),
+          isBundle: false,
           note: form.note,
-          baseUnit: form.baseUnit,
-        };
-        updateProduct(input);
+        });
       }
       closeModal();
     } catch (e: unknown) {
@@ -240,27 +169,6 @@ export default function SkuPage() {
   function handleDelete(sku: string) {
     deleteProduct(sku);
     setDeleteConfirm(null);
-  }
-
-  function openBomEditor(product: Product) {
-    const rows = bundleComponents
-      .filter((component) => component.bundleSku === product.sku)
-      .map((component) => ({
-        componentSku: component.componentSku,
-        qty: component.qty,
-        unit: component.unit ?? "piece",
-        componentType: component.componentType ?? "material",
-        unitCostOverride: component.unitCostOverride ?? 0,
-        yieldFactor: component.yieldFactor || 1,
-      }));
-    setBomRows(rows);
-    setBomProduct(product);
-  }
-
-  function saveBom() {
-    if (!bomProduct) return;
-    setBundleComponents({ bundleSku: bomProduct.sku, components: bomRows });
-    setBomProduct(null);
   }
 
   return (
@@ -281,19 +189,12 @@ export default function SkuPage() {
         </div>
 
         {/* Stats */}
-        <SkuStats
-          activeCount={active.length}
-          lowStockCount={lowStock.length}
-          outStockCount={outStock.length}
-          bundleCount={bundles.length}
-        />
+        <SkuStats activeCount={active.length} outStockCount={outStock.length} />
 
         {/* Filters */}
         <SkuFilters
           search={search}
           setSearch={setSearch}
-          filterType={filterType}
-          setFilterType={setFilterType}
           filterActive={filterActive}
           setFilterActive={setFilterActive}
         />
@@ -318,9 +219,7 @@ export default function SkuPage() {
                 {[
                   "SKU",
                   "ชื่อสินค้า",
-                  "ประเภท",
-                  "หน่วยหลัก",
-                  "ต้นทุน (Cost)",
+                  "ราคาขาย",
                   "คงเหลือ (Stock)",
                   "สถานะ",
                   "",
@@ -339,7 +238,7 @@ export default function SkuPage() {
               {filtered.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={8}
+                    colSpan={6}
                     className="p-10 text-center text-muted-foreground text-sm"
                   >
                     ไม่พบสินค้า
@@ -379,20 +278,11 @@ export default function SkuPage() {
                       </div>
                     )}
                   </TableCell>
-                  <TableCell className="p-3">
-                    <CategoryBadge type={p.type} />
-                  </TableCell>
-                  <TableCell
-                    className="p-3 text-xs text-muted-foreground"
-                    style={{ color: "var(--erp-ink3)" }}
-                  >
-                    {p.baseUnit || "piece"}
-                  </TableCell>
                   <TableCell
                     className="p-3 text-sm font-medium text-foreground"
                     style={{ color: "var(--erp-ink)" }}
                   >
-                    {formatBaht(p.cost)}
+                    {formatBaht(p.retailPrice)}
                   </TableCell>
                   <TableCell className="p-3">
                     <div className="flex items-center gap-1.5">
@@ -400,16 +290,11 @@ export default function SkuPage() {
                         className="text-sm font-semibold text-foreground"
                         style={{ color: "var(--erp-ink)" }}
                       >
-                        {/* {p.isBundle
-                          ? `${calcBundleVirtualStock(p.sku).toLocaleString()} ชุด`
-                          : `${p.stock.toLocaleString()} ${p.baseUnit || "ชิ้น"}`} */}
-                        {p.stock.toLocaleString()} {p.baseUnit || "ชิ้น"}
+                        {p.stock.toLocaleString()}
                       </span>
                       <StockBadge
-                        stock={
-                          p.isBundle ? calcBundleVirtualStock(p.sku) : p.stock
-                        }
-                        reorder={p.reorder}
+                        stock={p.stock}
+                        reorder={0}
                         isBundle={p.isBundle}
                       />
                     </div>
@@ -492,31 +377,11 @@ export default function SkuPage() {
         {modalMode === "view" && selected && (
           <SkuViewModal
             selected={selected}
-            bundleComponents={bundleComponents}
-            products={products}
-            calcBundleVirtualStock={calcBundleVirtualStock}
             onClose={closeModal}
             onEdit={() => {
               closeModal();
               openEdit(selected);
             }}
-            onEditBom={() => {
-              const product = selected;
-              closeModal();
-              openBomEditor(product);
-            }}
-          />
-        )}
-
-        {bomProduct && (
-          <BomEditorModal
-            bomSku={bomProduct.sku}
-            bomProduct={bomProduct}
-            products={products}
-            bomRows={bomRows}
-            setBomRows={setBomRows}
-            onClose={() => setBomProduct(null)}
-            onSave={saveBom}
           />
         )}
 

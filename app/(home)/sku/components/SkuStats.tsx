@@ -1,12 +1,10 @@
 "use client";
 
-import { CircleX, Layers3, Package, TriangleAlert } from "lucide-react";
+import { CircleX, Package } from "lucide-react";
 
 interface SkuStatsProps {
   activeCount: number;
-  lowStockCount: number;
   outStockCount: number;
-  bundleCount: number;
 }
 
 const stats = [
@@ -18,31 +16,17 @@ const stats = [
     color: "var(--erp-accent)",
   },
   {
-    key: "low",
-    label: "ใกล้หมด",
-    valueKey: "lowStockCount",
-    icon: TriangleAlert,
-    color: "var(--erp-warn)",
-  },
-  {
     key: "out",
     label: "หมดสต็อก",
     valueKey: "outStockCount",
     icon: CircleX,
     color: "var(--erp-neg)",
   },
-  {
-    key: "bundle",
-    label: "สินค้าเซ็ต",
-    valueKey: "bundleCount",
-    icon: Layers3,
-    color: "var(--erp-pos)",
-  },
 ] as const;
 
 export default function SkuStats(props: SkuStatsProps) {
   return (
-    <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+    <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
       {stats.map((stat) => {
         const Icon = stat.icon;
 

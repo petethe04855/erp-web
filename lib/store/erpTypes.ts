@@ -109,7 +109,7 @@ export type GoodsReceive = {
   id: number | string
   code?: string
   purchaseOrderId?: number | null
-  poRef: number | string
+  poRef?: number | string
   receiveDate: string
   items: GoodsReceiveItem[]
   landedCosts?: LandedCostLine[]
@@ -310,9 +310,9 @@ export type CreatePurchaseOrderInput = {
 }
 
 export type CreateGoodsReceiveInput = {
-  poRef: string | number
+  poRef?: string | number
   receiveDate: string
-  items: Array<{ sku: string; qtyReceived: number; lot: string; expiryDate: string }>
+  items: Array<{ sku: string; qtyReceived: number; lot: string; expiryDate: string; landedUnitCost?: number }>
   landedCosts?: LandedCostLine[]
 }
 
@@ -504,7 +504,7 @@ export type CreateProductInput = {
   baseUnit?: string
 }
 
-export type UpdateProductInput = Partial<Omit<Product, 'sku' | 'reservedQty' >> & { sku: string }
+export type UpdateProductInput = Partial<Omit<Product, 'sku' | 'reservedQty' >> & { sku: string; newSku?: string }
 
 export type SetBundleComponentsInput = {
   bundleSku: string
