@@ -16,6 +16,7 @@ const sourceLabels: Record<string, string> = {
   sales_delivery: "ตัดต้นทุนขาย",
   customer_invoice: "ออกใบแจ้งหนี้",
   customer_payment: "รับชำระเงิน",
+  sales_return: "คืนสินค้า / ใบลดหนี้",
 };
 
 export default function JournalPage() {

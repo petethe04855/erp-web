@@ -658,9 +658,7 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 			method: 'POST',
 			headers: getHeaders(),
 			body: JSON.stringify(stockReturn),
-		}).then(res => {
-			if (res.ok) get().fetchInitialState()
-		})
+		}).finally(() => get().loadResources(['stockReturns'], true))
 		return stockReturn
 	},
 
@@ -670,9 +668,7 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 			method: 'PUT',
 			headers: getHeaders(),
 			body: JSON.stringify({ status }),
-		}).then(res => {
-			if (res.ok) get().fetchInitialState()
-		})
+		}).finally(() => get().loadResources(['stockReturns', 'products', 'stockLots', 'stockMovements'], true))
 		return updated
 	},
 

@@ -354,7 +354,7 @@ export default function InvoicePage() {
     );
   }
 
-  const outstanding = selected.amount - selected.paid;
+  const outstanding = Math.max(0, selected.amount - (selected.credited ?? 0) - selected.paid);
   const terms = daysBetween(selected.issueDate, selected.dueDate);
   const customerInvoices = processedList.filter(
     (inv) => inv.customer === selected.customer,
@@ -822,7 +822,7 @@ export default function InvoicePage() {
                       {inv.customer}
                     </span>
                     <Mono t={t} size={12} weight={500}>
-                      {fmtBaht(inv.amount - inv.paid)}
+                      {fmtBaht(Math.max(0, inv.amount - (inv.credited ?? 0) - inv.paid))}
                     </Mono>
                     <div>
                       <Badge
@@ -929,7 +929,7 @@ export default function InvoicePage() {
                   label: "Credit used",
                   value: fmtBaht(
                     customerInvoices.reduce(
-                      (s, inv) => s + Math.max(0, inv.amount - inv.paid),
+                      (s, inv) => s + Math.max(0, inv.amount - (inv.credited ?? 0) - inv.paid),
                       0,
                     ),
                   ),

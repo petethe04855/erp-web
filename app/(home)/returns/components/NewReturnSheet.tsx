@@ -56,6 +56,7 @@ interface SalesOrder {
   customer: string;
   channel: string;
   status: string;
+  lines?: Array<{ sku: string; qty: number }>;
 }
 
 interface NewReturnSheetProps {
@@ -96,6 +97,9 @@ export function NewReturnSheet({
   }, [open]);
 
   const completedSOs = salesOrders.filter((o) => o.status === "Completed");
+  const selectedSO = completedSOs.find((order) => String(order.id) === form.soRef);
+  const soldSkus = new Set(selectedSO?.lines?.map((line) => line.sku) ?? []);
+  const returnableProducts = selectedSO ? products.filter((product) => soldSkus.has(product.sku)) : [];
 
   function handleSubmit() {
 	if (!form.soRef) {
@@ -153,10 +157,11 @@ export function NewReturnSheet({
               value={form.soRef}
               onChange={(e) => {
                 const soId = e.target.value;
-                const so = salesOrders.find((o) => o.id === soId);
+                const so = salesOrders.find((o) => String(o.id) === soId);
                 setForm((f) => ({
                   ...f,
                   soRef: soId,
+                  sku: "",
                   channel: so ? so.channel : f.channel,
                 }));
               }}
@@ -182,7 +187,7 @@ export function NewReturnSheet({
               onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))}
             >
               <option value="">Select product</option>
-              {products.map((p) => (
+              {returnableProducts.map((p) => (
                 <option key={p.sku} value={p.sku}>
                   {p.name} ({p.sku})
                 </option>

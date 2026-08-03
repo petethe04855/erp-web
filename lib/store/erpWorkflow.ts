@@ -861,8 +861,9 @@ export function createErpWorkflowState(
       const state = get()
       const inv = state.invoices.find(i => i.id === invoiceId)
       if (!inv || inv.status === 'Paid' || amount <= 0) return null
-      const newPaid = Math.min(inv.paid + amount, inv.amount)
-      const newStatus: InvoiceStatus = newPaid >= inv.amount ? 'Paid' : 'Partial'
+      const netAmount = inv.amount - (inv.credited ?? 0)
+      const newPaid = Math.min(inv.paid + amount, netAmount)
+      const newStatus: InvoiceStatus = newPaid >= netAmount ? 'Paid' : 'Partial'
       const by = state.currentUser.name
       const updated: Invoice = {
         ...inv, paid: newPaid, status: newStatus,

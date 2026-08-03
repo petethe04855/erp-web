@@ -53,6 +53,8 @@ export type Invoice = {
   dueDate: string
   amount: number
   paid: number
+  credited?: number
+  refundDue?: number
   status: InvoiceStatus
   auditTrail: AuditEvent[]     // Gap 9
 }
@@ -387,6 +389,18 @@ export type StockReturn = {
   refunded: boolean
   channel: string
   status: 'Pending' | 'Completed' | 'Cancelled'
+  creditAmount?: number
+  totalCost?: number
+  creditNoteId?: number
+  creditNoteRef?: string
+  allocations?: Array<{
+    id: number
+    lot: string
+    qty: number
+    unitCost: number
+    totalCost: number
+    restocked: boolean
+  }>
 }
 
 export type CreateStockReturnInput = {

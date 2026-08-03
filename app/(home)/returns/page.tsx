@@ -45,8 +45,8 @@ export default function ReturnsPage() {
   const rows = useMemo(() => {
     return stockReturns.map((ret) => {
       const product = products.find((p) => p.sku === ret.sku);
-      const so = salesOrders.find((o) => o.id === ret.soRef);
-      const amount = (product?.price ?? 0) * ret.qty;
+      const so = salesOrders.find((o) => o.id === ret.soRef || o.code === ret.soRef);
+      const amount = ret.creditAmount || (product?.price ?? 0) * ret.qty;
       const status = ret.status
         ? ret.status.toLowerCase()
         : ret.refunded
@@ -274,6 +274,9 @@ export default function ReturnsPage() {
                   >
                     Amount
                   </TableHead>
+                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left">
+                    Credit Note / Lot
+                  </TableHead>
                   <TableHead
                     className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
                     style={{ color: "var(--erp-ink3)" }}
@@ -351,6 +354,14 @@ export default function ReturnsPage() {
                       <Mono t={t} size={13} weight={600}>
                         {fmtBaht(r.amount)}
                       </Mono>
+                    </TableCell>
+                    <TableCell className="p-4 px-5 align-middle">
+                      <div className="font-mono text-xs font-semibold">{r.creditNoteRef || "–"}</div>
+                      {r.allocations?.map((allocation) => (
+                        <div key={allocation.id} className="text-xs text-muted-foreground">
+                          {allocation.lot} · {allocation.qty} ชิ้น · {allocation.restocked ? "คืนสต๊อก" : "เสียหาย"}
+                        </div>
+                      ))}
                     </TableCell>
                     <TableCell className="p-4 px-5 align-middle">
                       <StatusPill t={t} status={r.status} />
