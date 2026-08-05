@@ -274,7 +274,7 @@ export const ROLE_NAV: Record<UserRole, string[] | '*'> = {
   owner:      '*',
   sales:      ['/', '/dashboard', '/sales-orders', '/quotation', '/invoice', '/manual-order', '/tiktok-orders', '/live-sessions', '/sampling'],
   warehouse:  ['/', '/dashboard', '/sku', '/bom', '/stock', '/goods-receive', '/goods-issue', '/production-run', '/purchase-req', '/purchase-order', '/stock-transfer', '/stock-check', '/sampling'],
-  accountant: ['/', '/dashboard', '/invoice', '/sales-orders', '/purchase-order', '/journal', '/reports', '/expenses', '/pl', '/budget'],
+  accountant: ['/', '/dashboard', '/invoice', '/sales-orders', '/purchase-order', '/journal', '/reports', '/integrity', '/expenses', '/pl', '/budget'],
 }
 
 // ── Input types ────────────────────────────────────────────────────────────
