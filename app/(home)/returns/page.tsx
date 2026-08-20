@@ -73,7 +73,7 @@ export default function ReturnsPage() {
     })).sort((a, b) => b.count - a.count)[0];
   }, [stockReturns]);
 
-  function handleCreateReturn(data: {
+  async function handleCreateReturn(data: {
     soRef: string;
     sku: string;
     qty: number;
@@ -82,7 +82,7 @@ export default function ReturnsPage() {
     note: string;
     channel: string;
   }) {
-    const result = createStockReturn(data);
+    const result = await createStockReturn(data);
     showToast(`รับคืน ${result.id} แล้ว · สถานะ: รอดำเนินการ`);
   }
 
@@ -402,6 +402,7 @@ export default function ReturnsPage() {
         onOpenChange={setOpen}
         products={products}
         salesOrders={salesOrders}
+        stockReturns={stockReturns}
         onSubmit={handleCreateReturn}
         showToast={showToast}
       />

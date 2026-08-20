@@ -83,7 +83,8 @@ export default function CustomerInvoiceDetailPage() {
   const productLines = (invoice: Invoice) => {
     const order = orderFor(invoice);
     return (
-      order?.lines?.map((line) => ({
+      order?.lines?.map((line, lineIndex) => ({
+        key: line.id ?? `${line.sku}-${lineIndex}`,
         sku: line.sku,
         name: productName(line.sku),
         qty: line.qty,
@@ -172,7 +173,7 @@ export default function CustomerInvoiceDetailPage() {
                   <div className="text-right"><Badge variant={balance(previewInvoice) === 0 ? "secondary" : previewInvoice.dueDate < today() ? "destructive" : "outline"}>{balance(previewInvoice) === 0 ? "ชำระครบ" : previewInvoice.dueDate < today() ? "เกินกำหนด" : "ค้างชำระ"}</Badge><div className="mt-2 text-xs text-muted-foreground">ออกเอกสาร {previewInvoice.issueDate}</div></div>
                 </div>
                 <div className="grid gap-5 border-b p-6 sm:grid-cols-3"><div><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Bill to</div><div className="mt-1 font-semibold">{customer}</div><div className="text-xs text-muted-foreground">SO {orderFor(previewInvoice)?.code || previewInvoice.soRef}</div></div><div><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Due date</div><div className="mt-1 font-semibold">{previewInvoice.dueDate}</div><div className="text-xs text-muted-foreground">VAT {previewVatRate}%</div></div><div><div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Amount due</div><div className="mt-1 text-xl font-bold">{money(balance(previewInvoice))}</div><div className="text-xs text-muted-foreground">ชำระแล้ว {money(previewInvoice.paid)}</div></div></div>
-                <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>SKU</TableHead><TableHead>สินค้า</TableHead><TableHead className="text-right">จำนวน</TableHead><TableHead className="text-right">ราคาต่อหน่วย</TableHead><TableHead className="text-right">ยอดรวม</TableHead></TableRow></TableHeader><TableBody>{previewLines.map((line) => <TableRow key={line.sku}><TableCell className="font-mono text-xs">{line.sku}</TableCell><TableCell>{line.name}</TableCell><TableCell className="text-right">{line.qty}</TableCell><TableCell className="text-right">{money(line.unitPrice)}</TableCell><TableCell className="text-right font-semibold">{money(line.total)}</TableCell></TableRow>)}</TableBody></Table></div>
+                <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>SKU</TableHead><TableHead>สินค้า</TableHead><TableHead className="text-right">จำนวน</TableHead><TableHead className="text-right">ราคาต่อหน่วย</TableHead><TableHead className="text-right">ยอดรวม</TableHead></TableRow></TableHeader><TableBody>{previewLines.map((line) => <TableRow key={line.key}><TableCell className="font-mono text-xs">{line.sku}</TableCell><TableCell>{line.name}</TableCell><TableCell className="text-right">{line.qty}</TableCell><TableCell className="text-right">{money(line.unitPrice)}</TableCell><TableCell className="text-right font-semibold">{money(line.total)}</TableCell></TableRow>)}</TableBody></Table></div>
                 <div className="flex justify-end p-6"><div className="w-72 space-y-2 text-sm"><div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{money(previewSubtotal)}</span></div><div className="flex justify-between"><span className="text-muted-foreground">VAT ({previewVatRate}%)</span><span>{money(previewVat)}</span></div><div className="flex justify-between border-t pt-3 text-lg font-bold"><span>Total due</span><span>{money(previewInvoice.amount)}</span></div></div></div>
               </Card>
             )}
@@ -245,7 +246,7 @@ export default function CustomerInvoiceDetailPage() {
                             {lines.length ? (
                               lines.map((line) => (
                                 <div
-                                  key={`${invoice.id}-${line.sku}`}
+                                  key={`${invoice.id}-${line.key}`}
                                   className="border-b py-1.5 last:border-0"
                                 >
                                   <div className="font-medium">{line.name}</div>

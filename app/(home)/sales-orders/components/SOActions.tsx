@@ -9,7 +9,7 @@ const LIVE_CANCELLABLE = ['Pending', 'Processing', 'รอชำระจาก�
 interface SOActionsProps {
   status: SalesOrderStatus
   hasInv: boolean
-  onStatus: (s: SalesOrderStatus) => void
+  onStatus: (s: SalesOrderStatus) => Promise<void>
   onInvoice: () => void
 }
 
@@ -20,21 +20,33 @@ export default function SOActions({
   onInvoice,
 }: SOActionsProps) {
   const [confirming, setConfirming] = useState(false)
+  const [updating, setUpdating] = useState(false)
   const canCancel = (LIVE_CANCELLABLE as readonly string[]).includes(status)
+
+  async function changeStatus(nextStatus: SalesOrderStatus) {
+    if (updating) return
+    setUpdating(true)
+    try {
+      await onStatus(nextStatus)
+      setConfirming(false)
+    } finally {
+      setUpdating(false)
+    }
+  }
 
   if (confirming) {
     return (
       <div className="flex items-center gap-1.5 justify-end">
-        <Button variant="destructive" size="xs" onClick={() => { onStatus('Cancelled'); setConfirming(false) }} className="cursor-pointer">Confirm</Button>
-        <Button variant="ghost" size="xs" onClick={() => setConfirming(false)} className="cursor-pointer text-muted-foreground hover:text-foreground">Close</Button>
+        <Button variant="destructive" size="xs" disabled={updating} onClick={() => changeStatus('Cancelled')} className="cursor-pointer">{updating ? 'Saving...' : 'Confirm'}</Button>
+        <Button variant="ghost" size="xs" disabled={updating} onClick={() => setConfirming(false)} className="cursor-pointer text-muted-foreground hover:text-foreground">Close</Button>
       </div>
     )
   }
 
   return (
     <div className="flex items-center gap-1.5 justify-end">
-      {status === 'Pending' && <Button onClick={() => onStatus('Processing')} size="xs" className="cursor-pointer bg-[var(--erp-info)] hover:opacity-90 border-none text-white shadow-none">Start</Button>}
-      {status === 'Processing' && <Button onClick={() => onStatus('Completed')} size="xs" className="cursor-pointer bg-[var(--erp-pos)] hover:opacity-90 border-none text-white shadow-none">Complete</Button>}
+      {status === 'Pending' && <Button disabled={updating} onClick={() => changeStatus('Processing')} size="xs" className="cursor-pointer bg-[var(--erp-info)] hover:opacity-90 border-none text-white shadow-none">{updating ? 'Saving...' : 'Start'}</Button>}
+      {status === 'Processing' && <Button disabled={updating} onClick={() => changeStatus('Completed')} size="xs" className="cursor-pointer bg-[var(--erp-pos)] hover:opacity-90 border-none text-white shadow-none">{updating ? 'Completing...' : 'Complete'}</Button>}
       {status === 'Completed' && !hasInv && <Button onClick={onInvoice} size="xs" className="cursor-pointer bg-[var(--erp-accent)] hover:opacity-90 border-none text-white shadow-none">Invoice</Button>}
       {status === 'Completed' && hasInv && <span className="text-xs font-semibold text-emerald-600" style={{ color: 'var(--erp-pos)' }}>Invoiced</span>}
       {canCancel && (

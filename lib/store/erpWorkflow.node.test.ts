@@ -181,7 +181,7 @@ test('goods receive adds stock and creates movement', () => {
 })
 
 // ── 7.5. GR Landed Cost calculations ──────────────────────────────
-test('goods receive calculates landed costs and updates product cost moving average', () => {
+test('goods receive does not calculate landed cost or update product cost', () => {
   const store = freshStore()
   const po = store.getState().createPurchaseOrder({
     supplier: 'China Freight Supplier',
@@ -216,22 +216,16 @@ test('goods receive calculates landed costs and updates product cost moving aver
   })
 
   assert.ok(gr)
-  // Total allocatable landed cost = 3000
-  // Total items value base = (100 * 10) + (100 * 20) = 1000 + 2000 = 3000
-  // CHK allocation: 3000 * (1000 / 3000) = 1000. Landed unit cost = (1000 + 1000) / 100 = 20
-  // SAL allocation: 3000 * (2000 / 3000) = 2000. Landed unit cost = (2000 + 2000) / 100 = 40
-
   const grChkItem = gr.items.find(i => i.sku === 'CAT-CHK-30')
   const grSalItem = gr.items.find(i => i.sku === 'CAT-SAL-100')
-  assert.equal(grChkItem?.landedUnitCost, 20)
-  assert.equal(grSalItem?.landedUnitCost, 40)
+  assert.equal(grChkItem?.landedUnitCost, 0)
+  assert.equal(grSalItem?.landedUnitCost, 0)
+  assert.deepEqual(gr.landedCosts, [])
 
-  // CHK moving average: (100 * 8 + 100 * 20) / 200 = 2800 / 200 = 14
-  // SAL moving average: (100 * 15 + 100 * 40) / 200 = 5500 / 200 = 27.5
   const chkProduct = store.getState().products.find(p => p.sku === 'CAT-CHK-30')
   const salProduct = store.getState().products.find(p => p.sku === 'CAT-SAL-100')
-  assert.equal(chkProduct?.cost, 14)
-  assert.equal(salProduct?.cost, 27.5)
+  assert.equal(chkProduct?.cost, 8)
+  assert.equal(salProduct?.cost, 15)
 })
 
 // ── 8. GR cannot receive more than PO remaining ─────────────────
@@ -269,20 +263,26 @@ test('finished goods can be received directly without PR or PO', () => {
 
   assert.ok(receipt)
   assert.equal(receipt.poRef, undefined)
-  assert.equal(receipt.items[0].landedUnitCost, 42)
+  assert.equal(receipt.items[0].landedUnitCost, 0)
+  assert.match(receipt.items[0].lot, /^LOT-\d{4}-01-20260802$/)
   assert.equal(store.getState().products.find(p => p.sku === 'CAT-CHK-30')!.stock, before + 25)
-  assert.ok(store.getState().stockLots.some(lot => lot.sku === 'CAT-CHK-30' && lot.lot === 'FG-20260802-A'))
+  assert.ok(store.getState().stockLots.some(lot => lot.sku === 'CAT-CHK-30' && lot.lot === receipt.items[0].lot))
   assert.ok(store.getState().stockMovements.some(movement => movement.refDoc === receipt.id && movement.type === 'IN'))
 })
 
-test('direct finished-goods receipt rejects a duplicate SKU lot', () => {
+test('successive finished-goods receipts generate unique lot codes', () => {
   const store = freshStore()
   const input = {
     receiveDate: '2026-08-02',
     items: [{ sku: 'CAT-CHK-30', qtyReceived: 5, lot: 'FG-DUPLICATE', expiryDate: '', landedUnitCost: 40 }],
   }
-  assert.ok(store.getState().createGoodsReceive(input))
-  assert.equal(store.getState().createGoodsReceive(input), null)
+  const first = store.getState().createGoodsReceive(input)
+  const second = store.getState().createGoodsReceive(input)
+  assert.ok(first)
+  assert.ok(second)
+  assert.notEqual(first.items[0].lot, second.items[0].lot)
+  assert.match(first.items[0].lot, /20260802$/)
+  assert.match(second.items[0].lot, /20260802$/)
 })
 
 test('Sales Entry reserves stock, completes with FEFO, and is idempotent', () => {

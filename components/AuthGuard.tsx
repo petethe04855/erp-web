@@ -20,7 +20,7 @@ const ROUTE_RESOURCES: Record<string, ErpResource[]> = {
 	'/sku': ['products'],
 	'/bom': ['products', 'bundleComponents'],
 	'/stock': ['products', 'stockLots'],
-	'/goods-receive': ['goodsReceives', 'purchaseOrders'],
+	'/goods-receive': ['goodsReceives', 'purchaseOrders', 'products'],
 	'/goods-issue': ['products', 'stockLots', 'stockMovements', 'goodsIssues'],
 	'/production-run': ['products', 'stockLots', 'stockMovements'],
 	'/stock-transfer': ['products', 'stockTransfers'],

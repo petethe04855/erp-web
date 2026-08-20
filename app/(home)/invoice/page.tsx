@@ -158,7 +158,17 @@ export default function InvoicePage() {
   const recordPayment = useErpStore((state) => state.recordPayment);
   const settings = useErpStore((state) => state.settings);
 
-  const processedList = useMemo(() => invoices.map(enrichStatus), [invoices]);
+  const processedList = useMemo(
+    () =>
+      invoices
+        .map(enrichStatus)
+        .sort((a, b) =>
+          String(b.code || b.id).localeCompare(String(a.code || a.id), undefined, {
+            numeric: true,
+          }),
+        ),
+    [invoices],
+  );
   const [selectedId, setSelectedId] = useState(
     processedList.find((i) => i.status !== "Paid")?.id ??
       processedList[0]?.id ??
@@ -172,11 +182,23 @@ export default function InvoicePage() {
   const [toast, setToast] = useState("");
 
   const salesOrder = selected
-    ? salesOrders.find((so) => so.id === selected.soRef)
+    ? salesOrders.find(
+        (so) =>
+          (selected.salesOrderId != null &&
+            String(so.id) === String(selected.salesOrderId)) ||
+          String(so.id) === String(selected.soRef) ||
+          String(so.code) === String(selected.soRef),
+      )
     : null;
   const eligibleSOs = salesOrders.filter(
     (so) =>
-      so.status === "Completed" && !invoices.some((inv) => inv.soRef === so.id),
+      so.status === "Completed" &&
+      !invoices.some(
+        (inv) =>
+          (inv.salesOrderId != null && String(inv.salesOrderId) === String(so.id)) ||
+          String(inv.soRef) === String(so.id) ||
+          String(inv.soRef) === String(so.code),
+      ),
   );
 
   const vatRate = settings.company.vatRate || 7;
@@ -497,7 +519,7 @@ export default function InvoicePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {processedList.slice(0, 6).map((inv, index) => {
+                  {processedList.map((inv, index) => {
                     const active = inv.id === selected.id;
                     const invoiceOrder = salesOrders.find(
                       (order) =>
@@ -506,12 +528,13 @@ export default function InvoicePage() {
                         String(order.id) === String(inv.soRef) ||
                         String(order.code) === String(inv.soRef),
                     );
-                    const itemNames =
-                      invoiceOrder?.lines.map(
-                        (line) =>
+                    const invoiceItems =
+                      invoiceOrder?.lines.map((line, lineIndex) => ({
+                        key: line.id ?? `${line.sku}-${lineIndex}`,
+                        name:
                           products.find((product) => product.sku === line.sku)
                             ?.name || line.sku,
-                      ) ?? [];
+                      })) ?? [];
                     return (
                       <TableRow
                         key={inv.id}
@@ -542,14 +565,14 @@ export default function InvoicePage() {
                         </TableCell>
                         <TableCell className="p-3 px-5">
                           <span className="text-sm text-muted-foreground">
-                            {itemNames.length
-                              ? itemNames.map((name) => (
+                            {invoiceItems.length
+                              ? invoiceItems.map((item) => (
                                   <span
-                                    key={name}
+                                    key={item.key}
                                     className="block text-sm text-muted-foreground"
                                     style={{ color: "var(--erp-ink2)" }}
                                   >
-                                    {name}
+                                    {item.name}
                                   </span>
                                 ))
                               : "ไม่มีรายละเอียดสินค้า"}

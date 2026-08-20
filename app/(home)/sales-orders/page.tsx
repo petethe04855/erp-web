@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTheme } from "@/lib/design/ThemeContext";
 import {
   Btn,
@@ -94,6 +94,24 @@ export default function SalesOrdersPage() {
   const [filter, setFilter] = useState<"all" | SalesOrderStatus>("all");
   const [search, setSearch] = useState("");
   const [toast, setToast] = useState("");
+  const autoInvoiceRequested = useRef(new Set<number | string>());
+
+  // Backfill completed orders created before automatic invoicing was enabled.
+  // Normal completion refreshes invoices before sales orders, so this does not
+  // race the transaction that completes the order and creates its invoice.
+  useEffect(() => {
+    for (const order of salesOrders) {
+      if (order.status !== "Completed") continue;
+      const hasInvoice = invoices.some((invoice) =>
+        invoice.soRef === order.code ||
+        invoice.soRef === String(order.id) ||
+        invoice.salesOrderId === order.id
+      );
+      if (hasInvoice || autoInvoiceRequested.current.has(order.id)) continue;
+      autoInvoiceRequested.current.add(order.id);
+      createInvoiceFromSO(order.id);
+    }
+  }, [salesOrders, invoices, createInvoiceFromSO]);
 
   const filtered = salesOrders.filter((order) => {
     if (filter !== "all" && order.status !== filter) return false;
@@ -194,14 +212,32 @@ export default function SalesOrdersPage() {
     showToast("สร้าง Sales Entry และจอง Stock แล้ว");
   }
 
-  function handleCreateInvoice(soId: number | string) {
+  async function handleCreateInvoice(soId: number | string) {
     try {
-      const inv = createInvoiceFromSO(soId);
+      const inv = await createInvoiceFromSO(soId);
       showToast(
         inv ? `สร้าง ${inv.code || inv.id} แล้ว` : "สร้าง Invoice ไม่ได้",
       );
     } catch (err: any) {
       showToast(err.message || "เกิดข้อผิดพลาดในการสร้าง Invoice");
+    }
+  }
+
+  async function handleStatusChange(
+    soId: number | string,
+    status: SalesOrderStatus,
+  ) {
+    try {
+      await updateSalesOrderStatus(soId, status);
+      showToast(
+        status === "Completed"
+          ? "Complete สำเร็จ ตัด Stock และสร้าง Invoice แล้ว"
+          : `เปลี่ยนสถานะเป็น ${status} แล้ว`,
+      );
+    } catch (error) {
+      showToast(
+        error instanceof Error ? error.message : "เปลี่ยนสถานะไม่สำเร็จ",
+      );
     }
   }
 
@@ -438,7 +474,7 @@ export default function SalesOrdersPage() {
                         status={order.status}
                         hasInv={hasInv}
                         onStatus={(status) =>
-                          updateSalesOrderStatus(order.id, status)
+                          handleStatusChange(order.id, status)
                         }
                         onInvoice={() => handleCreateInvoice(order.id)}
                       />

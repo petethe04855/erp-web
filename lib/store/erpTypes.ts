@@ -114,7 +114,7 @@ export type GoodsReceiveItem = {
   qtyReceived: number
   lot: string
   expiryDate: string           // Gap 1: FEFO expiry (yyyy-mm-dd or '' = no expiry)
-  landedUnitCost?: number      // Price + allocated landed cost per unit
+  landedUnitCost?: number      // Remains 0 until a later costing step
 }
 
 export type GoodsReceive = {
@@ -324,7 +324,7 @@ export type CreatePurchaseOrderInput = {
 export type CreateGoodsReceiveInput = {
   poRef?: string | number
   receiveDate: string
-  items: Array<{ sku: string; qtyReceived: number; lot: string; expiryDate: string; landedUnitCost?: number }>
+  items: Array<{ sku: string; qtyReceived: number; lot?: string; expiryDate: string; landedUnitCost?: number }>
   landedCosts?: LandedCostLine[]
 }
 

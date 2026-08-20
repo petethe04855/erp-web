@@ -9,13 +9,11 @@ import {
   Sheet, SheetBody, SheetContent, SheetFooter, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
 
-type FinishedProduct = { sku: string; name: string; type: string; isActive: boolean };
+type FinishedProduct = { sku: string; name: string; type?: string; isActive?: boolean; isBundle?: boolean };
 type ReceiveLine = {
   sku: string;
   qtyReceived: number;
-  lot: string;
   expiryDate: string;
-  landedUnitCost: number;
 };
 
 interface ReceiveGoodsSheetProps {
@@ -25,12 +23,12 @@ interface ReceiveGoodsSheetProps {
   onSubmit: (data: {
     receiveDate: string;
     items: ReceiveLine[];
-  }) => boolean;
+  }) => Promise<boolean>;
   showToast: (msg: string) => void;
 }
 
 const emptyLine = (): ReceiveLine => ({
-  sku: "", qtyReceived: 0, lot: "", expiryDate: "", landedUnitCost: 0,
+  sku: "", qtyReceived: 0, expiryDate: "",
 });
 
 export function ReceiveGoodsSheet({
@@ -38,28 +36,39 @@ export function ReceiveGoodsSheet({
 }: ReceiveGoodsSheetProps) {
   const [receiveDate, setReceiveDate] = useState(new Date().toISOString().split("T")[0]);
   const [lines, setLines] = useState<ReceiveLine[]>([emptyLine()]);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
 
   function updateLine<K extends keyof ReceiveLine>(index: number, field: K, value: ReceiveLine[K]) {
     setLines((current) => current.map((line, i) => i === index ? { ...line, [field]: value } : line));
   }
 
-  function handleSubmit() {
-    const items = lines.filter((line) => line.sku || line.qtyReceived || line.lot);
+  async function handleSubmit() {
+    setFormError("");
+    const items = lines.filter((line) => line.sku || line.qtyReceived);
     if (!receiveDate || items.length === 0) {
-      showToast("กรุณาระบุวันที่รับและสินค้าอย่างน้อย 1 รายการ");
+      const message = "กรุณาระบุวันที่รับและสินค้าอย่างน้อย 1 รายการ";
+      setFormError(message);
+      showToast(message);
       return;
     }
-    if (items.some((line) => !line.sku || line.qtyReceived <= 0 || !line.lot || line.landedUnitCost < 0)) {
-      showToast("กรุณากรอก SKU จำนวน Lot และต้นทุนให้ครบ");
+    if (items.some((line) => !line.sku || line.qtyReceived <= 0)) {
+      const message = "กรุณาเลือก SKU และระบุจำนวนให้ครบ";
+      setFormError(message);
+      showToast(message);
       return;
     }
-    if (new Set(items.map((line) => `${line.sku}:${line.lot}`)).size !== items.length) {
-      showToast("SKU และ Lot ต้องไม่ซ้ำกันในเอกสารเดียวกัน");
-      return;
-    }
-    if (onSubmit({ receiveDate, items })) {
-      setLines([emptyLine()]);
-      onOpenChange(false);
+    setSaving(true);
+    try {
+      if (await onSubmit({ receiveDate, items })) {
+        setLines([emptyLine()]);
+        setFormError("");
+        onOpenChange(false);
+      }
+    } catch (reason) {
+      setFormError(reason instanceof Error ? reason.message : "ไม่สามารถบันทึกรับสินค้าได้");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -70,9 +79,13 @@ export function ReceiveGoodsSheet({
           <SheetTitle className="text-base font-bold">รับสินค้าสำเร็จรูปเข้าคลัง</SheetTitle>
         </SheetHeader>
         <SheetBody className="space-y-5">
+          {formError && <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</div>}
           <div className="max-w-52">
             <Label className="mb-1 block text-xs font-semibold">วันที่รับ *</Label>
             <Input type="date" value={receiveDate} onChange={(e) => setReceiveDate(e.target.value)} />
+          </div>
+          <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            ระบบจะสร้างรหัส Lot อัตโนมัติเมื่อตอนบันทึก โดยลงท้ายด้วยวันที่รับในรูปแบบ YYYYMMDD และยังไม่คำนวณต้นทุนในขั้นตอน Stock Receipt
           </div>
 
           <div className="space-y-3">
@@ -82,7 +95,7 @@ export function ReceiveGoodsSheet({
                   <Label className="mb-1 block text-xs">สินค้าสำเร็จรูป *</Label>
                   <NativeSelect value={line.sku} onChange={(e) => updateLine(index, "sku", e.target.value)}>
                     <option value="">เลือก SKU</option>
-                    {products.filter((p) => p.isActive && ["Finished Product", "Cat", "Dog", "Other"].includes(p.type)).map((product) => (
+                    {products.filter((p) => p.isActive !== false && p.sku).map((product) => (
                       <option key={product.sku} value={product.sku}>{product.sku} — {product.name}</option>
                     ))}
                   </NativeSelect>
@@ -91,15 +104,11 @@ export function ReceiveGoodsSheet({
                   <Label className="mb-1 block text-xs">จำนวน *</Label>
                   <Input type="number" min={1} value={line.qtyReceived || ""} onChange={(e) => updateLine(index, "qtyReceived", Number(e.target.value) || 0)} />
                 </div>
-                <div className="col-span-4 md:col-span-2">
-                  <Label className="mb-1 block text-xs">ต้นทุน/หน่วย *</Label>
-                  <Input type="number" min={0} step="0.01" value={line.landedUnitCost || ""} onChange={(e) => updateLine(index, "landedUnitCost", Number(e.target.value) || 0)} />
+                <div className="col-span-4 md:col-span-3">
+                  <Label className="mb-1 block text-xs">Lot</Label>
+                  <Input disabled value="สร้างอัตโนมัติเมื่อบันทึก" />
                 </div>
-                <div className="col-span-4 md:col-span-2">
-                  <Label className="mb-1 block text-xs">Lot *</Label>
-                  <Input value={line.lot} onChange={(e) => updateLine(index, "lot", e.target.value.trim())} placeholder="LOT-001" />
-                </div>
-                <div className="col-span-10 md:col-span-2">
+                <div className="col-span-10 md:col-span-3">
                   <Label className="mb-1 block text-xs">วันหมดอายุ</Label>
                   <Input type="date" value={line.expiryDate} onChange={(e) => updateLine(index, "expiryDate", e.target.value)} />
                 </div>
@@ -115,7 +124,7 @@ export function ReceiveGoodsSheet({
         </SheetBody>
         <SheetFooter className="flex justify-end gap-2 border-t p-4 px-6">
           <Button variant="outline" onClick={() => onOpenChange(false)}>ยกเลิก</Button>
-          <Button onClick={handleSubmit} className="bg-[var(--erp-accent)] text-white">บันทึกรับสินค้า</Button>
+          <Button onClick={handleSubmit} disabled={saving} className="bg-[var(--erp-accent)] text-white">{saving ? "กำลังบันทึก..." : "บันทึกรับสินค้า"}</Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>

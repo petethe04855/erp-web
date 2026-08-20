@@ -11,8 +11,14 @@ import {
 	type SamplingRecipient,
 	type GoodsIssue,
 	type CreateGoodsIssueInput,
+	type GoodsReceive,
+	type CreateGoodsReceiveInput,
 	type SalesOrder,
+	type SalesOrderStatus,
 	type CreateSalesOrderInput,
+	type Invoice,
+	type StockReturn,
+	type CreateStockReturnInput,
 } from '@/lib/store/erpWorkflow'
 import type { AppUser, ErpSettings } from '@/lib/store/erpTypes'
 import { readApiResponse } from '@/lib/apiResponse'
@@ -118,7 +124,7 @@ export type ErpResource = keyof typeof ERP_RESOURCE_ENDPOINTS
 const loadedResources = new Set<ErpResource>()
 const loadingResources = new Map<ErpResource, Promise<void>>()
 
-interface CustomErpStore extends Omit<ErpWorkflowStore, 'createGoodsIssue' | 'createSalesOrder'> {
+interface CustomErpStore extends Omit<ErpWorkflowStore, 'createGoodsIssue' | 'createSalesOrder' | 'createGoodsReceive' | 'createInvoiceFromSO' | 'updateSalesOrderStatus' | 'createStockReturn'> {
 	users: AppUser[]
 	fetchInitialState: () => Promise<void>
 	loadResources: (resources: ErpResource[], force?: boolean) => Promise<void>
@@ -128,7 +134,11 @@ interface CustomErpStore extends Omit<ErpWorkflowStore, 'createGoodsIssue' | 'cr
 	deleteUser: (id: string) => Promise<void>
 	updateExpense: (id: string, input: Partial<any>) => Promise<void>
 	createGoodsIssue: (input: CreateGoodsIssueInput) => Promise<GoodsIssue | null>
+	createGoodsReceive: (input: CreateGoodsReceiveInput) => Promise<GoodsReceive | null>
+	createInvoiceFromSO: (salesOrderId: number | string) => Promise<Invoice | null>
 	createSalesOrder: (input: CreateSalesOrderInput) => Promise<SalesOrder>
+	updateSalesOrderStatus: (soId: number | string, status: SalesOrderStatus) => Promise<SalesOrder>
+	createStockReturn: (input: CreateStockReturnInput) => Promise<StockReturn>
 }
 
 export const useErpStore = create<CustomErpStore>((set, get) => {
@@ -428,19 +438,18 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 		return salesOrder
 	},
 
-	updateSalesOrderStatus: (soId, status) => {
-		const updated = workflow.updateSalesOrderStatus(soId, status)
-		fetch(`${getApiUrl()}/api/sales-orders/${soId}/status`, {
+	updateSalesOrderStatus: async (soId, status) => {
+		const response = await fetch(`${getApiUrl()}/api/sales-orders/${soId}/status`, {
 			method: 'PUT',
 			headers: getHeaders(),
 			body: JSON.stringify({ status }),
-		}).then(async res => {
-			await readApiResponse<SalesOrder>(res)
-			await get().loadResources(['salesOrders', 'products', 'stockLots', 'stockMovements'], true)
-		}).catch(error => {
-			console.error('Failed to update Sales Entry status', error)
-			get().loadResources(['salesOrders', 'products', 'stockLots', 'stockMovements'], true)
 		})
+		const updated = await readApiResponse<SalesOrder>(response)
+		// Complete creates its invoice on the server in the same transaction.
+		// Refresh invoices first so the completed SO never becomes visible to the
+		// legacy backfill effect while the invoice list is still stale.
+		await get().loadResources(['invoices'], true)
+		await get().loadResources(['salesOrders', 'products', 'stockLots', 'stockMovements'], true)
 		return updated
 	},
 
@@ -457,14 +466,13 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 		return invoice
 	},
 
-	createInvoiceFromSO: (salesOrderId) => {
-		const invoice = workflow.createInvoiceFromSO(salesOrderId)
-		fetch(`${getApiUrl()}/api/invoices/from-so/${salesOrderId}`, {
+	createInvoiceFromSO: async (salesOrderId) => {
+		const response = await fetch(`${getApiUrl()}/api/invoices/from-so/${encodeURIComponent(String(salesOrderId))}`, {
 			method: 'POST',
 			headers: getHeaders(),
-		}).then(res => {
-			if (res.ok) get().fetchInitialState()
 		})
+		const invoice = await readApiResponse<Invoice>(response)
+		await get().loadResources(['invoices', 'salesOrders'], true)
 		return invoice
 	},
 
@@ -543,16 +551,18 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 	},
 
 	// ── Goods Receive ──
-	createGoodsReceive: (input) => {
-		const goodsReceive = workflow.createGoodsReceive(input)
-		if (!goodsReceive) return null
-		fetch(`${getApiUrl()}/api/goods-receives`, {
+	createGoodsReceive: async (input) => {
+		const response = await fetch(`${getApiUrl()}/api/goods-receives`, {
 			method: 'POST',
 			headers: getHeaders(),
-			body: JSON.stringify(goodsReceive),
-		}).then(res => {
-			if (res.ok) get().fetchInitialState()
+			body: JSON.stringify({
+				poRef: input.poRef ?? '',
+				receiveDate: input.receiveDate,
+				items: input.items,
+			}),
 		})
+		const goodsReceive = await readApiResponse<GoodsReceive>(response)
+		await get().loadResources(['goodsReceives', 'stockLots', 'stockMovements', 'products'], true)
 		return goodsReceive
 	},
 
@@ -652,13 +662,14 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 	},
 
 	// ── Returns ──
-	createStockReturn: (input) => {
-		const stockReturn = workflow.createStockReturn(input)
-		fetch(`${getApiUrl()}/api/stock-returns`, {
+	createStockReturn: async (input) => {
+		const response = await fetch(`${getApiUrl()}/api/stock-returns`, {
 			method: 'POST',
 			headers: getHeaders(),
-			body: JSON.stringify(stockReturn),
-		}).finally(() => get().loadResources(['stockReturns'], true))
+			body: JSON.stringify(input),
+		})
+		const stockReturn = await readApiResponse<StockReturn>(response)
+		await get().loadResources(['stockReturns'], true)
 		return stockReturn
 	},
 

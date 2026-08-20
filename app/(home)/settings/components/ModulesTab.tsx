@@ -30,7 +30,7 @@ const MODULE_SECTIONS: Array<{
     items: [
       { key: "skuMaster", label: "SKU Master", desc: "ข้อมูลสินค้า" },
       { key: "stockBalance", label: "Stock Balance", desc: "สต็อคคงคลัง" },
-      { key: "goodsReceive", label: "Goods Receive", desc: "รับสินค้าเข้า" },
+      { key: "goodsReceive", label: "Stock Receipt", desc: "รับสินค้าเข้า" },
       { key: "goodsIssue", label: "Goods Issue", desc: "เบิกสินค้าออก" },
       { key: "stockTransfer", label: "Stock Transfer", desc: "โอนสต็อค" },
       { key: "stockCheck", label: "Stock Checking", desc: "นับสต็อค" },
