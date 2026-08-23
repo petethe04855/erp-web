@@ -545,7 +545,19 @@ export type SetBundleComponentsInput = {
 // ── TikTok Orders ──────────────────────────────────────────────────────────
 
 export type TiktokOrderStatus =
-  | 'COMPLETED' | 'AWAITING_SHIPMENT' | 'IN_TRANSIT' | 'DELIVERED' | 'CANCELLED'
+  | 'UNPAID' | 'ON_HOLD' | 'AWAITING_SHIPMENT' | 'AWAITING_COLLECTION'
+  | 'PARTIALLY_SHIPPING' | 'IN_TRANSIT' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED'
+
+export type TiktokOrderItem = {
+  id?: number
+  orderId: string
+  lineItemId: string
+  productName: string
+  sku: string
+  qty: number
+  unitPrice: number
+  amount: number
+}
 
 export type TiktokOrder = {
   id: string
@@ -562,6 +574,7 @@ export type TiktokOrder = {
   platformFee?: number      // sum of all fees (commission + transaction + shipping subsidy, etc.)
   settled?: boolean         // true once settlement data has been applied
   settlementRef?: string    // settlement period identifier from TikTok (e.g. "2026-05-01_2026-05-14")
+  items?: TiktokOrderItem[]  // all SKU lines returned by TikTok Shop Orders API
 }
 
 export type CreateTiktokOrderInput = {
