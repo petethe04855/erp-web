@@ -1287,21 +1287,28 @@ export function createErpWorkflowState(
       const product: Product = {
         sku: input.sku,
         name: input.name,
-        type: 'Finished Product' as ProductCategory,
+        type: input.isBundle ? 'Bundle' : 'Finished Product' as ProductCategory,
         barcode: input.barcode ?? '',
         weightGrams: input.weightGrams ?? 0,
         retailPrice: input.retailPrice,
         wholesalePrice: input.wholesalePrice ?? input.retailPrice,
         price: input.retailPrice,
         cost: input.cost,
-        stock: 0,
+        stock: input.isBundle ? 0 : (input.stock ?? 0),
         reorder: input.reorder ?? 0,
         reservedQty: 0,
-        isBundle: false,
+        isBundle: input.isBundle ?? false,
         isActive: true,
         note: input.note ?? '',
       }
-      set(s => ({ products: [...s.products, product] }))
+      const components = input.components ?? []
+      set(s => ({
+        products: [...s.products, product],
+        bundleComponents: product.isBundle ? [
+          ...s.bundleComponents.filter(c => c.bundleSku !== product.sku),
+          ...components.map(c => ({ ...c, bundleSku: product.sku })),
+        ] : s.bundleComponents,
+      }))
       return product
     },
 
@@ -1311,10 +1318,18 @@ export function createErpWorkflowState(
       const updated: Product = {
         ...existing,
         ...input,
+        type: input.isBundle ? 'Bundle' : (input.type ?? existing.type),
+        stock: input.isBundle ? 0 : (input.stock ?? existing.stock),
         // keep price alias in sync
         price: input.retailPrice ?? existing.retailPrice,
       }
-      set(s => ({ products: s.products.map(p => p.sku === input.sku ? updated : p) }))
+      set(s => ({
+        products: s.products.map(p => p.sku === input.sku ? updated : p),
+        bundleComponents: input.components === undefined ? s.bundleComponents : [
+          ...s.bundleComponents.filter(c => c.bundleSku !== input.sku),
+          ...(updated.isBundle ? input.components.map(c => ({ ...c, bundleSku: updated.sku })) : []),
+        ],
+      }))
       return updated
     },
 

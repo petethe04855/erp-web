@@ -35,6 +35,7 @@ const EMPTY_FORM: CreateProductInput = {
   isBundle: false,
   note: "",
   baseUnit: "piece",
+  components: [],
 };
 
 function formatBaht(n: number | undefined | null) {
@@ -48,6 +49,7 @@ export default function SkuPage() {
   const { tokens: t } = useTheme();
   const c = t.color;
   const products = useErpStore((s) => s.products);
+  const bundleComponents = useErpStore((s) => s.bundleComponents);
   const addProduct = useErpStore((s) => s.addProduct);
   const updateProduct = useErpStore((s) => s.updateProduct);
   const deleteProduct = useErpStore((s) => s.deleteProduct);
@@ -103,6 +105,14 @@ export default function SkuPage() {
       isBundle: p.isBundle,
       note: p.note,
       baseUnit: p.baseUnit ?? "piece",
+      components: bundleComponents
+        .filter((component) => component.bundleSku === p.sku)
+        .map((component) => ({
+          componentSku: component.componentSku,
+          qty: component.qty,
+          unit: component.unit ?? "piece",
+          componentType: component.componentType ?? "material",
+        })),
     });
     setError("");
     setModalMode("edit");
@@ -132,14 +142,33 @@ export default function SkuPage() {
       setError("ราคาขายต้องมากกว่า 0");
       return;
     }
+    if (form.isBundle) {
+      const components = form.components ?? [];
+      if (components.length === 0) {
+        setError("กรุณาเพิ่มสินค้าในแพ็กอย่างน้อย 1 รายการ");
+        return;
+      }
+      if (components.some((component) => !component.componentSku || component.qty <= 0)) {
+        setError("กรุณาเลือก SKU และระบุจำนวนสินค้าในแพ็กให้ถูกต้อง");
+        return;
+      }
+      if (new Set(components.map((component) => component.componentSku)).size !== components.length) {
+        setError("SKU สินค้าในแพ็กซ้ำกัน กรุณารวมจำนวนไว้ในรายการเดียว");
+        return;
+      }
+      if (modalMode === "edit" && selected && !selected.isBundle && selected.stock > 0) {
+        setError("ไม่สามารถเปลี่ยน SKU ที่มี Stock เป็นสินค้าแพ็กได้ กรุณาปรับ Stock ให้เป็น 0 ก่อน");
+        return;
+      }
+    }
     try {
       if (modalMode === "add") {
         addProduct({
           ...form,
-          type: "Finished Product",
+          type: form.isBundle ? "Bundle" : "Finished Product",
           cost: 0,
-          stock: Math.max(0, Math.floor(Number(form.stock) || 0)),
-          isBundle: false,
+          stock: form.isBundle ? 0 : Math.max(0, Math.floor(Number(form.stock) || 0)),
+          isBundle: Boolean(form.isBundle),
           baseUnit: "piece",
         });
       } else if (modalMode === "edit" && selected) {
@@ -151,8 +180,10 @@ export default function SkuPage() {
           retailPrice: form.retailPrice,
           wholesalePrice: form.retailPrice,
           price: form.retailPrice,
-          stock: Math.max(0, Math.floor(Number(form.stock) || 0)),
-          isBundle: false,
+          type: form.isBundle ? "Bundle" : "Finished Product",
+          stock: form.isBundle ? 0 : Math.max(0, Math.floor(Number(form.stock) || 0)),
+          isBundle: Boolean(form.isBundle),
+          components: form.isBundle ? form.components : [],
           note: form.note,
         });
       }
@@ -268,6 +299,11 @@ export default function SkuPage() {
                       style={{ color: "var(--erp-ink)" }}
                     >
                       {p.name}
+                      {p.isBundle && (
+                        <span className="ml-2 rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700 dark:bg-violet-950/30 dark:text-violet-300">
+                          แพ็ก
+                        </span>
+                      )}
                     </div>
                     {p.barcode && (
                       <div
@@ -367,6 +403,7 @@ export default function SkuPage() {
             modalMode={modalMode}
             selectedSku={selected?.sku}
             form={form}
+            products={products}
             setForm={setForm}
             error={error}
             onClose={closeModal}
@@ -377,6 +414,8 @@ export default function SkuPage() {
         {modalMode === "view" && selected && (
           <SkuViewModal
             selected={selected}
+            bundleComponents={bundleComponents.filter((component) => component.bundleSku === selected.sku)}
+            componentProducts={products}
             onClose={closeModal}
             onEdit={() => {
               closeModal();

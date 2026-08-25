@@ -334,6 +334,24 @@ test('TiktokOrder and ManualOrder types exist in erpTypes', () => {
   assert.equal(mo.status, 'Pending')
 })
 
+test('bundle SKU stores its component quantities and has no physical stock', () => {
+  const store = freshStore()
+
+  const bundle = store.getState().addProduct({
+    sku: 'SET-TEST-3', name: 'Test pack 3 pieces', type: 'Bundle',
+    retailPrice: 250, cost: 0, stock: 99, isBundle: true,
+    components: [{ componentSku: 'CAT-CHK-30', qty: 3, unit: 'piece', componentType: 'material' }],
+  })
+
+  assert.equal(bundle.isBundle, true)
+  assert.equal(bundle.type, 'Bundle')
+  assert.equal(bundle.stock, 0)
+  assert.deepEqual(
+    store.getState().bundleComponents.filter(component => component.bundleSku === bundle.sku),
+    [{ bundleSku: 'SET-TEST-3', componentSku: 'CAT-CHK-30', qty: 3, unit: 'piece', componentType: 'material' }],
+  )
+})
+
 // ── TikTok Order store tests ───────────────────────────────────
 test('addTiktokOrder creates order with imported=false', () => {
   const store = freshStore()

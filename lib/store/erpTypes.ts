@@ -526,9 +526,14 @@ export type CreateProductInput = {
   isBundle?: boolean
   note?: string
   baseUnit?: string
+  components?: SetBundleComponentsInput['components']
 }
 
-export type UpdateProductInput = Partial<Omit<Product, 'sku' | 'reservedQty' >> & { sku: string; newSku?: string }
+export type UpdateProductInput = Partial<Omit<Product, 'sku' | 'reservedQty' >> & {
+  sku: string
+  newSku?: string
+  components?: SetBundleComponentsInput['components']
+}
 
 export type SetBundleComponentsInput = {
   bundleSku: string

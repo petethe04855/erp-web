@@ -269,33 +269,46 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 	addProduct: (input) => {
 		const exists = get().products.some(product => product.sku.toUpperCase() === input.sku.toUpperCase())
 		if (exists) throw new Error(`SKU "${input.sku}" already exists`)
+		const { components = [], ...productInput } = input
+		const isBundle = Boolean(input.isBundle || input.type === 'Bundle')
 		const newProduct = {
-			...input,
-			type: 'Finished Product',
-			stock: input.stock || 0,
+			...productInput,
+			type: isBundle ? 'Bundle' : 'Finished Product',
+			stock: isBundle ? 0 : input.stock || 0,
 			reservedQty: 0,
 			isActive: true,
 			barcode: input.barcode || '',
 			weightGrams: input.weightGrams || 0,
 			wholesalePrice: input.wholesalePrice || 0,
 			reorder: input.reorder || 0,
-			isBundle: false,
+			isBundle,
 			note: input.note || '',
 			price: input.retailPrice,
 			baseUnit: input.baseUnit || 'piece',
 		} as Product
 
-		set(s => ({ products: [...s.products, newProduct] }))
+		const previousComponents = get().bundleComponents
+		set(s => ({
+			products: [...s.products, newProduct],
+			bundleComponents: isBundle ? [
+				...s.bundleComponents.filter(component => component.bundleSku !== newProduct.sku),
+				...components.map(component => ({ ...component, bundleSku: newProduct.sku })),
+			] : s.bundleComponents,
+		}))
 
 		fetch(`${getApiUrl()}/api/products`, {
 			method: 'POST',
 			headers: getHeaders(),
-			body: JSON.stringify(newProduct),
+			body: JSON.stringify({ ...newProduct, components }),
 		}).then(res => readApiResponse<Product>(res)).then(async data => {
 			set(s => ({ products: s.products.map(product => product.sku === newProduct.sku ? data : product) }))
-			await get().loadResources(['products', 'stockLots', 'stockMovements'], true)
+			await get().loadResources(['products', 'bundleComponents', 'stockLots', 'stockMovements'], true)
 		}).catch(error => {
 			console.error('Failed to create product', error)
+			set(s => ({
+				products: s.products.filter(product => product.sku !== newProduct.sku),
+				bundleComponents: previousComponents,
+			}))
 		})
 
 		return newProduct
@@ -304,25 +317,37 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 	updateProduct: (input) => {
 		const current = get().products.find(p => p.sku === input.sku)
 		if (!current) return null
-		const { newSku, ...changes } = input
+		const { newSku, components, ...changes } = input
+		const isBundle = changes.isBundle ?? current.isBundle
 		const updated = {
 			...current,
 			...changes,
 			sku: newSku?.trim().toUpperCase() || current.sku,
-			type: 'Finished Product',
-			isBundle: false,
+			type: isBundle ? 'Bundle' : 'Finished Product',
+			stock: isBundle ? 0 : (changes.stock ?? current.stock),
+			isBundle,
 		} as Product
-		set(s => ({ products: s.products.map(p => p.sku === input.sku ? updated : p) }))
+		const previousComponents = get().bundleComponents
+		set(s => ({
+			products: s.products.map(p => p.sku === input.sku ? updated : p),
+			bundleComponents: components === undefined ? s.bundleComponents : [
+				...s.bundleComponents.filter(component => component.bundleSku !== input.sku && component.bundleSku !== updated.sku),
+				...(isBundle ? components.map(component => ({ ...component, bundleSku: updated.sku })) : []),
+			],
+		}))
 		fetch(`${getApiUrl()}/api/products/${input.sku}`, {
 			method: 'PUT',
 			headers: getHeaders(),
-			body: JSON.stringify(input),
+			body: JSON.stringify({ ...input, type: updated.type, isBundle, components }),
 		}).then(async res => {
 			await readApiResponse<Product>(res)
-			await get().loadResources(['products', 'stockLots', 'stockMovements'], true)
+			await get().loadResources(['products', 'bundleComponents', 'stockLots', 'stockMovements'], true)
 		}).catch(error => {
 			console.error('Failed to update product', error)
-			set(s => ({ products: s.products.map(p => p.sku === updated.sku ? current : p) }))
+			set(s => ({
+				products: s.products.map(p => p.sku === updated.sku ? current : p),
+				bundleComponents: previousComponents,
+			}))
 		})
 		return updated
 	},
