@@ -49,14 +49,36 @@ export type Invoice = {
   salesOrderId?: number | null
   soRef: number | string
   customer: string
+  customerAddress?: string
+  customerTaxId?: string
+  customerBranch?: string
+  purchaseOrderRef?: string
+  paymentTerms?: string
   issueDate: string
   dueDate: string
+  subtotal?: number
+  vatAmount?: number
   amount: number
   paid: number
   credited?: number
   refundDue?: number
   status: InvoiceStatus
+  lines?: InvoiceLine[]
   auditTrail: AuditEvent[]     // Gap 9
+}
+
+export type InvoiceLine = {
+  id?: number
+  invoiceId?: number
+  productId?: number
+  sku: string
+  lot?: string
+  name: string
+  qty: number
+  unit: string
+  unitPrice: number
+  discount?: number
+  lineTotal: number
 }
 
 // ── Purchasing ─────────────────────────────────────────────────────────────
@@ -274,7 +296,7 @@ export const ROLE_NAV: Record<UserRole, string[] | '*'> = {
   owner:      '*',
   sales:      ['/', '/dashboard', '/sales-orders', '/quotation', '/invoice', '/manual-order', '/tiktok-orders', '/live-sessions', '/sampling'],
   warehouse:  ['/', '/dashboard', '/sku', '/bom', '/stock', '/goods-receive', '/goods-issue', '/production-run', '/purchase-req', '/purchase-order', '/stock-transfer', '/stock-check', '/sampling'],
-  accountant: ['/', '/dashboard', '/invoice', '/sales-orders', '/purchase-order', '/journal', '/reports', '/integrity', '/expenses', '/pl', '/budget'],
+  accountant: ['/', '/dashboard', '/invoice', '/sales-orders', '/purchase-order', '/journal', '/reports', '/integrity', '/expenses', '/budget'],
 }
 
 // ── Input types ────────────────────────────────────────────────────────────
@@ -301,9 +323,17 @@ export type CreateSalesOrderInput = {
 export type CreateInvoiceInput = {
   soRef?: string
   customer: string
+  customerAddress?: string
+  customerTaxId?: string
+  customerBranch?: string
+  purchaseOrderRef?: string
+  paymentTerms?: string
   issueDate?: string
   dueDate?: string
   amount: number
+  subtotal?: number
+  vatAmount?: number
+  lines?: InvoiceLine[]
   status?: InvoiceStatus
 }
 
@@ -670,7 +700,7 @@ export type ModuleSettings = {
   stockCheck: boolean        // /stock-check
   // FINANCE
   expenses: boolean          // /expenses
-  plReport: boolean          // /pl
+  plReport: boolean          // /reports (รวม P&L)
   budget: boolean            // /budget
   // CHANNELS
   tiktokOrders: boolean      // /tiktok-orders

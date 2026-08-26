@@ -17,6 +17,7 @@ import {
 	type SalesOrderStatus,
 	type CreateSalesOrderInput,
 	type Invoice,
+	type CreateInvoiceInput,
 	type StockReturn,
 	type CreateStockReturnInput,
 } from '@/lib/store/erpWorkflow'
@@ -135,7 +136,7 @@ interface CustomErpStore extends Omit<ErpWorkflowStore, 'createGoodsIssue' | 'cr
 	updateExpense: (id: string, input: Partial<any>) => Promise<void>
 	createGoodsIssue: (input: CreateGoodsIssueInput) => Promise<GoodsIssue | null>
 	createGoodsReceive: (input: CreateGoodsReceiveInput) => Promise<GoodsReceive | null>
-	createInvoiceFromSO: (salesOrderId: number | string) => Promise<Invoice | null>
+	createInvoiceFromSO: (salesOrderId: number | string, input?: Partial<CreateInvoiceInput>) => Promise<Invoice | null>
 	createSalesOrder: (input: CreateSalesOrderInput) => Promise<SalesOrder>
 	updateSalesOrderStatus: (soId: number | string, status: SalesOrderStatus) => Promise<SalesOrder>
 	createStockReturn: (input: CreateStockReturnInput) => Promise<StockReturn>
@@ -491,10 +492,11 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 		return invoice
 	},
 
-	createInvoiceFromSO: async (salesOrderId) => {
+	createInvoiceFromSO: async (salesOrderId, input) => {
 		const response = await fetch(`${getApiUrl()}/api/invoices/from-so/${encodeURIComponent(String(salesOrderId))}`, {
 			method: 'POST',
 			headers: getHeaders(),
+			body: input ? JSON.stringify(input) : undefined,
 		})
 		const invoice = await readApiResponse<Invoice>(response)
 		await get().loadResources(['invoices', 'salesOrders'], true)

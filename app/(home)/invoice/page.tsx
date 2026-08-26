@@ -155,18 +155,21 @@ export default function InvoicePage() {
   const salesOrders = useErpStore((state) => state.salesOrders);
   const products = useErpStore((state) => state.products);
   const createInvoice = useErpStore((state) => state.createInvoice);
+  const createInvoiceFromSO = useErpStore((state) => state.createInvoiceFromSO);
   const recordPayment = useErpStore((state) => state.recordPayment);
   const settings = useErpStore((state) => state.settings);
 
   const processedList = useMemo(
     () =>
-      invoices
-        .map(enrichStatus)
-        .sort((a, b) =>
-          String(b.code || b.id).localeCompare(String(a.code || a.id), undefined, {
+      invoices.map(enrichStatus).sort((a, b) =>
+        String(b.code || b.id).localeCompare(
+          String(a.code || a.id),
+          undefined,
+          {
             numeric: true,
-          }),
+          },
         ),
+      ),
     [invoices],
   );
   const [selectedId, setSelectedId] = useState(
@@ -180,6 +183,7 @@ export default function InvoicePage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   const [toast, setToast] = useState("");
+  const [selectedLot, setSelectedLot] = useState("");
 
   const salesOrder = selected
     ? salesOrders.find(
@@ -195,16 +199,25 @@ export default function InvoicePage() {
       so.status === "Completed" &&
       !invoices.some(
         (inv) =>
-          (inv.salesOrderId != null && String(inv.salesOrderId) === String(so.id)) ||
+          (inv.salesOrderId != null &&
+            String(inv.salesOrderId) === String(so.id)) ||
           String(inv.soRef) === String(so.id) ||
           String(inv.soRef) === String(so.code),
       ),
   );
 
-  const vatRate = settings.company.vatRate || 7;
-
   const lines = useMemo(() => {
     if (!selected) return [];
+    if (selected.lines?.length) {
+      return selected.lines.map((line) => ({
+        sku: line.sku,
+        lot: line.lot || "UNSPECIFIED",
+        name: line.name,
+        qty: line.qty,
+        price: line.unitPrice,
+        amount: line.lineTotal,
+      }));
+    }
     if (salesOrder?.lines.length) {
       const subtotalQty =
         salesOrder.lines.reduce((s, line) => s + line.qty, 0) || 1;
@@ -214,6 +227,7 @@ export default function InvoicePage() {
         const price = line.qty > 0 ? Math.round(amount / line.qty) : amount;
         return {
           sku: line.sku,
+          lot: "UNSPECIFIED",
           name: product?.name ?? line.sku,
           qty: line.qty,
           price: product?.wholesalePrice ?? product?.price ?? price,
@@ -224,6 +238,7 @@ export default function InvoicePage() {
     return [
       {
         sku: selected.soRef || selected.id,
+        lot: "UNSPECIFIED",
         name: `Invoice amount — ${selected.customer}`,
         qty: 1,
         price: selected.amount,
@@ -232,8 +247,15 @@ export default function InvoicePage() {
     ];
   }, [products, salesOrder, selected]);
 
-  const subtotal = lines.reduce((s, l) => s + l.amount, 0);
-  const vat = Math.round((subtotal * vatRate) / 100);
+  const documentLots = Array.from(new Set(lines.map((line) => line.lot)));
+  const activeLot = selectedLot || documentLots[0] || "UNSPECIFIED";
+  const documentLines = lines.filter((line) => line.lot === activeLot);
+
+  const subtotal = documentLines.reduce((sum, line) => sum + line.amount, 0);
+  const vat =
+    selected?.vatAmount && documentLines.length === lines.length
+      ? selected.vatAmount
+      : 0;
   const totalDue = subtotal + vat;
 
   function showToast(msg: string) {
@@ -241,18 +263,37 @@ export default function InvoicePage() {
     setTimeout(() => setToast(""), 3000);
   }
 
-  function handleCreate(data: {
+  async function handleCreate(data: {
     soRef?: string;
     customer: string;
+    customerAddress: string;
+    customerTaxId: string;
+    customerBranch: string;
+    purchaseOrderRef: string;
+    paymentTerms: string;
     issueDate: string;
     dueDate: string;
     amount: number;
+    lines?: Array<{
+      sku: string;
+      name: string;
+      qty: number;
+      unit: string;
+      unitPrice: number;
+      lineTotal: number;
+    }>;
   }) {
     if (data.soRef && invoices.some((inv) => inv.soRef === data.soRef)) {
       showToast("มี Invoice จาก SO นี้แล้ว");
       return;
     }
-    const inv = createInvoice(data);
+    const inv = data.soRef
+      ? await createInvoiceFromSO(data.soRef, data)
+      : createInvoice(data);
+    if (!inv) {
+      showToast("สร้าง Invoice ไม่สำเร็จ");
+      return;
+    }
     setSelectedId(inv.id);
     setCreateOpen(false);
     showToast(`สร้าง ${inv.id} แล้ว`);
@@ -405,7 +446,7 @@ export default function InvoicePage() {
         onClick={handleExport}
         className="cursor-pointer"
       >
-        Export CSV
+        Export XLSX
       </Button>
       <Button
         variant="outline"
@@ -427,6 +468,22 @@ export default function InvoicePage() {
       >
         Record payment
       </Button>
+      {documentLots.length > 1 && (
+        <select
+          value={activeLot}
+          onChange={(event) => setSelectedLot(event.target.value)}
+          className="h-9 rounded-md border bg-background px-2 text-xs"
+        >
+          <option value="" disabled>
+            เลือก lot
+          </option>
+          {documentLots.map((lot) => (
+            <option key={lot} value={lot}>
+              Lot: {lot}
+            </option>
+          ))}
+        </select>
+      )}
     </div>
   );
 
@@ -440,12 +497,13 @@ export default function InvoicePage() {
           t={t}
           breadcrumb={["Invoices", String(selected.code || selected.id)]}
           title={"Invoice"}
+          right={actionRight}
         />
       </div>
 
-      <div className="p-6 md:p-8 max-w-full mx-auto grid grid-cols-1 gap-6 items-start">
+      <div className="p-4 md:p-8 max-w-full mx-auto grid grid-cols-1 gap-6 items-start print:p-0">
         <div className="grid gap-6">
-          <div className="no-print grid gap-3 mt-2">
+          <div className="no-print order-2 grid gap-3 mt-2">
             <div className="flex justify-between items-center">
               <span
                 className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground"

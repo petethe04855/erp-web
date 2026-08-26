@@ -40,7 +40,7 @@ const MODULE_SECTIONS: Array<{
     section: "FINANCE",
     items: [
       { key: "expenses", label: "Expenses", desc: "ค่าใช้จ่าย" },
-      { key: "plReport", label: "P&L Report", desc: "กำไร-ขาดทุน" },
+      { key: "plReport", label: "Reports & P&L", desc: "รายงานบัญชี สต็อก และกำไร-ขาดทุน" },
       { key: "budget", label: "Budget", desc: "งบประมาณ" },
     ],
   },

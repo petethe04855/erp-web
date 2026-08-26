@@ -604,11 +604,11 @@ export default function DashboardPage() {
                 </span>
               </div>
               <Link
-                href="/pl"
+                href="/reports"
                 className="text-[11px] text-primary font-medium hover:underline"
                 style={{ color: 'var(--erp-accent)' }}
               >
-                Open P&L →
+                Open Reports →
               </Link>
             </div>
           </div>

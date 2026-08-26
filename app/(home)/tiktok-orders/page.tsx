@@ -50,6 +50,7 @@ export default function TikTokOrdersPage() {
   const [syncing, setSyncing] = useState(false);
   const [syncingOrders, setSyncingOrders] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
+  const [syncTone, setSyncTone] = useState<"success" | "warning" | "error" | null>(null);
 
   const filteredOrders = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -83,6 +84,7 @@ export default function TikTokOrdersPage() {
   async function handleSyncOrders() {
     setSyncingOrders(true);
     setSyncMsg(null);
+    setSyncTone(null);
     try {
       const token = localStorage.getItem("chawy_token") || "";
       const api = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -90,12 +92,40 @@ export default function TikTokOrdersPage() {
         method: "POST",
         headers: { Authorization: token ? `Bearer ${token}` : "" },
       });
-      const result = await response.json() as { synced?: number; error?: string };
+      const result = await response.json() as {
+        synced?: number;
+        stockDeducted?: number;
+        stockDeductionErrors?: string[];
+        stockDeductionWarnings?: string[];
+        error?: string;
+      };
       if (!response.ok) throw new Error(result.error || "ไม่สามารถ Sync Orders ได้");
       await loadResources(["tiktokOrders"], true);
-      setSyncMsg(`Sync Orders สำเร็จ — ${result.synced ?? 0} ออเดอร์`);
+      const deductionErrors = result.stockDeductionErrors ?? [];
+      const deductionWarnings = result.stockDeductionWarnings ?? [];
+      if (deductionErrors.length > 0) {
+        const visibleErrors = deductionErrors.slice(0, 3).join(" | ");
+        const remaining = deductionErrors.length > 3 ? ` และอีก ${deductionErrors.length - 3} รายการ` : "";
+        setSyncMsg(
+          `Sync Orders เสร็จสิ้น ${result.synced ?? 0} ออเดอร์ · ตัด Stock สำเร็จ ${result.stockDeducted ?? 0} · ตัดไม่สำเร็จ ${deductionErrors.length}: ${visibleErrors}${remaining}`,
+        );
+        setSyncTone("error");
+      } else if (deductionWarnings.length > 0) {
+        const visibleWarnings = deductionWarnings.slice(0, 3).join(" | ");
+        const remaining = deductionWarnings.length > 3 ? ` และอีก ${deductionWarnings.length - 3} รายการ` : "";
+        setSyncMsg(
+          `Sync Orders สำเร็จ ${result.synced ?? 0} ออเดอร์ · ตัด Stock ใหม่ ${result.stockDeducted ?? 0} · คำเตือน ${deductionWarnings.length}: ${visibleWarnings}${remaining}`,
+        );
+        setSyncTone("warning");
+      } else {
+        setSyncMsg(
+          `Sync Orders สำเร็จ — ${result.synced ?? 0} ออเดอร์ · ตัด Stock ใหม่ ${result.stockDeducted ?? 0} ออเดอร์`,
+        );
+        setSyncTone("success");
+      }
     } catch (reason) {
       setSyncMsg(reason instanceof Error ? reason.message : "ไม่สามารถ Sync Orders ได้");
+      setSyncTone("error");
     } finally {
       setSyncingOrders(false);
     }
@@ -104,6 +134,7 @@ export default function TikTokOrdersPage() {
   async function handleSyncSettlement() {
     setSyncing(true);
     setSyncMsg(null);
+    setSyncTone(null);
     try {
       const authToken = localStorage.getItem("chawy_token");
       const response = await fetch("/api/tiktok/settlement", { headers: { Authorization: authToken ? `Bearer ${authToken}` : "" } });
@@ -115,8 +146,10 @@ export default function TikTokOrdersPage() {
         if (applyTiktokSettlement({ orderId: record.orderId, netRevenue: record.netIncome, platformFee: record.totalFee, settlementRef: record.settlementRef })) matched += 1;
       }
       setSyncMsg(`Sync สำเร็จ — อัปเดต ${matched} / ${records.length} รายการ`);
+      setSyncTone("success");
     } catch (reason) {
       setSyncMsg(reason instanceof Error ? reason.message : "ไม่สามารถ Sync Settlement ได้");
+      setSyncTone("error");
     } finally {
       setSyncing(false);
     }
@@ -139,7 +172,7 @@ export default function TikTokOrdersPage() {
         title="คำสั่งซื้อ TikTok"
         subtitle={`รายการคำสั่งซื้อสินค้า · ${tiktokOrders.length.toLocaleString("th-TH")} ออเดอร์`}
         right={<div className="flex items-center gap-2">
-          {syncMsg && <span className="pr-2 text-xs font-semibold" style={{ color: syncMsg.includes("สำเร็จ") ? c.pos : c.neg }}>{syncMsg}</span>}
+          {syncMsg && <span className="pr-2 text-xs font-semibold" style={{ color: syncTone === "success" ? c.pos : syncTone === "warning" ? c.warn : c.neg }}>{syncMsg}</span>}
           <Button variant="outline" onClick={handleExport}>Export</Button>
           <Button variant="outline" onClick={handleSyncSettlement} disabled={syncing || syncingOrders}>{syncing ? "กำลัง Sync..." : "Sync Settlement"}</Button>
           <Button onClick={handleSyncOrders} disabled={syncingOrders || syncing} className="bg-[var(--erp-accent)] text-white hover:opacity-90">{syncingOrders ? "กำลังดึง Orders..." : "Sync Orders"}</Button>

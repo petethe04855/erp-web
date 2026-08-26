@@ -21,6 +21,12 @@ const due14 = new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0];
 const BLANK = {
   soRef: "",
   customer: "",
+  customerAddress: "",
+  customerTaxId: "",
+  customerBranch: "สำนักงานใหญ่",
+  purchaseOrderRef: "",
+  paymentTerms: "14 วัน",
+  lineDescription: "",
   issueDate: today,
   dueDate: due14,
   amount: 0,
@@ -40,6 +46,12 @@ interface CreateInvoiceSheetProps {
   onSubmit: (data: {
     soRef?: string;
     customer: string;
+    customerAddress: string;
+    customerTaxId: string;
+    customerBranch: string;
+    purchaseOrderRef: string;
+    paymentTerms: string;
+    lines?: Array<{ sku: string; name: string; qty: number; unit: string; unitPrice: number; lineTotal: number }>;
     issueDate: string;
     dueDate: string;
     amount: number;
@@ -60,6 +72,12 @@ export function CreateInvoiceSheet({
   const [form, setForm] = useState<{
     soRef: string;
     customer: string;
+    customerAddress: string;
+    customerTaxId: string;
+    customerBranch: string;
+    purchaseOrderRef: string;
+    paymentTerms: string;
+    lineDescription: string;
     issueDate: string;
     dueDate: string;
     amount: number | "";
@@ -85,8 +103,16 @@ export function CreateInvoiceSheet({
       setValidationError("กรุณากรอกชื่อลูกค้า");
       return;
     }
+    if (!form.customerAddress.trim()) {
+      setValidationError("กรุณากรอกที่อยู่ออกบิลของบริษัทลูกค้า");
+      return;
+    }
     if (form.amount === "" || Number(form.amount) <= 0) {
       setValidationError("กรุณากรอกมูลค่าที่มากกว่า 0");
+      return;
+    }
+    if (!form.soRef && !form.lineDescription.trim()) {
+      setValidationError("กรุณาระบุรายการสำหรับ Manual invoice");
       return;
     }
     if (form.dueDate < form.issueDate) {
@@ -97,9 +123,15 @@ export function CreateInvoiceSheet({
     onSubmit({
       soRef: form.soRef || undefined,
       customer: form.customer,
+      customerAddress: form.customerAddress,
+      customerTaxId: form.customerTaxId,
+      customerBranch: form.customerBranch,
+      purchaseOrderRef: form.purchaseOrderRef,
+      paymentTerms: form.paymentTerms,
       issueDate: form.issueDate,
       dueDate: form.dueDate,
       amount: Number(form.amount),
+      lines: form.soRef ? undefined : [{ sku: "MANUAL", name: form.lineDescription, qty: 1, unit: "service", unitPrice: Number(form.amount), lineTotal: Number(form.amount) }],
     });
     setValidationError("");
     setForm(BLANK);
@@ -138,6 +170,18 @@ export function CreateInvoiceSheet({
                 </option>
               ))}
             </NativeSelect>
+          </div>
+
+          {!form.soRef && <div><Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>รายการในใบแจ้งหนี้ *</Label><Input value={form.lineDescription} onChange={(e) => setForm((f) => ({ ...f, lineDescription: e.target.value }))} placeholder="เช่น ค่าบริการ / สินค้าตามข้อตกลง" /></div>}
+
+          <div>
+            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>ที่อยู่ออกบิล *</Label>
+            <textarea value={form.customerAddress} onChange={(e) => setForm((f) => ({ ...f, customerAddress: e.target.value }))} placeholder="ชื่ออาคาร เลขที่ ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด รหัสไปรษณีย์" className="min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div><Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>เลขผู้เสียภาษี</Label><Input value={form.customerTaxId} onChange={(e) => setForm((f) => ({ ...f, customerTaxId: e.target.value }))} placeholder="13 หลัก" /></div>
+            <div><Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>สาขา</Label><Input value={form.customerBranch} onChange={(e) => setForm((f) => ({ ...f, customerBranch: e.target.value }))} placeholder="สำนักงานใหญ่" /></div>
           </div>
 
           <div>
@@ -187,6 +231,11 @@ export function CreateInvoiceSheet({
                 }
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div><Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>PO ลูกค้า</Label><Input value={form.purchaseOrderRef} onChange={(e) => setForm((f) => ({ ...f, purchaseOrderRef: e.target.value }))} placeholder="PO-..." /></div>
+            <div><Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>เงื่อนไขชำระเงิน</Label><Input value={form.paymentTerms} onChange={(e) => setForm((f) => ({ ...f, paymentTerms: e.target.value }))} placeholder="เช่น 30 วัน" /></div>
           </div>
 
           <div>
