@@ -25,12 +25,14 @@ interface ReceiveItem {
   qtyReceived: number;
   lot?: string;
   expiryDate?: string;
+  supplierLot?: string;
+  qcStatus?: string;
+  rejectedQty?: number;
 }
 
 interface GoodsReceiveRecord {
   id: string;
   code?: string;
-  poRef: string;
   receiveDate: string;
   items: ReceiveItem[];
 }
@@ -53,18 +55,14 @@ interface PurchaseOrder {
 interface ViewGoodsReceiveSheetProps {
   selectedGR: GoodsReceiveRecord | null;
   onClose: () => void;
-  poList: PurchaseOrder[];
 }
 
 export function ViewGoodsReceiveSheet({
   selectedGR,
   onClose,
-  poList,
 }: ViewGoodsReceiveSheetProps) {
   const { tokens: t } = useTheme();
   const c = t.color;
-
-  const po = selectedGR ? poList.find((p) => p.id === selectedGR.poRef || p.code === selectedGR.poRef) : null;
 
   return (
     <Sheet open={!!selectedGR} onOpenChange={(open) => !open && onClose()}>
@@ -74,7 +72,7 @@ export function ViewGoodsReceiveSheet({
             Receipt {selectedGR?.code || selectedGR?.id}
           </SheetTitle>
           <div className="text-xs text-muted-foreground" style={{ color: "var(--erp-ink3)" }}>
-            รับเข้าจาก PO: {selectedGR?.poRef || "รับตรง"} เมื่อ {selectedGR?.receiveDate}
+            รับเข้าคลังโดยตรง เมื่อ {selectedGR?.receiveDate}
           </div>
         </SheetHeader>
         <SheetBody className="grid gap-6 overflow-y-auto">
@@ -110,7 +108,6 @@ export function ViewGoodsReceiveSheet({
                     </TableHeader>
                     <TableBody>
                       {selectedGR.items.map((item, idx) => {
-                        const poItem = po?.items.find((i) => i.sku === item.sku);
                         return (
                           <TableRow key={idx} className="border-b border-border" style={{ borderColor: "var(--erp-border)" }}>
                             <TableCell className="p-3 align-middle">
@@ -118,7 +115,7 @@ export function ViewGoodsReceiveSheet({
                                 {item.sku}
                               </span>
                               <div className="text-[10px] text-muted-foreground" style={{ color: "var(--erp-ink3)" }}>
-                                {poItem?.name || "Unknown item"}
+                                Lot ผู้ขาย: {item.supplierLot || "-"}
                               </div>
                             </TableCell>
                             <TableCell className="p-3 align-middle">
@@ -126,7 +123,7 @@ export function ViewGoodsReceiveSheet({
                                 Lot: {item.lot || "-"}
                               </Mono>
                               <div className="text-[10px] text-muted-foreground" style={{ color: "var(--erp-ink3)" }}>
-                                Exp: {item.expiryDate || "-"}
+                                Exp: {item.expiryDate || "-"}<br />QC: {item.qcStatus || "Accepted"} · ไม่ผ่าน: {item.rejectedQty || 0}
                               </div>
                             </TableCell>
                             <TableCell className="p-3 align-middle">

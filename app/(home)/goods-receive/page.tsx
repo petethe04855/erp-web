@@ -21,7 +21,6 @@ export default function GoodsReceivePage() {
   const { tokens: t } = useTheme();
   const c = t.color;
   const grList = useErpStore((s) => s.goodsReceives);
-  const poList = useErpStore((s) => s.purchaseOrders);
   const products = useErpStore((s) => s.products);
   const createGR = useErpStore((s) => s.createGoodsReceive);
 
@@ -31,17 +30,15 @@ export default function GoodsReceivePage() {
 
   const rows = useMemo(() => {
     return grList.map((gr) => {
-      const po = poList.find((p) => p.id === gr.poRef || p.code === gr.poRef);
-
       const qty = gr.items.reduce((sum, item) => sum + item.qtyReceived, 0);
       return {
         ...gr,
-        supplier: po?.supplier ?? "รับเข้าคลังโดยตรง",
+        supplier: "รับเข้าคลังโดยตรง",
         qty,
-        status: po?.status === "Partial Received" ? "pending" : "completed",
+        status: gr.items.some((item) => item.qcStatus === "Quarantine") ? "pending" : "completed",
       };
     });
-  }, [grList, poList]);
+  }, [grList]);
 
   const totalQty = rows.reduce((sum, receipt) => sum + receipt.qty, 0);
 
@@ -163,7 +160,7 @@ export default function GoodsReceivePage() {
                     className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
                     style={{ color: "var(--erp-ink3)" }}
                   >
-                    PO Ref
+                    Source
                   </TableHead>
                   <TableHead
                     className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
@@ -212,7 +209,7 @@ export default function GoodsReceivePage() {
                     </TableCell>
                     <TableCell className="p-4 px-5 align-middle">
                       <Mono t={t} size={12} color={c.accent}>
-                        {g.poRef || "รับตรง"}
+                        รับตรง
                       </Mono>
                     </TableCell>
                     <TableCell
@@ -262,7 +259,6 @@ export default function GoodsReceivePage() {
       <ViewGoodsReceiveSheet
         selectedGR={selectedGR}
         onClose={() => setSelectedGR(null)}
-        poList={poList}
       />
     </div>
   );

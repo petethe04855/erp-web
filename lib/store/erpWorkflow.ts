@@ -947,17 +947,11 @@ export function createErpWorkflowState(
 
     createGoodsReceive(input) {
       const state = get()
-      const po = input.poRef === undefined ? undefined : state.purchaseOrders.find(p => p.id === input.poRef)
-      if (input.poRef !== undefined && (!po || !['Sent', 'Partial Received'].includes(po.status))) return null
       if (!/^\d{4}-\d{2}-\d{2}$/.test(input.receiveDate) || input.items.length === 0) return null
       for (const grItem of input.items) {
         if (grItem.qtyReceived <= 0) return null
         const product = state.products.find(p => p.sku === grItem.sku)
         if (!product) return null
-        if (po) {
-          const poItem = po.items.find(i => i.sku === grItem.sku)
-          if (!poItem || grItem.qtyReceived > poItem.qty - poItem.receivedQty) return null
-        }
       }
       const by = state.currentUser.name
       const grId = nextId('GR-2026-', state.goodsReceives.map(g => g.id))
@@ -969,28 +963,27 @@ export function createErpWorkflowState(
           qtyReceived: item.qtyReceived,
           lot: `LOT-${receiptNo}-${String(index + 1).padStart(2, '0')}-${dateCode}`,
           expiryDate: item.expiryDate,
+          supplierLot: item.supplierLot,
+          qcStatus: item.qcStatus || 'Accepted',
+          acceptedQty: item.acceptedQty ?? item.qtyReceived - (item.rejectedQty || 0),
+          rejectedQty: item.rejectedQty || 0,
+          qcNote: item.qcNote,
           landedUnitCost: 0,
         }
       })
 
       const gr: GoodsReceive = {
         id: grId,
-        poRef: input.poRef, receiveDate: input.receiveDate,
+        receiveDate: input.receiveDate, note: input.note,
         items: grItems,
         landedCosts: [],
-        auditTrail: [{ action: 'Created', by, at: nowIso(), note: po ? `รับสินค้าจาก ${po.supplier}` : 'รับสินค้าสำเร็จรูปเข้าคลัง' }],
+        auditTrail: [{ action: 'Created', by, at: nowIso(), note: 'รับสินค้าสำเร็จรูปเข้าคลังโดยตรง' }],
       }
-      const updatedPoItems = po?.items.map(poItem => {
-        const g = input.items.find(g => g.sku === poItem.sku)
-        return g ? { ...poItem, receivedQty: poItem.receivedQty + g.qtyReceived } : poItem
-      }) ?? []
-      const allDone = updatedPoItems.length > 0 && updatedPoItems.every(i => i.receivedQty >= i.qty)
-      const newPoStatus: PurchaseOrderStatus = allDone ? 'Completed' : 'Partial Received'
       // Gap 1: create StockLots with expiryDate
       const newLots: StockLot[] = grItems.map((g, idx) => ({
         id: `LOT-${Date.now()}-${idx}-${g.sku}`,
         sku: g.sku, lot: g.lot, qty: g.qtyReceived, remainingQty: g.qtyReceived,
-        expiryDate: g.expiryDate, receivedDate: input.receiveDate, grRef: String(gr.code || gr.id), poRef: input.poRef === undefined ? '' : String(input.poRef),
+        expiryDate: g.expiryDate, receivedDate: input.receiveDate, grRef: String(gr.code || gr.id), poRef: '',
         landedUnitCost: grItems[idx].landedUnitCost,
       }))
       // Gap 9: changedBy in movements
@@ -998,15 +991,12 @@ export function createErpWorkflowState(
         id: `SM-${Date.now()}-${g.sku}`,
         sku: g.sku, type: 'IN' as StockMovementType, qty: g.qtyReceived, refDoc: gr.id,
         date: input.receiveDate,
-        note: `${po ? `รับจาก ${po.supplier} (${input.poRef})` : 'รับสินค้าสำเร็จรูปเข้าคลัง'} lot ${g.lot}${g.expiryDate ? ` exp ${g.expiryDate}` : ''}`,
+        note: `รับสินค้าสำเร็จรูปเข้าคลัง lot ${g.lot}${g.expiryDate ? ` exp ${g.expiryDate}` : ''}`,
         changedBy: by,
       }))
       set(s => ({
         goodsReceives: [gr, ...s.goodsReceives],
-        purchaseOrders: po ? s.purchaseOrders.map(p => p.id === input.poRef ? {
-          ...p, items: updatedPoItems, status: newPoStatus,
-          auditTrail: audit(p.auditTrail, newPoStatus, by, `รับสินค้า ${gr.id}`),
-        } : p) : s.purchaseOrders,
+        purchaseOrders: s.purchaseOrders,
         stockMovements: [...newMovements, ...s.stockMovements],
         stockLots: [...newLots, ...s.stockLots],
         products: s.products.map(p => {

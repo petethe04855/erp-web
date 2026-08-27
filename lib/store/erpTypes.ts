@@ -136,6 +136,11 @@ export type GoodsReceiveItem = {
   qtyReceived: number
   lot: string
   expiryDate: string           // Gap 1: FEFO expiry (yyyy-mm-dd or '' = no expiry)
+  supplierLot?: string
+  qcStatus?: 'Accepted' | 'Quarantine' | 'Rejected'
+  acceptedQty?: number
+  rejectedQty?: number
+  qcNote?: string
   landedUnitCost?: number      // Remains 0 until a later costing step
 }
 
@@ -145,6 +150,7 @@ export type GoodsReceive = {
   purchaseOrderId?: number | null
   poRef?: number | string
   receiveDate: string
+  note?: string
   items: GoodsReceiveItem[]
   landedCosts?: LandedCostLine[]
   auditTrail: AuditEvent[]     // Gap 9
@@ -352,9 +358,9 @@ export type CreatePurchaseOrderInput = {
 }
 
 export type CreateGoodsReceiveInput = {
-  poRef?: string | number
   receiveDate: string
-  items: Array<{ sku: string; qtyReceived: number; lot?: string; expiryDate: string; landedUnitCost?: number }>
+  note?: string
+  items: Array<{ sku: string; qtyReceived: number; lot?: string; expiryDate: string; supplierLot?: string; qcStatus?: 'Accepted' | 'Quarantine' | 'Rejected'; acceptedQty?: number; rejectedQty?: number; qcNote?: string; landedUnitCost?: number }>
   landedCosts?: LandedCostLine[]
 }
 

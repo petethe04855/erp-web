@@ -14,6 +14,10 @@ type ReceiveLine = {
   sku: string;
   qtyReceived: number;
   expiryDate: string;
+  supplierLot: string;
+  qcStatus: "Accepted" | "Quarantine" | "Rejected";
+  rejectedQty: number;
+  qcNote: string;
 };
 
 interface ReceiveGoodsSheetProps {
@@ -28,7 +32,7 @@ interface ReceiveGoodsSheetProps {
 }
 
 const emptyLine = (): ReceiveLine => ({
-  sku: "", qtyReceived: 0, expiryDate: "",
+  sku: "", qtyReceived: 0, expiryDate: "", supplierLot: "", qcStatus: "Accepted", rejectedQty: 0, qcNote: "",
 });
 
 export function ReceiveGoodsSheet({
@@ -70,6 +74,10 @@ export function ReceiveGoodsSheet({
       showToast(message);
       return;
     }
+    if (items.some((line) => line.rejectedQty > line.qtyReceived)) {
+      const message = "จำนวนไม่ผ่าน QC ต้องไม่เกินจำนวนรับ";
+      setFormError(message); showToast(message); return;
+    }
     setSaving(true);
     try {
       if (await onSubmit({ receiveDate, items })) {
@@ -97,7 +105,7 @@ export function ReceiveGoodsSheet({
             <Input type="date" value={receiveDate} onChange={(e) => setReceiveDate(e.target.value)} />
           </div>
           <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-            ระบบจะสร้างรหัส Lot อัตโนมัติเมื่อตอนบันทึก โดยลงท้ายด้วยวันที่รับในรูปแบบ YYYYMMDD และต้องระบุวันหมดอายุเพื่อให้ระบบจัดลำดับ FEFO ได้ถูกต้อง
+            รับเข้าโดยไม่ผูก PO · ระบบจะสร้าง Lot ภายในอัตโนมัติ และใช้วันหมดอายุจัดลำดับ FEFO
           </div>
 
           <div className="space-y-3">
@@ -120,6 +128,9 @@ export function ReceiveGoodsSheet({
                   <Label className="mb-1 block text-xs">Lot</Label>
                   <Input disabled value="สร้างอัตโนมัติเมื่อบันทึก" />
                 </div>
+                <div className="col-span-6 md:col-span-3"><Label className="mb-1 block text-xs">Lot ผู้ขาย</Label><Input value={line.supplierLot} onChange={(e) => updateLine(index, "supplierLot", e.target.value)} placeholder="ถ้ามี" /></div>
+                <div className="col-span-6 md:col-span-3"><Label className="mb-1 block text-xs">ผลตรวจรับ</Label><NativeSelect value={line.qcStatus} onChange={(e) => updateLine(index, "qcStatus", e.target.value as ReceiveLine["qcStatus"])}><option value="Accepted">ผ่าน QC</option><option value="Quarantine">กักกัน</option><option value="Rejected">ไม่ผ่าน</option></NativeSelect></div>
+                <div className="col-span-6 md:col-span-3"><Label className="mb-1 block text-xs">จำนวนไม่ผ่าน</Label><Input type="number" min={0} value={line.rejectedQty || ""} onChange={(e) => updateLine(index, "rejectedQty", Number(e.target.value) || 0)} /></div>
                 <div className="col-span-10 md:col-span-3">
                   <Label className="mb-1 block text-xs">วันหมดอายุ *</Label>
                   <Input type="date" value={line.expiryDate} onChange={(e) => updateLine(index, "expiryDate", e.target.value)} />

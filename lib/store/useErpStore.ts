@@ -583,8 +583,8 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 			method: 'POST',
 			headers: getHeaders(),
 			body: JSON.stringify({
-				poRef: input.poRef ?? '',
 				receiveDate: input.receiveDate,
+				note: input.note,
 				items: input.items,
 			}),
 		})
