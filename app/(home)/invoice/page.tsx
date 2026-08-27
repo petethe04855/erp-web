@@ -299,8 +299,8 @@ export default function InvoicePage() {
     showToast(`สร้าง ${inv.id} แล้ว`);
   }
 
-  function handlePayment(amount: number) {
-    const updated = recordPayment(selected.id, amount);
+  function handlePayment(amount: number, details: { accountCode: string; method: string; reference: string }) {
+    const updated = recordPayment(selected.id, amount, details);
     setPayOpen(false);
     if (updated) {
       setSelectedId(updated.id);

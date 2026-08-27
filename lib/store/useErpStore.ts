@@ -503,12 +503,12 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 		return invoice
 	},
 
-	recordPayment: (invoiceId, amount) => {
+	recordPayment: (invoiceId, amount, details) => {
 		const invoice = workflow.recordPayment(invoiceId, amount)
 		fetch(`${getApiUrl()}/api/invoices/${invoiceId}/payment`, {
 			method: 'POST',
 			headers: getHeaders(),
-			body: JSON.stringify({ amount }),
+			body: JSON.stringify({ amount, ...(details || {}) }),
 		}).then(res => {
 			if (res.ok) get().fetchInitialState()
 		})
