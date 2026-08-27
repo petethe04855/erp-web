@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useErpStore } from "@/lib/store/useErpStore";
 import { useTheme } from "@/lib/design/ThemeContext";
 import { Card, Mono, TopBar, fmtBaht, fmtBahtK, fmtNum } from "@/components/ui";
 import { Button } from "@/components/ui/button";
-import { readApiResponse } from "@/lib/apiResponse";
 import {
   Table,
   TableHeader,
@@ -16,76 +15,13 @@ import {
   TableCell,
 } from "@/components/ui/table";
 
-type BOMCapacity = {
-  id: number;
-  fgSku?: string;
-  status: string;
-  outputQty: number;
-  outputUnit?: string;
-  maxProducibleQty?: number;
-  components?: Array<{
-    componentSku: string;
-    qty: number;
-    unit: string;
-    scrapRate?: number;
-    yieldFactor?: number;
-    componentType?: string;
-  }>;
-};
-
-const getApiUrl = () =>
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-
-function getHeaders() {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("chawy_token") : "";
-  return { Authorization: token ? `Bearer ${token}` : "" };
-}
-
-function availableFromBom(
-  bom: BOMCapacity,
-  products: ReturnType<typeof useErpStore.getState>["products"],
-) {
-  const required = new Map<string, number>();
-  for (const component of bom.components || []) {
-    if (component.componentType === "expense" || !component.componentSku)
-      continue;
-    const product = products.find(
-      (item) => item.sku === component.componentSku,
-    );
-    if (!product) return 0;
-    let perFinishedUnit =
-      component.qty /
-      Math.max(bom.outputQty || 1, 1) /
-      (component.yieldFactor || 1);
-    if (component.scrapRate && component.scrapRate > 0)
-      perFinishedUnit /= 1 - component.scrapRate / 100;
-    if (component.unit === "g" && product.baseUnit === "kg")
-      perFinishedUnit /= 1000;
-    if (component.unit === "kg" && product.baseUnit === "g")
-      perFinishedUnit *= 1000;
-    required.set(
-      component.componentSku,
-      (required.get(component.componentSku) || 0) + perFinishedUnit,
-    );
-  }
-  if (required.size === 0) return 0;
-  return Math.min(
-    ...Array.from(required, ([sku, qty]) => {
-      const product = products.find((item) => item.sku === sku)!;
-      return Math.floor(
-        Math.max(0, product.stock - product.reservedQty) / qty,
-      );
-    }),
-  );
-}
-
 function earliestLot(
   lots: ReturnType<typeof useErpStore.getState>["stockLots"],
   sku: string,
 ) {
+  const today = new Date().toISOString().slice(0, 10);
   return lots
-    .filter((l) => l.sku === sku && l.remainingQty > 0)
+    .filter((l) => l.sku === sku && l.remainingQty > 0 && (!l.expiryDate || l.expiryDate >= today))
     .sort((a, b) => {
       if (!a.expiryDate && !b.expiryDate) return 0;
       if (!a.expiryDate) return 1;
@@ -100,41 +36,30 @@ export default function StockPage() {
   const c = t.color;
   const products = useErpStore((s) => s.products);
   const stockLots = useErpStore((s) => s.stockLots);
-  const [boms, setBoms] = useState<BOMCapacity[]>([]);
-
-  useEffect(() => {
-    fetch(`${getApiUrl()}/api/boms`, { headers: getHeaders() })
-      .then((response) => readApiResponse<BOMCapacity[]>(response))
-      .then((result) => setBoms(result || []))
-      .catch(() => setBoms([]));
-  }, []);
-
   const rows = useMemo(() => {
     return products.map((product) => {
+      const lots = stockLots.filter((item) => item.sku === product.sku && item.remainingQty > 0);
       const lot = earliestLot(stockLots, product.sku);
       const onHand = product.stock;
+      const reserved = product.reservedQty;
+      const available = Math.max(0, onHand - reserved);
       const value = onHand * product.cost;
       const status =
         onHand === 0 ? "out" : onHand <= product.reorder ? "low" : "ok";
       const ratio = Math.min(onHand / Math.max(product.reorder * 2, 1), 1);
-      const activeBom = boms.find(
-        (bom) => bom.fgSku === product.sku && bom.status === "Active",
-      );
-      const producibleQty = activeBom
-        ? (activeBom.maxProducibleQty ?? availableFromBom(activeBom, products))
-        : 0;
       return {
         ...product,
         lot,
+        lots,
         onHand,
+        reserved,
+        available,
         value,
         status,
         ratio,
-        activeBom,
-        producibleQty,
       };
     });
-  }, [products, stockLots, boms]);
+  }, [products, stockLots]);
 
   const totalValue = rows.reduce((s, p) => s + p.value, 0);
   const totalUnits = rows.reduce((s, p) => s + p.onHand, 0);
@@ -289,7 +214,7 @@ export default function StockPage() {
                     className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
                     style={{ color: "var(--erp-ink3)" }}
                   >
-                    ผลิตได้จาก BOM
+                    Available
                   </TableHead>
                   <TableHead
                     className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
@@ -347,7 +272,7 @@ export default function StockPage() {
                       <TableCell className="p-4 px-5 align-middle">
                         <Mono t={t} size={11} color={p.lot ? c.ink2 : c.ink4}>
                           {p.lot
-                            ? `${p.lot.lot}${p.lot.expiryDate ? ` · exp ${p.lot.expiryDate}` : ""}`
+                            ? `${p.lot.lot}${p.lot.expiryDate ? ` · exp ${p.lot.expiryDate}` : ""} · ${p.lots.length} Lot`
                             : "No active lot"}
                         </Mono>
                       </TableCell>
@@ -362,18 +287,7 @@ export default function StockPage() {
                         </Mono>
                       </TableCell>
                       <TableCell className="p-4 px-5 align-middle text-right">
-                        {p.activeBom ? (
-                          <div>
-                            <Mono t={t} size={13} weight={600} color={c.info}>
-                              {fmtNum(p.producibleQty)} {p.baseUnit}
-                            </Mono>
-                            <div className="mt-0.5 text-[10px]" style={{ color: c.ink3 }}>
-                              ยังไม่ได้ผลิต
-                            </div>
-                          </div>
-                        ) : (
-                          <Mono t={t} size={12} color={c.ink4}>—</Mono>
-                        )}
+                        <div><Mono t={t} size={13} weight={600} color={p.available === 0 ? c.neg : c.ink}>{fmtNum(p.available)}</Mono><div className="mt-0.5 text-[10px]" style={{ color: c.ink3 }}>Reserved {fmtNum(p.reserved)}</div></div>
                       </TableCell>
                       <TableCell className="p-4 px-5 align-middle text-right">
                         <Mono t={t} size={12} color={c.ink3}>

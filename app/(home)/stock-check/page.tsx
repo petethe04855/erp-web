@@ -21,6 +21,7 @@ export default function StockCheckPage() {
   const { tokens: t } = useTheme();
   const c = t.color;
   const products = useErpStore((s) => s.products);
+  const stockLots = useErpStore((s) => s.stockLots);
   const stockAdjustments = useErpStore((s) => s.stockAdjustments);
   const createStockAdjustment = useErpStore((s) => s.createStockAdjustment);
 
@@ -59,6 +60,7 @@ export default function StockCheckPage() {
     variance: (parseInt(counts[p.sku]) || 0) - p.stock,
   }));
   const totalVariance = variances.reduce((s, v) => s + v.variance, 0);
+  const lotsWithoutExpiry = stockLots.filter((lot) => lot.remainingQty > 0 && !lot.expiryDate).length;
 
   function handleSubmit() {
     const belowReserved = products.find((p) => {
@@ -124,6 +126,7 @@ export default function StockCheckPage() {
       />
 
       <div className="p-6 md:p-8 max-w-full mx-auto grid gap-6">
+        {lotsWithoutExpiry > 0 && <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">พบ {lotsWithoutExpiry} Lot ที่ยังไม่มีวันหมดอายุ กรุณาตรวจสอบก่อนปรับยอด</div>}
         {/* KPI Strip */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[

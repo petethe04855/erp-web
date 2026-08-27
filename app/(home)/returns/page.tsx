@@ -33,6 +33,8 @@ export default function ReturnsPage() {
   const products = useErpStore((s) => s.products);
   const createStockReturn = useErpStore((s) => s.createStockReturn);
   const updateStockReturnStatus = useErpStore((s) => s.updateStockReturnStatus);
+  const stockLots = useErpStore((s) => s.stockLots);
+  const expiredLots = stockLots.filter((lot) => lot.remainingQty > 0 && lot.expiryDate && lot.expiryDate < new Date().toISOString().slice(0, 10)).length;
 
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState("");
@@ -146,6 +148,7 @@ export default function ReturnsPage() {
       />
 
       <div className="p-6 md:p-8 max-w-full mx-auto grid gap-6">
+        {expiredLots > 0 && <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">พบ Lot หมดอายุที่ยังมี Stock {expiredLots} รายการ สินค้าคืนต้องผ่านการตรวจสอบก่อนนำกลับเข้าคลัง</div>}
         {/* KPI Strip */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[

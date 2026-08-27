@@ -100,7 +100,7 @@ export function CreateInvoiceSheet({
 
   function handleSubmit() {
     if (!form.customer) {
-      setValidationError("กรุณากรอกชื่อลูกค้า");
+      setValidationError("กรุณากรอกชื่อบริษัท");
       return;
     }
     if (!form.customerAddress.trim()) {
@@ -113,6 +113,10 @@ export function CreateInvoiceSheet({
     }
     if (!form.soRef && !form.lineDescription.trim()) {
       setValidationError("กรุณาระบุรายการสำหรับ Manual invoice");
+      return;
+    }
+    if (form.customerTaxId && !/^\d{13}$/.test(form.customerTaxId.trim())) {
+      setValidationError("เลขประจำตัวผู้เสียภาษีต้องเป็นตัวเลข 13 หลัก");
       return;
     }
     if (form.dueDate < form.issueDate) {
@@ -189,14 +193,14 @@ export function CreateInvoiceSheet({
               className="text-xs font-semibold text-muted-foreground mb-1 block"
               style={{ color: "var(--erp-ink2)" }}
             >
-              ลูกค้า *
+              ชื่อบริษัท *
             </Label>
             <Input
               value={form.customer}
               onChange={(e) =>
                 setForm((f) => ({ ...f, customer: e.target.value }))
               }
-              placeholder="ชื่อลูกค้า"
+              placeholder="ชื่อบริษัทลูกค้า"
             />
           </div>
 

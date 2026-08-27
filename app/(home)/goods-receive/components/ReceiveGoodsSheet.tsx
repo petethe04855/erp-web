@@ -58,6 +58,18 @@ export function ReceiveGoodsSheet({
       showToast(message);
       return;
     }
+    if (items.some((line) => !line.expiryDate)) {
+      const message = "กรุณาระบุวันหมดอายุของสินค้าให้ครบทุก Lot";
+      setFormError(message);
+      showToast(message);
+      return;
+    }
+    if (items.some((line) => line.expiryDate < receiveDate)) {
+      const message = "วันหมดอายุต้องไม่ก่อนวันที่รับสินค้า";
+      setFormError(message);
+      showToast(message);
+      return;
+    }
     setSaving(true);
     try {
       if (await onSubmit({ receiveDate, items })) {
@@ -85,7 +97,7 @@ export function ReceiveGoodsSheet({
             <Input type="date" value={receiveDate} onChange={(e) => setReceiveDate(e.target.value)} />
           </div>
           <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-            ระบบจะสร้างรหัส Lot อัตโนมัติเมื่อตอนบันทึก โดยลงท้ายด้วยวันที่รับในรูปแบบ YYYYMMDD และยังไม่คำนวณต้นทุนในขั้นตอน Stock Receipt
+            ระบบจะสร้างรหัส Lot อัตโนมัติเมื่อตอนบันทึก โดยลงท้ายด้วยวันที่รับในรูปแบบ YYYYMMDD และต้องระบุวันหมดอายุเพื่อให้ระบบจัดลำดับ FEFO ได้ถูกต้อง
           </div>
 
           <div className="space-y-3">
@@ -109,7 +121,7 @@ export function ReceiveGoodsSheet({
                   <Input disabled value="สร้างอัตโนมัติเมื่อบันทึก" />
                 </div>
                 <div className="col-span-10 md:col-span-3">
-                  <Label className="mb-1 block text-xs">วันหมดอายุ</Label>
+                  <Label className="mb-1 block text-xs">วันหมดอายุ *</Label>
                   <Input type="date" value={line.expiryDate} onChange={(e) => updateLine(index, "expiryDate", e.target.value)} />
                 </div>
                 {lines.length > 1 && (
