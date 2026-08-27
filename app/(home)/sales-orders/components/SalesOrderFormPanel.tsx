@@ -39,7 +39,7 @@ export default function SalesOrderFormPanel({ t, open, onClose, form, setForm, p
       <div className="grid gap-4">
         <ValidationAlert message={error} />
         <div className="grid grid-cols-2 gap-4">
-          <div><Label className="mb-1 block text-xs font-semibold">ลูกค้า *</Label><Input value={form.customer} onChange={(e) => setForm((f) => ({ ...f, customer: e.target.value }))} /></div>
+          <div><Label className="mb-1 block text-xs font-semibold">ชื่อบริษัท *</Label><Input value={form.customer} onChange={(e) => setForm((f) => ({ ...f, customer: e.target.value }))} placeholder="กรอกชื่อบริษัทลูกค้า" /></div>
           <div><Label className="mb-1 block text-xs font-semibold">วันที่</Label><Input type="date" value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} /></div>
         </div>
         <div><Label className="mb-1 block text-xs font-semibold">ช่องทาง</Label><NativeSelect value={form.channel} onChange={(e) => setForm((f) => ({ ...f, channel: e.target.value }))}>{CHANNELS.map((channel) => <option key={channel}>{channel}</option>)}</NativeSelect></div>

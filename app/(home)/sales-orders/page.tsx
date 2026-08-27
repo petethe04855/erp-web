@@ -159,7 +159,7 @@ export default function SalesOrdersPage() {
 
   async function handleSubmit() {
     if (!form.customer) {
-      setFormError("กรุณากรอกชื่อลูกค้า");
+      setFormError("กรุณากรอกชื่อบริษัท");
       return;
     }
     const hasInvalidLine = form.lines.some(
