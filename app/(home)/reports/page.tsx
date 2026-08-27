@@ -10,11 +10,11 @@ import { useTheme } from "@/lib/design/ThemeContext";
 import { readApiResponse } from "@/lib/apiResponse";
 
 type Summary = { revenue: number; salesRevenue: number; salesReturns: number; cogs: number; grossProfit: number; damageLoss: number; operatingExpenses: number; netProfit: number };
-type TrialRow = { AccountCode: string; AccountName: string; AccountType: string; Debit: number; Credit: number; Balance: number; BalanceSide: string };
-type Trial = { rows: TrialRow[]; totalDebit: number; totalCredit: number; balanced: boolean };
+type TrialRow = { AccountCode: string; AccountName: string; AccountType: string; OpeningDebit: number; OpeningCredit: number; Debit: number; Credit: number; EndingBalance: number; BalanceSide: string };
+type Trial = { rows: TrialRow[]; totalDebit: number; totalCredit: number; openingDebit: number; openingCredit: number; endingDebit: number; endingCredit: number; balanced: boolean };
 type ValuationRow = { SKU: string; ProductName: string; Lot: string; ExpiryDate: string; RemainingQty: number; UnitCost: number; Value: number };
 type Valuation = { rows: ValuationRow[]; totalQty: number; totalValue: number };
-type LedgerRow = { Date: string; JournalCode: string; SourceType: string; SourceRef: string; AccountCode: string; AccountName: string; Description: string; SKU?: string; Lot?: string; Channel?: string; Debit: number; Credit: number };
+type LedgerRow = { Date: string; JournalCode: string; SourceType: string; SourceRef: string; AccountCode: string; AccountName: string; Description: string; SKU?: string; Lot?: string; Channel?: string; Debit: number; Credit: number; RunningBalance: number };
 
 export default function ReportsPage() {
   const { tokens: t } = useTheme();
@@ -189,7 +189,7 @@ export default function ReportsPage() {
       row.AccountType,
       pdfMoney(row.Debit),
       pdfMoney(row.Credit),
-      `${pdfMoney(row.Balance)} ${row.BalanceSide === "Debit" ? "Dr" : "Cr"}`,
+      `${pdfMoney(row.EndingBalance)} ${row.BalanceSide === "Debit" ? "Dr" : "Cr"}`,
     ]),
     totalRow: ["รวม", "", pdfMoney(trial?.totalDebit || 0), pdfMoney(trial?.totalCredit || 0), ""],
   });
@@ -250,7 +250,7 @@ export default function ReportsPage() {
 
       <Card className="overflow-hidden"><div className="flex items-center justify-between border-b p-4"><div className="font-semibold">Trial Balance · {month}</div><div className="flex items-center gap-2"><Badge variant="secondary">{trial?.balanced ? "Balanced" : "Not balanced"}</Badge><button className="h-8 rounded border px-3 text-xs disabled:opacity-50" disabled={exportingPdf !== null} onClick={exportTrialPdf}>{exportingPdf === "trial" ? "กำลังสร้าง PDF..." : "Export PDF"}</button></div></div>
         <Table><TableHeader><TableRow><TableHead>บัญชี</TableHead><TableHead>ประเภท</TableHead><TableHead className="text-right">เดบิต</TableHead><TableHead className="text-right">เครดิต</TableHead><TableHead className="text-right">ยอดคงเหลือ</TableHead></TableRow></TableHeader><TableBody>
-          {trial?.rows.map((row) => <TableRow key={row.AccountCode}><TableCell><span className="font-mono">{row.AccountCode}</span> {row.AccountName}</TableCell><TableCell>{row.AccountType}</TableCell><TableCell className="text-right font-mono">{fmtBaht(row.Debit)}</TableCell><TableCell className="text-right font-mono">{fmtBaht(row.Credit)}</TableCell><TableCell className="text-right font-mono">{fmtBaht(row.Balance)} {row.BalanceSide === "Debit" ? "Dr" : "Cr"}</TableCell></TableRow>)}
+          {trial?.rows.map((row) => <TableRow key={row.AccountCode}><TableCell><span className="font-mono">{row.AccountCode}</span> {row.AccountName}</TableCell><TableCell>{row.AccountType || "ไม่พบใน Account Master"}</TableCell><TableCell className="text-right font-mono">{fmtBaht(Math.abs(row.OpeningDebit - row.OpeningCredit))}</TableCell><TableCell className="text-right font-mono">{fmtBaht(row.Debit)}</TableCell><TableCell className="text-right font-mono">{fmtBaht(row.Credit)}</TableCell><TableCell className="text-right font-mono">{fmtBaht(row.EndingBalance)} {row.BalanceSide === "Debit" ? "Dr" : "Cr"}</TableCell></TableRow>)}
           <TableRow className="font-bold"><TableCell colSpan={2}>รวม</TableCell><TableCell className="text-right">{fmtBaht(trial?.totalDebit ?? 0)}</TableCell><TableCell className="text-right">{fmtBaht(trial?.totalCredit ?? 0)}</TableCell><TableCell /></TableRow>
         </TableBody></Table></Card>
 
