@@ -50,6 +50,7 @@ export default function SkuPage() {
   const c = t.color;
   const products = useErpStore((s) => s.products);
   const bundleComponents = useErpStore((s) => s.bundleComponents);
+  const calcBundleVirtualStock = useErpStore((s) => s.calcBundleVirtualStock);
   const addProduct = useErpStore((s) => s.addProduct);
   const updateProduct = useErpStore((s) => s.updateProduct);
   const deleteProduct = useErpStore((s) => s.deleteProduct);
@@ -81,6 +82,9 @@ export default function SkuPage() {
   // Stats
   const active = products.filter((p) => p.isActive);
   const outStock = active.filter((p) => !p.isBundle && p.stock === 0);
+  const availableStock = (product: Product) => product.isBundle
+    ? calcBundleVirtualStock(product.sku)
+    : Math.max(0, product.stock - product.reservedQty);
 
   // Handlers
   function openAdd() {
@@ -326,10 +330,10 @@ export default function SkuPage() {
                         className="text-sm font-semibold text-foreground"
                         style={{ color: "var(--erp-ink)" }}
                       >
-                        {p.stock.toLocaleString()}
+                        {availableStock(p).toLocaleString()}
                       </span>
                       <StockBadge
-                        stock={p.stock}
+                        stock={availableStock(p)}
                         reorder={0}
                         isBundle={p.isBundle}
                       />

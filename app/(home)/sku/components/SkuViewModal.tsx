@@ -13,8 +13,16 @@ interface SkuViewModalProps {
 }
 
 export default function SkuViewModal({ selected, bundleComponents = [], componentProducts = [], onClose, onEdit }: SkuViewModalProps) {
-  const available = Math.max(0, selected.stock - selected.reservedQty);
   const isBundle = Boolean(selected.isBundle);
+  const packageQuantities = bundleComponents.map((component) => {
+    const product = componentProducts.find((item) => item.sku === component.componentSku);
+    const available = product ? Math.max(0, product.stock - product.reservedQty) : 0;
+    return { sku: component.componentSku, packages: component.qty > 0 ? Math.floor(available / component.qty) : 0 };
+  });
+  const available = isBundle
+    ? (packageQuantities.length ? Math.min(...packageQuantities.map((item) => item.packages)) : 0)
+    : Math.max(0, selected.stock - selected.reservedQty);
+  const limitingComponent = packageQuantities.find((item) => item.packages === available);
   const rows = [
     { label: "Barcode", value: selected.barcode || "—" },
     { label: "ราคาขาย", value: `฿${selected.retailPrice.toLocaleString("th-TH")}` },
@@ -67,7 +75,11 @@ export default function SkuViewModal({ selected, bundleComponents = [], componen
             </div>
             <div className="text-sm font-bold text-violet-800 dark:text-violet-300">รายละเอียดแพ็กสินค้า</div>
             <div className="mt-1 text-xs text-violet-700/80 dark:text-violet-300/70">
-              SKU นี้เป็นแพ็ก ไม่มี Stock จริงของตัวเอง สต็อกจะคำนวณจาก SKU ส่วนประกอบ
+              SKU นี้เป็นแพ็ก ไม่มี Stock จริงของตัวเอง สต็อกจะคำนวณจาก SKU ส่วนประกอบและตัดตาม FEFO เมื่อขาย
+            </div>
+            <div className="mt-3 rounded-lg border border-violet-200 bg-white/70 p-3 text-xs dark:border-violet-900/30 dark:bg-black/10">
+              <div className="font-semibold text-violet-800 dark:text-violet-300">พร้อมขายสูงสุด {available.toLocaleString("th-TH")} แพ็ก</div>
+              {limitingComponent && <div className="mt-1 text-violet-700/80 dark:text-violet-300/70">ตัวจำกัดจำนวนแพ็ก: {limitingComponent.sku}</div>}
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3">
               {rows.filter((row) => row.label !== "สต็อกปัจจุบัน" && row.label !== "สต็อก Reserved").map((row) => (
