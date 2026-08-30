@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTheme } from "@/lib/design/ThemeContext";
 import {
   Btn,
@@ -66,6 +66,10 @@ function formatDateShort(date: string) {
   return `${months[d.getMonth()]} ${String(d.getDate()).padStart(2, "0")}`;
 }
 
+function fmtBaht2(value: number) {
+  return `฿${Number.isFinite(value) ? value.toFixed(2) : "0.00"}`;
+}
+
 export default function SalesOrdersPage() {
   const { tokens: t } = useTheme();
   const c = t.color;
@@ -79,6 +83,7 @@ export default function SalesOrdersPage() {
   );
 
   const [open, setOpen] = useState(false);
+  const [formError, setFormError] = useState("");
   const [form, setForm] = useState<{
     customer: string;
     date: string;
@@ -89,13 +94,33 @@ export default function SalesOrdersPage() {
   const [filter, setFilter] = useState<"all" | SalesOrderStatus>("all");
   const [search, setSearch] = useState("");
   const [toast, setToast] = useState("");
+  const autoInvoiceRequested = useRef(new Set<number | string>());
+
+  // Backfill completed orders created before automatic invoicing was enabled.
+  // Normal completion refreshes invoices before sales orders, so this does not
+  // race the transaction that completes the order and creates its invoice.
+  useEffect(() => {
+    for (const order of salesOrders) {
+      if (order.status !== "Completed") continue;
+      const hasInvoice = invoices.some((invoice) =>
+        invoice.soRef === order.code ||
+        invoice.soRef === String(order.id) ||
+        invoice.salesOrderId === order.id
+      );
+      if (hasInvoice || autoInvoiceRequested.current.has(order.id)) continue;
+      autoInvoiceRequested.current.add(order.id);
+      createInvoiceFromSO(order.id);
+    }
+  }, [salesOrders, invoices, createInvoiceFromSO]);
 
   const filtered = salesOrders.filter((order) => {
     if (filter !== "all" && order.status !== filter) return false;
     if (
       search &&
       !(
-        String(order.code || order.id).toLowerCase().includes(search.toLowerCase()) ||
+        String(order.code || order.id)
+          .toLowerCase()
+          .includes(search.toLowerCase()) ||
         order.customer.toLowerCase().includes(search.toLowerCase())
       )
     )
@@ -114,7 +139,12 @@ export default function SalesOrdersPage() {
 
   const lineTotal = form.lines.reduce((s, line) => {
     const product = products.find((p) => p.sku === line.sku);
-    return s + (product ? product.price * Number(line.qty) : 0);
+    const unitPrice = Number(line.unitPrice ?? product?.retailPrice ?? 0);
+    const qty = Number(line.qty);
+    return (
+      s +
+      (Number.isFinite(unitPrice) && Number.isFinite(qty) ? unitPrice * qty : 0)
+    );
   }, 0);
 
   const itemsShipped = filtered.reduce((s, order) => s + order.items, 0);
@@ -127,43 +157,87 @@ export default function SalesOrdersPage() {
     setTimeout(() => setToast(""), 3000);
   }
 
-  function handleSubmit() {
-    if (!form.customer) return;
+  async function handleSubmit() {
+    if (!form.customer) {
+      setFormError("กรุณากรอกชื่อบริษัท");
+      return;
+    }
     const hasInvalidLine = form.lines.some(
       (l) => l.qty === "" || Number(l.qty) <= 0,
     );
     if (hasInvalidLine) {
-      showToast("กรุณากรอกจำนวนสินค้าให้ถูกต้อง (มากกว่า 0)");
+      setFormError("กรุณากรอกจำนวนสินค้าให้ถูกต้อง (มากกว่า 0)");
       return;
+    }
+    const quantitiesBySku = new Map<string, number>();
+    for (const line of form.lines) {
+      if (!line.sku) continue;
+      quantitiesBySku.set(line.sku, (quantitiesBySku.get(line.sku) ?? 0) + Number(line.qty));
+    }
+    for (const [sku, qty] of quantitiesBySku) {
+      const product = products.find((item) => item.sku === sku);
+      const available = product ? product.stock - product.reservedQty : 0;
+      if (qty > available) {
+        setFormError(`Stock ${sku} ไม่พอ: ต้องการ ${qty}, พร้อมขาย ${Math.max(0, available)}`);
+        return;
+      }
     }
     const validLines = form.lines
       .filter((line) => line.sku)
-      .map((line) => ({ ...line, qty: Number(line.qty) }));
+      .map((line) => ({ sku: line.sku, qty: Number(line.qty), unitPrice: Number(line.unitPrice) }));
     if (validLines.length === 0) {
-      showToast("กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ");
+      setFormError("กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ");
       return;
     }
-    createSalesOrder({
-      customer: form.customer,
-      date: form.date,
-      amount: lineTotal || 0,
-      status: "Pending",
-      channel: form.channel as "Manual" | "LINE" | "Shopee" | "TikTok",
-      items: validLines.length || 1,
-      qtRef: form.qtRef || null,
-      lines: validLines,
-    });
+    try {
+      await createSalesOrder({
+        customer: form.customer,
+        date: form.date,
+        amount: lineTotal || 0,
+        status: "Pending",
+        channel: form.channel as "Manual" | "LINE" | "Shopee" | "TikTok",
+        items: validLines.length || 1,
+        qtRef: form.qtRef || null,
+        lines: validLines,
+      });
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : "สร้าง Sales Order ไม่สำเร็จ",
+      );
+      return;
+    }
+    setFormError("");
     setForm(BLANK);
     setOpen(false);
-    showToast("สร้าง Sales Order แล้ว");
+    showToast("สร้าง Sales Entry และจอง Stock แล้ว");
   }
 
-  function handleCreateInvoice(soId: number | string) {
+  async function handleCreateInvoice(soId: number | string) {
     try {
-      const inv = createInvoiceFromSO(soId);
-      showToast(inv ? `สร้าง ${inv.code || inv.id} แล้ว` : "สร้าง Invoice ไม่ได้");
+      const inv = await createInvoiceFromSO(soId);
+      showToast(
+        inv ? `สร้าง ${inv.code || inv.id} แล้ว` : "สร้าง Invoice ไม่ได้",
+      );
     } catch (err: any) {
       showToast(err.message || "เกิดข้อผิดพลาดในการสร้าง Invoice");
+    }
+  }
+
+  async function handleStatusChange(
+    soId: number | string,
+    status: SalesOrderStatus,
+  ) {
+    try {
+      await updateSalesOrderStatus(soId, status);
+      showToast(
+        status === "Completed"
+          ? "Complete สำเร็จ ตัด Stock และสร้าง Invoice แล้ว"
+          : `เปลี่ยนสถานะเป็น ${status} แล้ว`,
+      );
+    } catch (error) {
+      showToast(
+        error instanceof Error ? error.message : "เปลี่ยนสถานะไม่สำเร็จ",
+      );
     }
   }
 
@@ -184,7 +258,7 @@ export default function SalesOrdersPage() {
       <TopBar
         t={t}
         breadcrumb={["Chawy", "Sales", "Orders"]}
-        title="Sales Orders"
+        title="Sales Entry"
         subtitle={`${salesOrders.length} orders · ${fmtBaht(salesOrders.reduce((s, order) => s + order.amount, 0))} total`}
         right={
           <div className="flex items-center gap-2">
@@ -209,7 +283,10 @@ export default function SalesOrdersPage() {
             <Button
               variant="default"
               size="sm"
-              onClick={() => setOpen(true)}
+              onClick={() => {
+                setFormError("");
+                setOpen(true);
+              }}
               className="cursor-pointer bg-[var(--erp-accent)] text-white hover:opacity-90 shadow-none border-none"
             >
               + New Order
@@ -320,12 +397,13 @@ export default function SalesOrdersPage() {
                   "Date",
                   "Items",
                   "Amount",
+                  "COGS",
                   "Status",
                   "Action",
                 ].map((h, i) => (
                   <TableHead
                     key={h}
-                    className={`p-3 text-[11px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap ${i === 4 || i === 5 || i === 7 ? "text-right" : "text-left"}`}
+                    className={`p-3 text-[11px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap ${i === 4 || i === 5 || i === 6 || i === 8 ? "text-right" : "text-left"}`}
                     style={{ color: "var(--erp-ink3)" }}
                   >
                     {h}
@@ -335,7 +413,12 @@ export default function SalesOrdersPage() {
             </TableHeader>
             <TableBody>
               {filtered.map((order, i) => {
-                const hasInv = invoices.some((inv) => inv.soRef === order.code || inv.soRef === String(order.id) || inv.salesOrderId === order.id);
+                const hasInv = invoices.some(
+                  (inv) =>
+                    inv.soRef === order.code ||
+                    inv.soRef === String(order.id) ||
+                    inv.salesOrderId === order.id,
+                );
                 return (
                   <TableRow
                     key={order.id}
@@ -370,12 +453,17 @@ export default function SalesOrdersPage() {
                     </TableCell>
                     <TableCell className="p-3 text-right">
                       <Mono t={t} size={12} color={c.ink2}>
-                        {order.items}
+                        {order.lines.reduce((sum, line) => sum + line.qty, 0)}
                       </Mono>
                     </TableCell>
                     <TableCell className="p-3 text-right">
                       <Mono t={t} size={13} weight={600}>
-                        {fmtBaht(order.amount)}
+                        {fmtBaht2(order.amount)}
+                      </Mono>
+                    </TableCell>
+                    <TableCell className="p-3 text-right" title={order.lines.flatMap((line) => line.allocations ?? []).map((allocation) => `${allocation.lot}: ${allocation.qty} × ฿${allocation.unitCost.toFixed(2)}`).join("\n")}>
+                      <Mono t={t} size={12} color={c.ink2}>
+                        {order.status === "Completed" ? fmtBaht2(order.totalCogs ?? 0) : "—"}
                       </Mono>
                     </TableCell>
                     <TableCell className="p-3">
@@ -386,7 +474,7 @@ export default function SalesOrdersPage() {
                         status={order.status}
                         hasInv={hasInv}
                         onStatus={(status) =>
-                          updateSalesOrderStatus(order.id, status)
+                          handleStatusChange(order.id, status)
                         }
                         onInvoice={() => handleCreateInvoice(order.id)}
                       />
@@ -410,11 +498,15 @@ export default function SalesOrdersPage() {
       <SalesOrderFormPanel
         t={t}
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={() => {
+          setFormError("");
+          setOpen(false);
+        }}
         form={form}
         setForm={setForm}
         products={products}
         lineTotal={lineTotal}
+        error={formError}
         onSubmit={handleSubmit}
       />
     </div>

@@ -18,6 +18,7 @@ import type { Invoice } from "@/lib/store/erpWorkflow";
 import { exportXlsx } from "@/lib/utils/exportUtil";
 import { CreateInvoiceSheet } from "./components/CreateInvoiceSheet";
 import { RecordPaymentDialog } from "./components/RecordPaymentDialog";
+import { OutstandingCustomersPanel } from "./components/OutstandingCustomersPanel";
 
 function fmtBaht(n: number, dec = 0): string {
   const sign = n < 0 ? "−" : "";
@@ -154,10 +155,23 @@ export default function InvoicePage() {
   const salesOrders = useErpStore((state) => state.salesOrders);
   const products = useErpStore((state) => state.products);
   const createInvoice = useErpStore((state) => state.createInvoice);
+  const createInvoiceFromSO = useErpStore((state) => state.createInvoiceFromSO);
   const recordPayment = useErpStore((state) => state.recordPayment);
   const settings = useErpStore((state) => state.settings);
 
-  const processedList = useMemo(() => invoices.map(enrichStatus), [invoices]);
+  const processedList = useMemo(
+    () =>
+      invoices.map(enrichStatus).sort((a, b) =>
+        String(b.code || b.id).localeCompare(
+          String(a.code || a.id),
+          undefined,
+          {
+            numeric: true,
+          },
+        ),
+      ),
+    [invoices],
+  );
   const [selectedId, setSelectedId] = useState(
     processedList.find((i) => i.status !== "Paid")?.id ??
       processedList[0]?.id ??
@@ -169,19 +183,41 @@ export default function InvoicePage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   const [toast, setToast] = useState("");
+  const [selectedLot, setSelectedLot] = useState("");
 
   const salesOrder = selected
-    ? salesOrders.find((so) => so.id === selected.soRef)
+    ? salesOrders.find(
+        (so) =>
+          (selected.salesOrderId != null &&
+            String(so.id) === String(selected.salesOrderId)) ||
+          String(so.id) === String(selected.soRef) ||
+          String(so.code) === String(selected.soRef),
+      )
     : null;
   const eligibleSOs = salesOrders.filter(
     (so) =>
-      so.status === "Completed" && !invoices.some((inv) => inv.soRef === so.id),
+      so.status === "Completed" &&
+      !invoices.some(
+        (inv) =>
+          (inv.salesOrderId != null &&
+            String(inv.salesOrderId) === String(so.id)) ||
+          String(inv.soRef) === String(so.id) ||
+          String(inv.soRef) === String(so.code),
+      ),
   );
-
-  const vatRate = settings.company.vatRate || 7;
 
   const lines = useMemo(() => {
     if (!selected) return [];
+    if (selected.lines?.length) {
+      return selected.lines.map((line) => ({
+        sku: line.sku,
+        lot: line.lot || "UNSPECIFIED",
+        name: line.name,
+        qty: line.qty,
+        price: line.unitPrice,
+        amount: line.lineTotal,
+      }));
+    }
     if (salesOrder?.lines.length) {
       const subtotalQty =
         salesOrder.lines.reduce((s, line) => s + line.qty, 0) || 1;
@@ -191,6 +227,7 @@ export default function InvoicePage() {
         const price = line.qty > 0 ? Math.round(amount / line.qty) : amount;
         return {
           sku: line.sku,
+          lot: "UNSPECIFIED",
           name: product?.name ?? line.sku,
           qty: line.qty,
           price: product?.wholesalePrice ?? product?.price ?? price,
@@ -201,6 +238,7 @@ export default function InvoicePage() {
     return [
       {
         sku: selected.soRef || selected.id,
+        lot: "UNSPECIFIED",
         name: `Invoice amount — ${selected.customer}`,
         qty: 1,
         price: selected.amount,
@@ -209,8 +247,15 @@ export default function InvoicePage() {
     ];
   }, [products, salesOrder, selected]);
 
-  const subtotal = lines.reduce((s, l) => s + l.amount, 0);
-  const vat = Math.round((subtotal * vatRate) / 100);
+  const documentLots = Array.from(new Set(lines.map((line) => line.lot)));
+  const activeLot = selectedLot || documentLots[0] || "UNSPECIFIED";
+  const documentLines = lines.filter((line) => line.lot === activeLot);
+
+  const subtotal = documentLines.reduce((sum, line) => sum + line.amount, 0);
+  const vat =
+    selected?.vatAmount && documentLines.length === lines.length
+      ? selected.vatAmount
+      : 0;
   const totalDue = subtotal + vat;
 
   function showToast(msg: string) {
@@ -218,25 +263,44 @@ export default function InvoicePage() {
     setTimeout(() => setToast(""), 3000);
   }
 
-  function handleCreate(data: {
+  async function handleCreate(data: {
     soRef?: string;
     customer: string;
+    customerAddress: string;
+    customerTaxId: string;
+    customerBranch: string;
+    purchaseOrderRef: string;
+    paymentTerms: string;
     issueDate: string;
     dueDate: string;
     amount: number;
+    lines?: Array<{
+      sku: string;
+      name: string;
+      qty: number;
+      unit: string;
+      unitPrice: number;
+      lineTotal: number;
+    }>;
   }) {
     if (data.soRef && invoices.some((inv) => inv.soRef === data.soRef)) {
       showToast("มี Invoice จาก SO นี้แล้ว");
       return;
     }
-    const inv = createInvoice(data);
+    const inv = data.soRef
+      ? await createInvoiceFromSO(data.soRef, data)
+      : createInvoice(data);
+    if (!inv) {
+      showToast("สร้าง Invoice ไม่สำเร็จ");
+      return;
+    }
     setSelectedId(inv.id);
     setCreateOpen(false);
     showToast(`สร้าง ${inv.id} แล้ว`);
   }
 
-  function handlePayment(amount: number) {
-    const updated = recordPayment(selected.id, amount);
+  function handlePayment(amount: number, details: { accountCode: string; method: string; reference: string }) {
+    const updated = recordPayment(selected.id, amount, details);
     setPayOpen(false);
     if (updated) {
       setSelectedId(updated.id);
@@ -354,7 +418,10 @@ export default function InvoicePage() {
     );
   }
 
-  const outstanding = selected.amount - selected.paid;
+  const outstanding = Math.max(
+    0,
+    selected.amount - (selected.credited ?? 0) - selected.paid,
+  );
   const terms = daysBetween(selected.issueDate, selected.dueDate);
   const customerInvoices = processedList.filter(
     (inv) => inv.customer === selected.customer,
@@ -379,7 +446,7 @@ export default function InvoicePage() {
         onClick={handleExport}
         className="cursor-pointer"
       >
-        Export CSV
+        Export XLSX
       </Button>
       <Button
         variant="outline"
@@ -401,6 +468,22 @@ export default function InvoicePage() {
       >
         Record payment
       </Button>
+      {documentLots.length > 1 && (
+        <select
+          value={activeLot}
+          onChange={(event) => setSelectedLot(event.target.value)}
+          className="h-9 rounded-md border bg-background px-2 text-xs"
+        >
+          <option value="" disabled>
+            เลือก lot
+          </option>
+          {documentLots.map((lot) => (
+            <option key={lot} value={lot}>
+              Lot: {lot}
+            </option>
+          ))}
+        </select>
+      )}
     </div>
   );
 
@@ -412,363 +495,15 @@ export default function InvoicePage() {
       <div className="no-print">
         <TopBar
           t={t}
-          breadcrumb={["Chawy", "Sales", "Invoices", String(selected.code || selected.id)]}
-          title={selected.code || String(selected.id) || "Invoice"}
-          subtitle={
-            <span>
-              Reference{" "}
-              <Mono t={t} size={13} color={c.accent}>
-                {selected.soRef}
-              </Mono>
-              {" · "}
-              {selected.customer}
-            </span>
-          }
+          breadcrumb={["Invoices", String(selected.code || selected.id)]}
+          title={"Invoice"}
           right={actionRight}
         />
       </div>
 
-      <div className="p-6 md:p-8 max-w-full mx-auto grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
+      <div className="p-4 md:p-8 max-w-full mx-auto grid grid-cols-1 gap-6 items-start print:p-0">
         <div className="grid gap-6">
-          <div className="invoice-card">
-            <Card
-              t={t}
-              pad={false}
-              className="border border-border bg-card"
-              style={{
-                borderColor: "var(--erp-border)",
-                background: "var(--erp-surface)",
-              }}
-            >
-              <div className="p-8 pb-0 flex justify-between items-start flex-wrap gap-4">
-                <div>
-                  <div
-                    className="text-base font-bold text-foreground mb-1"
-                    style={{ color: "var(--erp-ink)" }}
-                  >
-                    {settings.company.name}
-                  </div>
-                  <div className="print-company-detail hidden">
-                    <div
-                      className="text-xs text-muted-foreground leading-relaxed mb-1"
-                      style={{ color: "var(--erp-ink2)" }}
-                    >
-                      {settings.company.address}
-                    </div>
-                    <div
-                      className="flex gap-4 text-[11px] text-muted-foreground"
-                      style={{ color: "var(--erp-ink3)" }}
-                    >
-                      <span>
-                        Tax ID{" "}
-                        <Mono t={t} size={11} color={c.ink2}>
-                          {settings.company.taxId}
-                        </Mono>
-                      </span>
-                      <span>·</span>
-                      <span>{settings.company.phone}</span>
-                      <span>·</span>
-                      <span>{settings.company.email}</span>
-                    </div>
-                  </div>
-                  <div
-                    className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground mt-2"
-                    style={{ color: "var(--erp-ink3)" }}
-                  >
-                    Invoice
-                  </div>
-                  <span className="block mt-1">
-                    <Mono t={t} size={24} weight={600}>
-                      {selected.id}
-                    </Mono>
-                  </span>
-                </div>
-                <div className="text-right">
-                  <Badge
-                    variant={
-                      selected.status === "Paid"
-                        ? "normal"
-                        : selected.status === "Overdue"
-                          ? "empty"
-                          : "low"
-                    }
-                  >
-                    {selected.status}
-                  </Badge>
-                  <span className="block mt-2">
-                    <Mono t={t} size={11} color={c.ink3}>
-                      Issued {formatDate(selected.issueDate)}
-                    </Mono>
-                  </span>
-                </div>
-              </div>
-
-              <div
-                className="p-8 grid grid-cols-1 sm:grid-cols-3 gap-6 border-b border-border mt-4"
-                style={{ borderColor: "var(--erp-border)" }}
-              >
-                <div>
-                  <div
-                    className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground mb-2"
-                    style={{ color: "var(--erp-ink3)" }}
-                  >
-                    Bill to
-                  </div>
-                  <div
-                    className="text-sm font-semibold text-foreground"
-                    style={{ color: "var(--erp-ink)" }}
-                  >
-                    {selected.customer}
-                  </div>
-                  <div
-                    className="text-xs text-muted-foreground mt-1 leading-relaxed"
-                    style={{ color: "var(--erp-ink2)" }}
-                  >
-                    Customer record from ERP invoice ledger
-                  </div>
-                  <div
-                    className="flex gap-3 mt-2 text-[11px] text-muted-foreground"
-                    style={{ color: "var(--erp-ink3)" }}
-                  >
-                    <span>
-                      SO{" "}
-                      <Mono t={t} size={11} color={c.ink2}>
-                        {selected.soRef}
-                      </Mono>
-                    </span>
-                    <span>·</span>
-                    <span>{salesOrder?.channel ?? "Manual"} channel</span>
-                  </div>
-                </div>
-                <div>
-                  <div
-                    className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground mb-2"
-                    style={{ color: "var(--erp-ink3)" }}
-                  >
-                    Due date
-                  </div>
-                  <Mono t={t} size={14} weight={500}>
-                    {formatDate(selected.dueDate)}
-                  </Mono>
-                  <div
-                    className="text-xs text-muted-foreground mt-1"
-                    style={{ color: "var(--erp-ink3)" }}
-                  >
-                    Net {terms} · {terms} days from issue
-                  </div>
-                </div>
-                <div>
-                  <div
-                    className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground mb-2"
-                    style={{ color: "var(--erp-ink3)" }}
-                  >
-                    Amount due
-                  </div>
-                  <Mono t={t} size={20} weight={600}>
-                    {fmtBaht(outstanding)}
-                  </Mono>
-                  <div
-                    className="text-xs text-muted-foreground mt-1"
-                    style={{ color: "var(--erp-ink3)" }}
-                  >
-                    {selected.paid > 0
-                      ? `${fmtBaht(selected.paid)} paid`
-                      : "awaiting payment"}
-                  </div>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <Table className="w-full border-collapse">
-                  <TableHeader
-                    className="bg-muted/50 border-b border-border"
-                    style={{
-                      background: "var(--erp-subtle)",
-                      borderColor: "var(--erp-border)",
-                    }}
-                  >
-                    <TableRow>
-                      <TableHead
-                        className="p-3 px-8 text-xs font-bold text-muted-foreground uppercase text-left"
-                        style={{ color: "var(--erp-ink3)", width: 130 }}
-                      >
-                        SKU
-                      </TableHead>
-                      <TableHead
-                        className="p-3 px-8 text-xs font-bold text-muted-foreground uppercase text-left"
-                        style={{ color: "var(--erp-ink3)" }}
-                      >
-                        Description
-                      </TableHead>
-                      <TableHead
-                        className="p-3 px-8 text-xs font-bold text-muted-foreground uppercase text-right"
-                        style={{ color: "var(--erp-ink3)", width: 80 }}
-                      >
-                        Qty
-                      </TableHead>
-                      <TableHead
-                        className="p-3 px-8 text-xs font-bold text-muted-foreground uppercase text-right"
-                        style={{ color: "var(--erp-ink3)", width: 120 }}
-                      >
-                        Unit price (THB)
-                      </TableHead>
-                      <TableHead
-                        className="p-3 px-8 text-xs font-bold text-muted-foreground uppercase text-right"
-                        style={{ color: "var(--erp-ink3)", width: 130 }}
-                      >
-                        Amount (THB)
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {lines.map((line) => (
-                      <TableRow
-                        key={line.sku}
-                        className="border-b border-border"
-                        style={{ borderColor: "var(--erp-border)" }}
-                      >
-                        <TableCell className="p-4 px-8 align-middle">
-                          <Mono t={t} size={12} weight={500}>
-                            {line.sku}
-                          </Mono>
-                        </TableCell>
-                        <TableCell
-                          className="p-4 px-8 align-middle text-sm font-medium text-foreground"
-                          style={{ color: "var(--erp-ink)" }}
-                        >
-                          {line.name}
-                        </TableCell>
-                        <TableCell className="p-4 px-8 align-middle text-right">
-                          <Mono t={t} size={12} color={c.ink2}>
-                            {fmtNum(line.qty)}
-                          </Mono>
-                        </TableCell>
-                        <TableCell className="p-4 px-8 align-middle text-right">
-                          <Mono t={t} size={12} color={c.ink2}>
-                            {fmtNum(line.price)}
-                          </Mono>
-                        </TableCell>
-                        <TableCell className="p-4 px-8 align-middle text-right">
-                          <Mono t={t} size={13} weight={500}>
-                            {fmtNum(line.amount)}
-                          </Mono>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              <div className="p-8 pt-5 flex justify-end">
-                <div className="w-80 flex flex-col gap-2.5">
-                  {[
-                    {
-                      label: "Subtotal",
-                      val: subtotal,
-                      color: c.ink2,
-                      weight: 500,
-                    },
-                    {
-                      label: `VAT (${vatRate}%)`,
-                      val: vat,
-                      color: c.ink2,
-                      weight: 500,
-                    },
-                  ].map((r) => (
-                    <div key={r.label} className="flex justify-between text-sm">
-                      <span
-                        className="text-muted-foreground"
-                        style={{ color: c.ink3 }}
-                      >
-                        {r.label}
-                      </span>
-                      <Mono t={t} size={13} weight={r.weight} color={r.color}>
-                        {fmtBaht(r.val)}
-                      </Mono>
-                    </div>
-                  ))}
-                  <div
-                    className="border-t border-border pt-3 flex justify-between items-baseline"
-                    style={{ borderColor: "var(--erp-border)" }}
-                  >
-                    <span
-                      className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground"
-                      style={{ color: c.ink3 }}
-                    >
-                      Total due
-                    </span>
-                    <Mono t={t} size={22} weight={600}>
-                      {fmtBaht(totalDue)}
-                    </Mono>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          <div className="no-print grid gap-3 mt-2">
-            <div
-              className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground"
-              style={{ color: "var(--erp-ink3)" }}
-            >
-              Activity
-            </div>
-            <Card
-              t={t}
-              className="border border-border bg-card p-5"
-              style={{
-                borderColor: "var(--erp-border)",
-                background: "var(--erp-surface)",
-              }}
-            >
-              {(selected.auditTrail.length
-                ? selected.auditTrail
-                : [
-                    {
-                      action: "Created",
-                      by: "System",
-                      at: selected.issueDate,
-                      note: "สร้างใบแจ้งหนี้",
-                    },
-                  ]
-              ).map((event, i, arr) => (
-                <div
-                  key={`${event.action}-${event.at}-${i}`}
-                  className="grid grid-cols-[auto_1fr_auto] items-baseline gap-4 py-3"
-                  style={{
-                    borderBottom:
-                      i < arr.length - 1
-                        ? `1px solid var(--erp-border)`
-                        : "none",
-                  }}
-                >
-                  <Dot color={i === 0 ? c.accent : c.ink4} />
-                  <div>
-                    <div className="text-sm text-foreground">
-                      <span className="font-semibold">{event.by}</span>
-                      <span className="text-muted-foreground">
-                        {" "}
-                        {event.action}
-                      </span>
-                    </div>
-                    {event.note && (
-                      <div
-                        className="text-xs text-muted-foreground mt-1"
-                        style={{ color: "var(--erp-ink3)" }}
-                      >
-                        {event.note}
-                      </div>
-                    )}
-                  </div>
-                  <Mono t={t} size={11} color={c.ink3}>
-                    {event.at}
-                  </Mono>
-                </div>
-              ))}
-            </Card>
-          </div>
-
-          <div className="no-print grid gap-3 mt-2">
+          <div className="no-print order-2 grid gap-3 mt-2">
             <div className="flex justify-between items-center">
               <span
                 className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground"
@@ -794,164 +529,157 @@ export default function InvoicePage() {
                 background: "var(--erp-surface)",
               }}
             >
-              {processedList.slice(0, 6).map((inv) => {
-                const active = inv.id === selected.id;
-                return (
-                  <button
-                    key={inv.id}
-                    type="button"
-                    onClick={() => setSelectedId(inv.id)}
-                    className="w-full grid grid-cols-[140px_1fr_120px_110px] gap-4 items-center p-3 px-5 border-b border-border last:border-b-0 cursor-pointer text-left font-sans"
-                    style={{
-                      borderColor: "var(--erp-border)",
-                      background: active ? c.accentBg : "transparent",
-                    }}
-                  >
-                    <Mono
-                      t={t}
-                      size={12}
-                      weight={600}
-                      color={active ? c.accent : c.ink}
+              <Table className="w-full border-collapse">
+                <TableHeader
+                  className="bg-muted/50 border-b border-border"
+                  style={{
+                    background: "var(--erp-subtle)",
+                    borderColor: "var(--erp-border)",
+                  }}
+                >
+                  <TableRow>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
                     >
-                      {inv.id}
-                    </Mono>
-                    <span
-                      className="text-sm text-muted-foreground"
-                      style={{ color: "var(--erp-ink2)" }}
+                      ลำดับ
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
                     >
-                      {inv.customer}
-                    </span>
-                    <Mono t={t} size={12} weight={500}>
-                      {fmtBaht(inv.amount - inv.paid)}
-                    </Mono>
-                    <div>
-                      <Badge
-                        variant={
-                          inv.status === "Paid"
-                            ? "normal"
-                            : inv.status === "Overdue"
-                              ? "empty"
-                              : "low"
-                        }
+                      ชื่อ
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      รายการสินค้าที่ซื้อไป
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      ยอดค้างชำระ
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      สถานะ
+                    </TableHead>
+                    <TableHead
+                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      จัดการ
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {processedList.map((inv, index) => {
+                    const active = inv.id === selected.id;
+                    const invoiceOrder = salesOrders.find(
+                      (order) =>
+                        (inv.salesOrderId != null &&
+                          String(order.id) === String(inv.salesOrderId)) ||
+                        String(order.id) === String(inv.soRef) ||
+                        String(order.code) === String(inv.soRef),
+                    );
+                    const invoiceItems =
+                      invoiceOrder?.lines.map((line, lineIndex) => ({
+                        key: line.id ?? `${line.sku}-${lineIndex}`,
+                        name:
+                          products.find((product) => product.sku === line.sku)
+                            ?.name || line.sku,
+                      })) ?? [];
+                    return (
+                      <TableRow
+                        key={inv.id}
+                        onClick={() => setSelectedId(inv.id)}
+                        className="cursor-pointer border-b border-border"
+                        style={{
+                          borderColor: "var(--erp-border)",
+                          background: active ? c.accentBg : "transparent",
+                        }}
                       >
-                        {inv.status}
-                      </Badge>
-                    </div>
-                  </button>
-                );
-              })}
+                        <TableCell className="w-20 p-3 px-5">
+                          <Mono
+                            t={t}
+                            size={12}
+                            weight={600}
+                            color={active ? c.accent : c.ink}
+                          >
+                            {index + 1}
+                          </Mono>
+                        </TableCell>
+                        <TableCell className="p-3 px-5">
+                          <span
+                            className="text-sm text-muted-foreground"
+                            style={{ color: "var(--erp-ink2)" }}
+                          >
+                            {inv.customer}
+                          </span>
+                        </TableCell>
+                        <TableCell className="p-3 px-5">
+                          <span className="text-sm text-muted-foreground">
+                            {invoiceItems.length
+                              ? invoiceItems.map((item) => (
+                                  <span
+                                    key={item.key}
+                                    className="block text-sm text-muted-foreground"
+                                    style={{ color: "var(--erp-ink2)" }}
+                                  >
+                                    {item.name}
+                                  </span>
+                                ))
+                              : "ไม่มีรายละเอียดสินค้า"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="p-3 px-5">
+                          <Mono t={t} size={12} weight={500}>
+                            {fmtBaht(
+                              Math.max(
+                                0,
+                                inv.amount - (inv.credited ?? 0) - inv.paid,
+                              ),
+                            )}
+                          </Mono>
+                        </TableCell>
+                        <TableCell className="p-3 px-5">
+                          <div>
+                            <Badge
+                              variant={
+                                inv.status === "Paid"
+                                  ? "normal"
+                                  : inv.status === "Overdue"
+                                    ? "empty"
+                                    : "low"
+                              }
+                            >
+                              {inv.status}
+                            </Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell className="p-3 px-5 text-right">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              window.location.href = `/invoice/customer?name=${encodeURIComponent(inv.customer)}`;
+                            }}
+                          >
+                            ดูรายละเอียดลูกค้า
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </Card>
           </div>
-        </div>
-
-        <div className="no-print flex flex-col gap-6 sticky top-28">
-          <Card
-            t={t}
-            className="border border-border bg-card p-5"
-            style={{
-              borderColor: "var(--erp-border)",
-              background: "var(--erp-surface)",
-            }}
-          >
-            <div
-              className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground mb-4"
-              style={{ color: "var(--erp-ink3)" }}
-            >
-              Payment
-            </div>
-            <div className="flex flex-col gap-4">
-              <div>
-                <span className="block">
-                  <Mono t={t} size={26} weight={600}>
-                    {fmtBaht(outstanding)}
-                  </Mono>
-                </span>
-                <div
-                  className="text-xs text-muted-foreground mt-1"
-                  style={{ color: c.ink3 }}
-                >
-                  Due in {terms} days · {formatDate(selected.dueDate)}
-                </div>
-              </div>
-              <div
-                className="h-[1px] bg-border"
-                style={{ background: c.border }}
-              />
-              {[
-                { label: "Outstanding", val: outstanding },
-                { label: "Paid", val: selected.paid },
-              ].map((row) => (
-                <div key={row.label} className="flex justify-between text-xs">
-                  <span
-                    className="text-muted-foreground"
-                    style={{ color: c.ink3 }}
-                  >
-                    {row.label}
-                  </span>
-                  <Mono t={t} size={12} weight={500}>
-                    {fmtBaht(row.val)}
-                  </Mono>
-                </div>
-              ))}
-              <Button
-                onClick={() => setPayOpen(true)}
-                className="w-full bg-[var(--erp-accent)] text-white hover:opacity-90 border-none shadow-none cursor-pointer mt-1"
-              >
-                Record payment
-              </Button>
-            </div>
-          </Card>
-
-          <Card
-            t={t}
-            className="border border-border bg-card p-5"
-            style={{
-              borderColor: "var(--erp-border)",
-              background: "var(--erp-surface)",
-            }}
-          >
-            <div
-              className="text-[10px] font-bold tracking-[0.10em] uppercase text-muted-foreground mb-4"
-              style={{ color: "var(--erp-ink3)" }}
-            >
-              Customer summary
-            </div>
-            <div className="flex flex-col gap-3">
-              {[
-                { label: "Lifetime revenue", value: fmtBaht(customerRevenue) },
-                { label: "Open invoices", value: String(openInvoices) },
-                { label: "Avg. payment terms", value: `${terms}.0 days` },
-                {
-                  label: "Credit limit",
-                  value: fmtBaht(Math.max(500000, customerRevenue)),
-                },
-                {
-                  label: "Credit used",
-                  value: fmtBaht(
-                    customerInvoices.reduce(
-                      (s, inv) => s + Math.max(0, inv.amount - inv.paid),
-                      0,
-                    ),
-                  ),
-                },
-              ].map((row) => (
-                <div
-                  key={row.label}
-                  className="flex justify-between items-baseline text-xs"
-                >
-                  <span
-                    className="text-muted-foreground"
-                    style={{ color: c.ink3 }}
-                  >
-                    {row.label}
-                  </span>
-                  <Mono t={t} size={12} weight={500}>
-                    {row.value}
-                  </Mono>
-                </div>
-              ))}
-            </div>
-          </Card>
         </div>
       </div>
 

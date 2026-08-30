@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/sheet";
 import { useTheme } from "@/lib/design/ThemeContext";
 import { formatBaht } from "@/lib/mockData";
+import { ValidationAlert } from "@/components/ValidationAlert";
 
 const CHANNELS = ["LINE", "Instagram", "Facebook", "Offline", "Other"];
 const CHANNEL_ICON: Record<string, string> = {
@@ -76,6 +77,7 @@ export function CreateOrderSheet({
   const c = t.color;
 
   const [form, setForm] = useState(BLANK);
+  const [validationError, setValidationError] = useState("");
 
   const lineTotal = form.lines.reduce((s, l) => {
     const p = products.find((prod) => prod.sku === l.sku);
@@ -98,19 +100,22 @@ export function CreateOrderSheet({
   }
 
   function handleSubmit() {
-    if (!form.customer) return;
+    if (!form.customer) {
+      setValidationError("กรุณากรอกชื่อลูกค้า");
+      return;
+    }
     const hasInvalidLine = form.lines.some(
-      (l) => l.qty === "" || Number(l.qty) <= 0
+      (l) => l.qty === "" || Number(l.qty) <= 0,
     );
     if (hasInvalidLine) {
-      alert("กรุณากรอกจำนวนสินค้าให้ถูกต้อง (มากกว่า 0)");
+      setValidationError("กรุณากรอกจำนวนสินค้าให้ถูกต้อง (มากกว่า 0)");
       return;
     }
     const validLines = form.lines
       .filter((l) => l.sku)
       .map((l) => ({ ...l, qty: Number(l.qty) }));
     if (validLines.length === 0) {
-      alert("กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ");
+      setValidationError("กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ");
       return;
     }
 
@@ -122,6 +127,7 @@ export function CreateOrderSheet({
       items: validLines.length || 1,
       notes: form.notes,
     });
+    setValidationError("");
     setForm(BLANK);
     onOpenChange(false);
   }
@@ -130,29 +136,43 @@ export function CreateOrderSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex h-full w-[min(540px,100vw)] flex-col border-l bg-card text-card-foreground shadow-2xl outline-none">
         <SheetHeader className="mb-4">
-          <SheetTitle className="text-base font-bold text-foreground" style={{ color: "var(--erp-ink)" }}>
+          <SheetTitle
+            className="text-base font-bold text-foreground"
+            style={{ color: "var(--erp-ink)" }}
+          >
             สร้างออร์เดอร์ใหม่
           </SheetTitle>
         </SheetHeader>
+        <ValidationAlert message={validationError} />
         <SheetBody className="grid gap-4 overflow-y-auto">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+              <Label
+                className="text-xs font-semibold text-muted-foreground mb-1 block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
                 ชื่อลูกค้า *
               </Label>
               <Input
                 value={form.customer}
-                onChange={(e) => setForm((f) => ({ ...f, customer: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, customer: e.target.value }))
+                }
                 placeholder="ชื่อลูกค้า"
               />
             </div>
             <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+              <Label
+                className="text-xs font-semibold text-muted-foreground mb-1 block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
                 เบอร์โทรศัพท์
               </Label>
               <Input
                 value={form.phone}
-                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, phone: e.target.value }))
+                }
                 placeholder="0xx-xxx-xxxx"
               />
             </div>
@@ -160,12 +180,17 @@ export function CreateOrderSheet({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+              <Label
+                className="text-xs font-semibold text-muted-foreground mb-1 block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
                 ช่องทางการสั่ง
               </Label>
               <NativeSelect
                 value={form.channel}
-                onChange={(e) => setForm((f) => ({ ...f, channel: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, channel: e.target.value }))
+                }
                 className="w-full cursor-pointer"
               >
                 {CHANNELS.map((ch) => (
@@ -176,20 +201,28 @@ export function CreateOrderSheet({
               </NativeSelect>
             </div>
             <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+              <Label
+                className="text-xs font-semibold text-muted-foreground mb-1 block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
                 วันที่สั่ง
               </Label>
               <Input
                 type="date"
                 value={form.date}
-                onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, date: e.target.value }))
+                }
               />
             </div>
           </div>
 
           <div>
             <div className="flex justify-between items-center mb-2">
-              <span className="text-xs font-bold text-foreground" style={{ color: "var(--erp-ink)" }}>
+              <span
+                className="text-xs font-bold text-foreground"
+                style={{ color: "var(--erp-ink)" }}
+              >
                 รายการสินค้า
               </span>
               <Button
@@ -202,26 +235,64 @@ export function CreateOrderSheet({
               </Button>
             </div>
 
-            <div className="border border-border rounded-lg overflow-hidden" style={{ borderColor: "var(--erp-border)" }}>
+            <div
+              className="border border-border rounded-lg overflow-hidden"
+              style={{ borderColor: "var(--erp-border)" }}
+            >
               <Table className="w-full border-collapse">
-                <TableHeader className="bg-muted/50 border-b border-border" style={{ background: "var(--erp-subtle)", borderColor: "var(--erp-border)" }}>
+                <TableHeader
+                  className="bg-muted/50 border-b border-border"
+                  style={{
+                    background: "var(--erp-subtle)",
+                    borderColor: "var(--erp-border)",
+                  }}
+                >
                   <TableRow>
-                    <TableHead className="p-2 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>สินค้า</TableHead>
-                    <TableHead className="p-2 text-xs font-bold text-muted-foreground uppercase text-center w-[70px]" style={{ color: "var(--erp-ink3)" }}>จำนวน</TableHead>
-                    <TableHead className="p-2 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>ราคา/ชิ้น</TableHead>
-                    <TableHead className="p-2 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}>รวม</TableHead>
-                    <TableHead className="p-2 text-xs font-bold text-muted-foreground uppercase text-left" style={{ color: "var(--erp-ink3)" }}></TableHead>
+                    <TableHead
+                      className="p-2 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      สินค้า
+                    </TableHead>
+                    <TableHead
+                      className="p-2 text-xs font-bold text-muted-foreground uppercase text-center w-[70px]"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      จำนวน
+                    </TableHead>
+                    <TableHead
+                      className="p-2 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      ราคา/ชิ้น
+                    </TableHead>
+                    <TableHead
+                      className="p-2 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    >
+                      รวม
+                    </TableHead>
+                    <TableHead
+                      className="p-2 text-xs font-bold text-muted-foreground uppercase text-left"
+                      style={{ color: "var(--erp-ink3)" }}
+                    ></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {form.lines.map((line, i) => {
                     const prod = products.find((p) => p.sku === line.sku);
                     return (
-                      <TableRow key={i} className="border-b border-border" style={{ borderColor: "var(--erp-border)" }}>
+                      <TableRow
+                        key={i}
+                        className="border-b border-border"
+                        style={{ borderColor: "var(--erp-border)" }}
+                      >
                         <TableCell className="p-2 align-middle">
                           <select
                             value={line.sku}
-                            onChange={(e) => updateLine(i, "sku", e.target.value)}
+                            onChange={(e) =>
+                              updateLine(i, "sku", e.target.value)
+                            }
                             className="border rounded-md p-1 bg-card text-xs cursor-pointer w-full"
                             style={{ borderColor: "var(--erp-border)" }}
                           >
@@ -244,17 +315,25 @@ export function CreateOrderSheet({
                                 "qty",
                                 e.target.value === ""
                                   ? ""
-                                  : parseInt(e.target.value) || 0
+                                  : parseInt(e.target.value) || 0,
                               )
                             }
                             className="w-12 h-8 text-xs p-1 text-center font-mono"
                           />
                         </TableCell>
-                        <TableCell className="p-2 align-middle text-xs text-muted-foreground" style={{ color: "var(--erp-ink3)" }}>
+                        <TableCell
+                          className="p-2 align-middle text-xs text-muted-foreground"
+                          style={{ color: "var(--erp-ink3)" }}
+                        >
                           {prod ? formatBaht(prod.price) : "—"}
                         </TableCell>
-                        <TableCell className="p-2 align-middle text-xs font-bold" style={{ color: "var(--erp-ink)" }}>
-                          {prod ? formatBaht(prod.price * Number(line.qty)) : "—"}
+                        <TableCell
+                          className="p-2 align-middle text-xs font-bold"
+                          style={{ color: "var(--erp-ink)" }}
+                        >
+                          {prod
+                            ? formatBaht(prod.price * Number(line.qty))
+                            : "—"}
                         </TableCell>
                         <TableCell className="p-2 align-middle text-center">
                           {form.lines.length > 1 && (
@@ -276,23 +355,37 @@ export function CreateOrderSheet({
           </div>
 
           {lineTotal > 0 && (
-            <div className="p-3 bg-muted rounded-lg flex justify-between items-center" style={{ background: "var(--erp-subtle)" }}>
-              <span className="text-xs font-semibold text-muted-foreground" style={{ color: "var(--erp-ink3)" }}>
+            <div
+              className="p-3 bg-muted rounded-lg flex justify-between items-center"
+              style={{ background: "var(--erp-subtle)" }}
+            >
+              <span
+                className="text-xs font-semibold text-muted-foreground"
+                style={{ color: "var(--erp-ink3)" }}
+              >
                 มูลค่ารวม
               </span>
-              <span className="text-lg font-bold text-[var(--erp-accent)]" style={{ color: c.accent }}>
+              <span
+                className="text-lg font-bold text-[var(--erp-accent)]"
+                style={{ color: c.accent }}
+              >
                 {formatBaht(lineTotal)}
               </span>
             </div>
           )}
 
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               หมายเหตุ
             </Label>
             <Textarea
               value={form.notes}
-              onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, notes: e.target.value }))
+              }
               placeholder="หมายเหตุเพิ่มเติม..."
               rows={3}
             />
@@ -303,7 +396,11 @@ export function CreateOrderSheet({
             variant="outline"
             onClick={() => onOpenChange(false)}
             className="cursor-pointer border-border"
-            style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)", color: "#374151" }}
+            style={{
+              borderColor: "var(--erp-border)",
+              background: "var(--erp-surface)",
+              color: "#374151",
+            }}
           >
             ยกเลิก
           </Button>

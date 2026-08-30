@@ -9,6 +9,17 @@ import {
 	type BundleComponent,
 	type SamplingCampaign,
 	type SamplingRecipient,
+	type GoodsIssue,
+	type CreateGoodsIssueInput,
+	type GoodsReceive,
+	type CreateGoodsReceiveInput,
+	type SalesOrder,
+	type SalesOrderStatus,
+	type CreateSalesOrderInput,
+	type Invoice,
+	type CreateInvoiceInput,
+	type StockReturn,
+	type CreateStockReturnInput,
 } from '@/lib/store/erpWorkflow'
 import type { AppUser, ErpSettings } from '@/lib/store/erpTypes'
 import { readApiResponse } from '@/lib/apiResponse'
@@ -114,7 +125,7 @@ export type ErpResource = keyof typeof ERP_RESOURCE_ENDPOINTS
 const loadedResources = new Set<ErpResource>()
 const loadingResources = new Map<ErpResource, Promise<void>>()
 
-interface CustomErpStore extends ErpWorkflowStore {
+interface CustomErpStore extends Omit<ErpWorkflowStore, 'createGoodsIssue' | 'createSalesOrder' | 'createGoodsReceive' | 'createInvoiceFromSO' | 'updateSalesOrderStatus' | 'createStockReturn'> {
 	users: AppUser[]
 	fetchInitialState: () => Promise<void>
 	loadResources: (resources: ErpResource[], force?: boolean) => Promise<void>
@@ -123,6 +134,12 @@ interface CustomErpStore extends ErpWorkflowStore {
 	updateUserStatus: (id: string, isActive: boolean) => Promise<AppUser>
 	deleteUser: (id: string) => Promise<void>
 	updateExpense: (id: string, input: Partial<any>) => Promise<void>
+	createGoodsIssue: (input: CreateGoodsIssueInput) => Promise<GoodsIssue | null>
+	createGoodsReceive: (input: CreateGoodsReceiveInput) => Promise<GoodsReceive | null>
+	createInvoiceFromSO: (salesOrderId: number | string, input?: Partial<CreateInvoiceInput>) => Promise<Invoice | null>
+	createSalesOrder: (input: CreateSalesOrderInput) => Promise<SalesOrder>
+	updateSalesOrderStatus: (soId: number | string, status: SalesOrderStatus) => Promise<SalesOrder>
+	createStockReturn: (input: CreateStockReturnInput) => Promise<StockReturn>
 }
 
 export const useErpStore = create<CustomErpStore>((set, get) => {
@@ -159,7 +176,12 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 		await Promise.all(resources.map(async resource => {
 			if (!force && loadedResources.has(resource)) return
 			const existing = loadingResources.get(resource)
-			if (existing) return existing
+			if (existing) {
+				if (!force) return existing
+				// Do not let a response started before a stock mutation win over the
+				// post-mutation refresh. Finish it, then request current server data.
+				await existing
+			}
 
 			const request = (async () => {
 				try {
@@ -248,46 +270,87 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 	addProduct: (input) => {
 		const exists = get().products.some(product => product.sku.toUpperCase() === input.sku.toUpperCase())
 		if (exists) throw new Error(`SKU "${input.sku}" already exists`)
+		const { components = [], ...productInput } = input
+		const isBundle = Boolean(input.isBundle || input.type === 'Bundle')
 		const newProduct = {
-			...input,
-			stock: input.stock || 0,
+			...productInput,
+			type: isBundle ? 'Bundle' : 'Finished Product',
+			stock: isBundle ? 0 : input.stock || 0,
 			reservedQty: 0,
 			isActive: true,
 			barcode: input.barcode || '',
 			weightGrams: input.weightGrams || 0,
 			wholesalePrice: input.wholesalePrice || 0,
 			reorder: input.reorder || 0,
-			isBundle: input.isBundle || false,
+			isBundle,
 			note: input.note || '',
 			price: input.retailPrice,
 			baseUnit: input.baseUnit || 'piece',
 		} as Product
 
-		set(s => ({ products: [...s.products, newProduct] }))
+		const previousComponents = get().bundleComponents
+		set(s => ({
+			products: [...s.products, newProduct],
+			bundleComponents: isBundle ? [
+				...s.bundleComponents.filter(component => component.bundleSku !== newProduct.sku),
+				...components.map(component => ({ ...component, bundleSku: newProduct.sku })),
+			] : s.bundleComponents,
+		}))
 
 		fetch(`${getApiUrl()}/api/products`, {
 			method: 'POST',
 			headers: getHeaders(),
-			body: JSON.stringify(newProduct),
-		}).then(res => readApiResponse<Product>(res)).then(data => {
+			body: JSON.stringify({ ...newProduct, components }),
+		}).then(res => readApiResponse<Product>(res)).then(async data => {
 			set(s => ({ products: s.products.map(product => product.sku === newProduct.sku ? data : product) }))
+			await get().loadResources(['products', 'bundleComponents', 'stockLots', 'stockMovements'], true)
 		}).catch(error => {
 			console.error('Failed to create product', error)
+			set(s => ({
+				products: s.products.filter(product => product.sku !== newProduct.sku),
+				bundleComponents: previousComponents,
+			}))
 		})
 
 		return newProduct
 	},
 
 	updateProduct: (input) => {
+		const current = get().products.find(p => p.sku === input.sku)
+		if (!current) return null
+		const { newSku, components, ...changes } = input
+		const isBundle = changes.isBundle ?? current.isBundle
+		const updated = {
+			...current,
+			...changes,
+			sku: newSku?.trim().toUpperCase() || current.sku,
+			type: isBundle ? 'Bundle' : 'Finished Product',
+			stock: isBundle ? 0 : (changes.stock ?? current.stock),
+			isBundle,
+		} as Product
+		const previousComponents = get().bundleComponents
+		set(s => ({
+			products: s.products.map(p => p.sku === input.sku ? updated : p),
+			bundleComponents: components === undefined ? s.bundleComponents : [
+				...s.bundleComponents.filter(component => component.bundleSku !== input.sku && component.bundleSku !== updated.sku),
+				...(isBundle ? components.map(component => ({ ...component, bundleSku: updated.sku })) : []),
+			],
+		}))
 		fetch(`${getApiUrl()}/api/products/${input.sku}`, {
 			method: 'PUT',
 			headers: getHeaders(),
-			body: JSON.stringify(input),
-		}).then(res => {
-			if (res.ok) get().fetchInitialState()
+			body: JSON.stringify({ ...input, type: updated.type, isBundle, components }),
+		}).then(async res => {
+			await readApiResponse<Product>(res)
+			await get().loadResources(['products', 'bundleComponents', 'stockLots', 'stockMovements'], true)
+		}).catch(error => {
+			console.error('Failed to update product', error)
+			set(s => ({
+				products: s.products.map(p => p.sku === updated.sku ? current : p),
+				bundleComponents: previousComponents,
+			}))
 		})
-		const current = get().products.find(p => p.sku === input.sku)
-		return current ? { ...current, ...input } as Product : null
+		return updated
 	},
 
 	deleteProduct: (sku) => {
@@ -346,6 +409,7 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 			let required = comp.qty / (comp.yieldFactor || 1)
 			if (comp.unit === 'g' && prod.baseUnit === 'kg') required /= 1000
 			if (comp.unit === 'kg' && prod.baseUnit === 'g') required *= 1000
+			required = Math.ceil(required)
 			virtualQty = Math.min(virtualQty, Math.floor(available / required))
 		}
 		return virtualQty === Infinity ? 0 : virtualQty
@@ -389,28 +453,29 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 	},
 
 	// ── Sales Orders ──
-	createSalesOrder: (input) => {
-		const salesOrder = workflow.createSalesOrder(input)
-		fetch(`${getApiUrl()}/api/sales-orders`, {
+	createSalesOrder: async (input) => {
+		const response = await fetch(`${getApiUrl()}/api/sales-orders`, {
 			method: 'POST',
 			headers: getHeaders(),
-			body: JSON.stringify(salesOrder),
-		}).then(res => {
-			if (res.ok) get().fetchInitialState()
+			body: JSON.stringify(input),
 		})
-
+		const salesOrder = await readApiResponse<SalesOrder>(response)
+		await get().loadResources(['salesOrders', 'products', 'stockLots', 'stockMovements'], true)
 		return salesOrder
 	},
 
-	updateSalesOrderStatus: (soId, status) => {
-		const updated = workflow.updateSalesOrderStatus(soId, status)
-		fetch(`${getApiUrl()}/api/sales-orders/${soId}/status`, {
+	updateSalesOrderStatus: async (soId, status) => {
+		const response = await fetch(`${getApiUrl()}/api/sales-orders/${soId}/status`, {
 			method: 'PUT',
 			headers: getHeaders(),
 			body: JSON.stringify({ status }),
-		}).then(res => {
-			if (res.ok) get().fetchInitialState()
 		})
+		const updated = await readApiResponse<SalesOrder>(response)
+		// Complete creates its invoice on the server in the same transaction.
+		// Refresh invoices first so the completed SO never becomes visible to the
+		// legacy backfill effect while the invoice list is still stale.
+		await get().loadResources(['invoices'], true)
+		await get().loadResources(['salesOrders', 'products', 'stockLots', 'stockMovements'], true)
 		return updated
 	},
 
@@ -427,23 +492,23 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 		return invoice
 	},
 
-	createInvoiceFromSO: (salesOrderId) => {
-		const invoice = workflow.createInvoiceFromSO(salesOrderId)
-		fetch(`${getApiUrl()}/api/invoices/from-so/${salesOrderId}`, {
+	createInvoiceFromSO: async (salesOrderId, input) => {
+		const response = await fetch(`${getApiUrl()}/api/invoices/from-so/${encodeURIComponent(String(salesOrderId))}`, {
 			method: 'POST',
 			headers: getHeaders(),
-		}).then(res => {
-			if (res.ok) get().fetchInitialState()
+			body: input ? JSON.stringify(input) : undefined,
 		})
+		const invoice = await readApiResponse<Invoice>(response)
+		await get().loadResources(['invoices', 'salesOrders'], true)
 		return invoice
 	},
 
-	recordPayment: (invoiceId, amount) => {
+	recordPayment: (invoiceId, amount, details) => {
 		const invoice = workflow.recordPayment(invoiceId, amount)
 		fetch(`${getApiUrl()}/api/invoices/${invoiceId}/payment`, {
 			method: 'POST',
 			headers: getHeaders(),
-			body: JSON.stringify({ amount }),
+			body: JSON.stringify({ amount, ...(details || {}) }),
 		}).then(res => {
 			if (res.ok) get().fetchInitialState()
 		})
@@ -513,16 +578,18 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 	},
 
 	// ── Goods Receive ──
-	createGoodsReceive: (input) => {
-		const goodsReceive = workflow.createGoodsReceive(input)
-		if (!goodsReceive) return null
-		fetch(`${getApiUrl()}/api/goods-receives`, {
+	createGoodsReceive: async (input) => {
+		const response = await fetch(`${getApiUrl()}/api/goods-receives`, {
 			method: 'POST',
 			headers: getHeaders(),
-			body: JSON.stringify(goodsReceive),
-		}).then(res => {
-			if (res.ok) get().fetchInitialState()
+			body: JSON.stringify({
+				receiveDate: input.receiveDate,
+				note: input.note,
+				items: input.items,
+			}),
 		})
+		const goodsReceive = await readApiResponse<GoodsReceive>(response)
+		await get().loadResources(['goodsReceives', 'stockLots', 'stockMovements', 'products'], true)
 		return goodsReceive
 	},
 
@@ -604,29 +671,32 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 	},
 
 	// ── Goods Issue ──
-	createGoodsIssue: (input) => {
-		const goodsIssue = workflow.createGoodsIssue(input)
-		if (!goodsIssue) return null
-		fetch(`${getApiUrl()}/api/goods-issues`, {
-			method: 'POST',
-			headers: getHeaders(),
-			body: JSON.stringify(goodsIssue),
-		}).then(res => {
-			if (res.ok) get().fetchInitialState()
-		})
-		return goodsIssue
+	createGoodsIssue: async (input) => {
+		try {
+			const response = await fetch(`${getApiUrl()}/api/goods-issues`, {
+				method: 'POST',
+				headers: getHeaders(),
+				body: JSON.stringify(input),
+			})
+			const goodsIssue = await readApiResponse<GoodsIssue>(response)
+			// Goods Issue changes stock totals, FEFO lots, and the movement ledger.
+			// Force-refresh these resources even when the user has not opened their pages yet.
+			await get().loadResources(['products', 'stockLots', 'stockMovements', 'goodsIssues'], true)
+			return goodsIssue
+		} catch {
+			return null
+		}
 	},
 
 	// ── Returns ──
-	createStockReturn: (input) => {
-		const stockReturn = workflow.createStockReturn(input)
-		fetch(`${getApiUrl()}/api/stock-returns`, {
+	createStockReturn: async (input) => {
+		const response = await fetch(`${getApiUrl()}/api/stock-returns`, {
 			method: 'POST',
 			headers: getHeaders(),
-			body: JSON.stringify(stockReturn),
-		}).then(res => {
-			if (res.ok) get().fetchInitialState()
+			body: JSON.stringify(input),
 		})
+		const stockReturn = await readApiResponse<StockReturn>(response)
+		await get().loadResources(['stockReturns'], true)
 		return stockReturn
 	},
 
@@ -636,9 +706,7 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 			method: 'PUT',
 			headers: getHeaders(),
 			body: JSON.stringify({ status }),
-		}).then(res => {
-			if (res.ok) get().fetchInitialState()
-		})
+		}).finally(() => get().loadResources(['stockReturns', 'products', 'stockLots', 'stockMovements'], true))
 		return updated
 	},
 
@@ -698,9 +766,14 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 		fetch(`${getApiUrl()}/api/budgets`, {
 			method: 'POST',
 			headers: getHeaders(),
-			body: JSON.stringify(budget),
-		}).then(res => {
-			if (res.ok) get().fetchInitialState()
+			// Do not send the local string id (BUD-...) to the API's uint primary key.
+			body: JSON.stringify(input),
+		}).then(async res => {
+			await readApiResponse(res)
+			await get().loadResources(['budgets'], true)
+		}).catch(error => {
+			console.error('Failed to save budget', error)
+			set(s => ({ budgets: s.budgets.filter(item => item.id !== budget.id) }))
 		})
 		return budget
 	},

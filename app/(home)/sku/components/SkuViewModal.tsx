@@ -1,114 +1,112 @@
-'use client'
-import { CategoryBadge, StockBadge } from '@/components/ui'
-import { Button } from '@/components/ui/button'
-import type { Product, BundleComponent } from '@/lib/store/erpWorkflow'
+"use client";
+
+import { StockBadge } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import type { Product } from "@/lib/store/erpWorkflow";
 
 interface SkuViewModalProps {
-  selected: Product
-  bundleComponents: BundleComponent[]
-  products: Product[]
-  calcBundleVirtualStock: (sku: string) => number
-  onClose: () => void
-  onEdit: () => void
-  onEditBom: () => void
+  selected: Product;
+  bundleComponents?: Array<{ componentSku: string; qty: number; unit?: string; componentType?: string }>;
+  componentProducts?: Product[];
+  onClose: () => void;
+  onEdit: () => void;
 }
 
-export default function SkuViewModal({
-  selected,
-  bundleComponents,
-  products,
-  calcBundleVirtualStock,
-  onClose,
-  onEdit,
-  onEditBom,
-}: SkuViewModalProps) {
-  const formatBaht = (n: number) => '฿' + n.toLocaleString('th-TH')
-  const comps = bundleComponents.filter(c => c.bundleSku === selected.sku)
-  const virtualQty = calcBundleVirtualStock(selected.sku)
+export default function SkuViewModal({ selected, bundleComponents = [], componentProducts = [], onClose, onEdit }: SkuViewModalProps) {
+  const isBundle = Boolean(selected.isBundle);
+  const packageQuantities = bundleComponents.map((component) => {
+    const product = componentProducts.find((item) => item.sku === component.componentSku);
+    const available = product ? Math.max(0, product.stock - product.reservedQty) : 0;
+    return { sku: component.componentSku, packages: component.qty > 0 ? Math.floor(available / component.qty) : 0 };
+  });
+  const available = isBundle
+    ? (packageQuantities.length ? Math.min(...packageQuantities.map((item) => item.packages)) : 0)
+    : Math.max(0, selected.stock - selected.reservedQty);
+  const limitingComponent = packageQuantities.find((item) => item.packages === available);
+  const rows = [
+    { label: "Barcode", value: selected.barcode || "—" },
+    { label: "ราคาขาย", value: `฿${selected.retailPrice.toLocaleString("th-TH")}` },
+    { label: "สต็อกปัจจุบัน", value: selected.stock.toLocaleString("th-TH") },
+    { label: "สต็อก Reserved", value: selected.reservedQty.toLocaleString("th-TH") },
+    { label: "สต็อกพร้อมขาย", value: available.toLocaleString("th-TH") },
+  ];
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div 
-        className="bg-card rounded-xl p-7 w-full max-w-[480px] shadow-2xl border border-border"
-        style={{ background: 'var(--erp-surface)', borderColor: 'var(--erp-border)' }}
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-start mb-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-[480px] rounded-xl border border-border bg-card p-7 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-5 flex items-start justify-between">
           <div>
             <div className="font-mono text-sm font-bold text-[var(--erp-accent)]">{selected.sku}</div>
-            <div className="text-lg font-bold text-foreground mt-0.5" style={{ color: 'var(--erp-ink)' }}>{selected.name}</div>
-            <div className="mt-1.5 flex gap-1.5">
-              <CategoryBadge type={selected.type} />
-              <StockBadge stock={selected.stock} reorder={selected.reorder} isBundle={selected.isBundle} />
+            <div className="mt-0.5 text-lg font-bold">{selected.name}</div>
+            <div className="mt-1.5 flex items-center gap-2">
+              <StockBadge stock={selected.stock} reorder={0} isBundle={isBundle} />
+              {isBundle && (
+                <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700 dark:border-violet-900/30 dark:bg-violet-950/20 dark:text-violet-300">
+                  แพ็กสินค้า
+                </span>
+              )}
             </div>
           </div>
-          <Button variant="ghost" size="xs" onClick={onClose} className="text-muted-foreground hover:text-foreground cursor-pointer">Close</Button>
+          <Button variant="ghost" size="xs" onClick={onClose}>Close</Button>
         </div>
 
+        {isBundle ? (
+          <div className="rounded-xl border border-violet-200 bg-violet-50/60 p-4 dark:border-violet-900/30 dark:bg-violet-950/10">
+            <div className="mt-3 rounded-lg border border-violet-200 bg-white/70 p-3 dark:border-violet-900/30 dark:bg-black/10">
+              <div className="text-xs font-semibold text-violet-800 dark:text-violet-300">สินค้าในแพ็ก</div>
+              {bundleComponents.length === 0 ? (
+                <div className="mt-2 rounded-md border border-dashed p-3 text-center text-xs text-muted-foreground">ไม่พบข้อมูลสินค้าในแพ็ก</div>
+              ) : (
+                <div className="mt-2 space-y-2">
+                  {bundleComponents.map((component, index) => {
+                    const product = componentProducts.find((item) => item.sku === component.componentSku);
+                    return (
+                      <div key={`${component.componentSku}-${index}`} className="flex items-center justify-between rounded-md border bg-background px-3 py-2 text-xs">
+                        <div>
+                          <div className="font-mono font-semibold">{component.componentSku}</div>
+                          <div className="text-muted-foreground">{product?.name ?? "ไม่พบข้อมูลสินค้า"}</div>
+                        </div>
+                        <div className="font-semibold">× {component.qty} {component.unit && component.unit !== "piece" ? component.unit : "ชิ้น"}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="text-sm font-bold text-violet-800 dark:text-violet-300">รายละเอียดแพ็กสินค้า</div>
+            <div className="mt-1 text-xs text-violet-700/80 dark:text-violet-300/70">
+              SKU นี้เป็นแพ็ก ไม่มี Stock จริงของตัวเอง สต็อกจะคำนวณจาก SKU ส่วนประกอบและตัดตาม FEFO เมื่อขาย
+            </div>
+            <div className="mt-3 rounded-lg border border-violet-200 bg-white/70 p-3 text-xs dark:border-violet-900/30 dark:bg-black/10">
+              <div className="font-semibold text-violet-800 dark:text-violet-300">พร้อมขายสูงสุด {available.toLocaleString("th-TH")} แพ็ก</div>
+              {limitingComponent && <div className="mt-1 text-violet-700/80 dark:text-violet-300/70">ตัวจำกัดจำนวนแพ็ก: {limitingComponent.sku}</div>}
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              {rows.filter((row) => row.label !== "สต็อกปัจจุบัน" && row.label !== "สต็อก Reserved").map((row) => (
+                <div key={row.label} className="rounded-lg bg-white/70 p-2.5 dark:bg-black/10">
+                  <div className="mb-0.5 text-[11px] text-muted-foreground">{row.label}</div>
+                  <div className="text-sm font-semibold">{row.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
         <div className="grid grid-cols-2 gap-3">
-          {[
-            { label: 'บาร์โค้ด', value: selected.barcode || '—' },
-            { label: 'น้ำหนัก', value: selected.weightGrams ? `${selected.weightGrams}g` : '—' },
-            { label: 'ต้นทุน', value: formatBaht(selected.cost) },
-            { label: 'Gross Margin B2C', value: `${(((selected.retailPrice - selected.cost) / selected.retailPrice) * 100).toFixed(1)}%` },
-            { label: 'ราคา B2C', value: formatBaht(selected.retailPrice) },
-            { label: 'ราคา B2B', value: formatBaht(selected.wholesalePrice) },
-            { label: 'สต็อกปัจจุบัน', value: selected.isBundle ? 'Virtual' : selected.stock.toLocaleString() },
-            { label: 'สต็อก Reserved', value: selected.reservedQty.toLocaleString() },
-            { label: 'Reorder Point', value: selected.reorder || '—' },
-            { label: 'สต็อกพร้อมขาย', value: selected.isBundle ? 'Virtual' : (selected.stock - selected.reservedQty).toLocaleString() },
-          ].map(row => (
-            <div key={row.label} className="rounded-lg p-2.5" style={{ background: 'var(--erp-subtle)' }}>
-              <div className="text-[11px] text-muted-foreground mb-0.5" style={{ color: 'var(--erp-ink3)' }}>{row.label}</div>
-              <div className="text-sm font-semibold text-foreground" style={{ color: 'var(--erp-ink)' }}>{row.value}</div>
+          {rows.map((row) => (
+            <div key={row.label} className="rounded-lg p-2.5" style={{ background: "var(--erp-subtle)" }}>
+              <div className="mb-0.5 text-[11px] text-muted-foreground">{row.label}</div>
+              <div className="text-sm font-semibold">{row.value}</div>
             </div>
           ))}
         </div>
-
-        {selected.note && (
-          <div className="mt-3 p-2.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 rounded-lg text-xs text-amber-800 dark:text-amber-400">
-            {selected.note}
-          </div>
         )}
 
-        {selected.isBundle && (
-          <div className="mt-3 p-3 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 rounded-lg">
-            <div className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-2">🧩 BOM — ส่วนประกอบ</div>
-            {comps.length === 0
-              ? <div className="text-xs text-muted-foreground">ยังไม่ได้กำหนด BOM — กด BOM เพื่อตั้งค่า</div>
-              : <>
-                {comps.map(c => {
-                  const cp = products.find(p => p.sku === c.componentSku)
-                  return (
-                    <div key={c.componentSku} className="flex justify-between text-xs mb-1 text-muted-foreground">
-                      <span>• {c.componentSku} ({cp?.name ?? '?'})</span>
-                      <span className="font-semibold text-foreground">
-                        × {c.qty} {c.unit ?? 'piece'} · ฿{(c.componentType === 'expense'
-                          ? c.qty * (c.unitCostOverride ?? 0)
-                          : c.qty * (cp?.cost ?? 0)).toLocaleString('th-TH', { maximumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                  )
-                })}
-                <div className="mt-2 pt-2 border-t border-emerald-200/50 text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                  สต็อกพร้อมขาย: {virtualQty} ชุด
-                </div>
-              </>
-            }
-          </div>
-        )}
+        {selected.note && <div className="mt-3 rounded-lg border p-2.5 text-xs">{selected.note}</div>}
 
-        <div className="flex justify-end gap-2 mt-5">
-          {selected.isBundle && (
-            <Button onClick={onEditBom} variant="outline" size="sm" className="cursor-pointer border-border">
-              BOM
-            </Button>
-          )}
-          <Button onClick={onEdit} variant="outline" size="sm" className="cursor-pointer border-border" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)', color: '#374151' }}>
-            แก้ไข
-          </Button>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button onClick={onEdit} variant="outline" size="sm">แก้ไข</Button>
         </div>
       </div>
     </div>
-  )
+  );
 }

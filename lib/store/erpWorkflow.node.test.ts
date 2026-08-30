@@ -181,7 +181,7 @@ test('goods receive adds stock and creates movement', () => {
 })
 
 // ── 7.5. GR Landed Cost calculations ──────────────────────────────
-test('goods receive calculates landed costs and updates product cost moving average', () => {
+test('goods receive does not calculate landed cost or update product cost', () => {
   const store = freshStore()
   const po = store.getState().createPurchaseOrder({
     supplier: 'China Freight Supplier',
@@ -216,22 +216,16 @@ test('goods receive calculates landed costs and updates product cost moving aver
   })
 
   assert.ok(gr)
-  // Total allocatable landed cost = 3000
-  // Total items value base = (100 * 10) + (100 * 20) = 1000 + 2000 = 3000
-  // CHK allocation: 3000 * (1000 / 3000) = 1000. Landed unit cost = (1000 + 1000) / 100 = 20
-  // SAL allocation: 3000 * (2000 / 3000) = 2000. Landed unit cost = (2000 + 2000) / 100 = 40
-
   const grChkItem = gr.items.find(i => i.sku === 'CAT-CHK-30')
   const grSalItem = gr.items.find(i => i.sku === 'CAT-SAL-100')
-  assert.equal(grChkItem?.landedUnitCost, 20)
-  assert.equal(grSalItem?.landedUnitCost, 40)
+  assert.equal(grChkItem?.landedUnitCost, 0)
+  assert.equal(grSalItem?.landedUnitCost, 0)
+  assert.deepEqual(gr.landedCosts, [])
 
-  // CHK moving average: (100 * 8 + 100 * 20) / 200 = 2800 / 200 = 14
-  // SAL moving average: (100 * 15 + 100 * 40) / 200 = 5500 / 200 = 27.5
   const chkProduct = store.getState().products.find(p => p.sku === 'CAT-CHK-30')
   const salProduct = store.getState().products.find(p => p.sku === 'CAT-SAL-100')
-  assert.equal(chkProduct?.cost, 14)
-  assert.equal(salProduct?.cost, 27.5)
+  assert.equal(chkProduct?.cost, 8)
+  assert.equal(salProduct?.cost, 15)
 })
 
 // ── 8. GR cannot receive more than PO remaining ─────────────────
@@ -255,6 +249,77 @@ test('goods receive rejects over-receive', () => {
   assert.equal(gr, null, 'should reject over-receive')
 })
 
+test('finished goods can be received directly without PR or PO', () => {
+  const store = freshStore()
+  const before = store.getState().products.find(p => p.sku === 'CAT-CHK-30')!.stock
+
+  const receipt = store.getState().createGoodsReceive({
+    receiveDate: '2026-08-02',
+    items: [{
+      sku: 'CAT-CHK-30', qtyReceived: 25, lot: 'FG-20260802-A',
+      expiryDate: '2027-08-02', landedUnitCost: 42,
+    }],
+  })
+
+  assert.ok(receipt)
+  assert.equal(receipt.poRef, undefined)
+  assert.equal(receipt.items[0].landedUnitCost, 0)
+  assert.match(receipt.items[0].lot, /^LOT-\d{4}-01-20260802$/)
+  assert.equal(store.getState().products.find(p => p.sku === 'CAT-CHK-30')!.stock, before + 25)
+  assert.ok(store.getState().stockLots.some(lot => lot.sku === 'CAT-CHK-30' && lot.lot === receipt.items[0].lot))
+  assert.ok(store.getState().stockMovements.some(movement => movement.refDoc === receipt.id && movement.type === 'IN'))
+})
+
+test('successive finished-goods receipts generate unique lot codes', () => {
+  const store = freshStore()
+  const input = {
+    receiveDate: '2026-08-02',
+    items: [{ sku: 'CAT-CHK-30', qtyReceived: 5, lot: 'FG-DUPLICATE', expiryDate: '', landedUnitCost: 40 }],
+  }
+  const first = store.getState().createGoodsReceive(input)
+  const second = store.getState().createGoodsReceive(input)
+  assert.ok(first)
+  assert.ok(second)
+  assert.notEqual(first.items[0].lot, second.items[0].lot)
+  assert.match(first.items[0].lot, /20260802$/)
+  assert.match(second.items[0].lot, /20260802$/)
+})
+
+test('Sales Entry reserves stock, completes with FEFO, and is idempotent', () => {
+  const store = freshStore()
+  store.setState(state => ({
+    salesOrders: [],
+    products: state.products.map(product => product.sku === 'CAT-CHK-30'
+      ? { ...product, stock: 10, reservedQty: 0, type: 'Finished Product' as const }
+      : product),
+    stockLots: [
+      ...state.stockLots.filter(lot => lot.sku !== 'CAT-CHK-30'),
+      { id: 'FEFO-LATE', sku: 'CAT-CHK-30', lot: 'LATE', qty: 6, remainingQty: 6, expiryDate: '2027-12-31', receivedDate: '2026-08-02', grRef: 'TEST', poRef: '', landedUnitCost: 50 },
+      { id: 'FEFO-EARLY', sku: 'CAT-CHK-30', lot: 'EARLY', qty: 4, remainingQty: 4, expiryDate: '2026-12-31', receivedDate: '2026-08-01', grRef: 'TEST', poRef: '', landedUnitCost: 40 },
+    ],
+    stockMovements: [],
+  }))
+
+  const sale = store.getState().createSalesOrder({
+    customer: 'Phase 2 Customer', amount: 720, channel: 'Manual',
+    lines: [{ sku: 'CAT-CHK-30', qty: 6, unitPrice: 120 }],
+  })
+  assert.equal(store.getState().products.find(p => p.sku === 'CAT-CHK-30')!.reservedQty, 6)
+
+  store.getState().updateSalesOrderStatus(sale.id, 'Completed')
+  const early = store.getState().stockLots.find(lot => lot.id === 'FEFO-EARLY')!
+  const late = store.getState().stockLots.find(lot => lot.id === 'FEFO-LATE')!
+  assert.equal(early.remainingQty, 0)
+  assert.equal(late.remainingQty, 4)
+  assert.equal(store.getState().products.find(p => p.sku === 'CAT-CHK-30')!.stock, 4)
+  assert.equal(store.getState().products.find(p => p.sku === 'CAT-CHK-30')!.reservedQty, 0)
+  const movementCount = store.getState().stockMovements.length
+
+  store.getState().updateSalesOrderStatus(sale.id, 'Completed')
+  assert.equal(store.getState().stockMovements.length, movementCount)
+  assert.equal(store.getState().products.find(p => p.sku === 'CAT-CHK-30')!.stock, 4)
+})
+
 // ── 9. TiktokOrder and ManualOrder types exist ──────────────────
 test('TiktokOrder and ManualOrder types exist in erpTypes', () => {
   const tt: TiktokOrder = {
@@ -267,6 +332,24 @@ test('TiktokOrder and ManualOrder types exist in erpTypes', () => {
   }
   assert.equal(tt.imported, false)
   assert.equal(mo.status, 'Pending')
+})
+
+test('bundle SKU stores its component quantities and has no physical stock', () => {
+  const store = freshStore()
+
+  const bundle = store.getState().addProduct({
+    sku: 'SET-TEST-3', name: 'Test pack 3 pieces', type: 'Bundle',
+    retailPrice: 250, cost: 0, stock: 99, isBundle: true,
+    components: [{ componentSku: 'CAT-CHK-30', qty: 3, unit: 'piece', componentType: 'material' }],
+  })
+
+  assert.equal(bundle.isBundle, true)
+  assert.equal(bundle.type, 'Bundle')
+  assert.equal(bundle.stock, 0)
+  assert.deepEqual(
+    store.getState().bundleComponents.filter(component => component.bundleSku === bundle.sku),
+    [{ bundleSku: 'SET-TEST-3', componentSku: 'CAT-CHK-30', qty: 3, unit: 'piece', componentType: 'material' }],
+  )
 })
 
 // ── TikTok Order store tests ───────────────────────────────────

@@ -38,7 +38,6 @@ export type CreateBomPayload = {
   outputUnit: string;
   status: string;
   effectiveDate: string;
-  waste: number;
   cost: number;
   components: Array<{
     componentSku: string;
@@ -221,7 +220,6 @@ export function CreateBomDialog({
         outputUnit: outputItem.baseUnit || "ชิ้น",
         status: "Active",
         effectiveDate: new Date().toISOString().slice(0, 10),
-        waste: 0,
         cost: estimatedTotalCost,
         components,
       });

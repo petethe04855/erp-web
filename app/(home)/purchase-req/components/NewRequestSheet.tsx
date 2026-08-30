@@ -16,6 +16,7 @@ import {
   SheetFooter,
 } from "@/components/ui/sheet";
 import { useTheme } from "@/lib/design/ThemeContext";
+import { ValidationAlert } from "@/components/ValidationAlert";
 
 type ItemLine = { sku: string; name: string; qty: number | ""; note: string };
 const BLANK_LINE: ItemLine = { sku: "", name: "", qty: 1, note: "" };
@@ -57,6 +58,7 @@ export function NewRequestSheet({
   const c = t.color;
 
   const [form, setForm] = useState(BLANK);
+  const [validationError, setValidationError] = useState("");
   const purchasableProducts = products.filter(
     (p) => p.type === "Raw Material" || p.type === "Packaging",
   );
@@ -92,7 +94,7 @@ export function NewRequestSheet({
       (i) => i.qty === "" || Number(i.qty) <= 0,
     );
     if (hasInvalidItem) {
-      showToast("กรุณากรอกจำนวนในรายการให้ถูกต้อง (มากกว่า 0)");
+      setValidationError("กรุณากรอกจำนวนในรายการให้ถูกต้อง (มากกว่า 0)");
       return;
     }
     const validItems = form.items
@@ -104,7 +106,7 @@ export function NewRequestSheet({
         note: i.note,
       }));
     if (!form.requester || !form.neededDate || validItems.length === 0) {
-      showToast("กรุณากรอกผู้ขอ วันที่ต้องการ และรายการอย่างน้อย 1 รายการ");
+      setValidationError("กรุณากรอกผู้ขอ วันที่ต้องการ และรายการอย่างน้อย 1 รายการ");
       return;
     }
     onSubmit({
@@ -113,6 +115,7 @@ export function NewRequestSheet({
       neededDate: form.neededDate,
       items: validItems,
     });
+    setValidationError("");
     setForm(BLANK);
     onOpenChange(false);
   }
@@ -128,6 +131,7 @@ export function NewRequestSheet({
             New Purchase Request
           </SheetTitle>
         </SheetHeader>
+        <ValidationAlert message={validationError} />
         <SheetBody className="space-y-3">
           <div>
             <Label

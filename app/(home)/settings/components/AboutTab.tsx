@@ -16,7 +16,7 @@ export function AboutTab() {
       items: [
         "Stock Balance",
         "Lot/FEFO",
-        "Goods Receive",
+        "Stock Receipt",
         "Goods Issue",
         "Stock Transfer",
         "Stock Check",

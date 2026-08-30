@@ -21,6 +21,8 @@ export default function StockTransferPage() {
   const products = useErpStore((s) => s.products);
   const stockTransfers = useErpStore((s) => s.stockTransfers);
   const createStockTransfer = useErpStore((s) => s.createStockTransfer);
+  const stockLots = useErpStore((s) => s.stockLots);
+  const lotsWithoutExpiry = stockLots.filter((lot) => lot.remainingQty > 0 && !lot.expiryDate).length;
 
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState("");
@@ -78,6 +80,7 @@ export default function StockTransferPage() {
       />
 
       <div className="p-6 md:p-8 max-w-full mx-auto grid gap-6">
+        {lotsWithoutExpiry > 0 && <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">มี Lot ที่ไม่มีวันหมดอายุ {lotsWithoutExpiry} รายการ ควรตรวจสอบก่อนโอนย้าย</div>}
         {/* KPI Strip */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[

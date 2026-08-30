@@ -19,8 +19,9 @@ function earliestLot(
   lots: ReturnType<typeof useErpStore.getState>["stockLots"],
   sku: string,
 ) {
+  const today = new Date().toISOString().slice(0, 10);
   return lots
-    .filter((l) => l.sku === sku && l.remainingQty > 0)
+    .filter((l) => l.sku === sku && l.remainingQty > 0 && (!l.expiryDate || l.expiryDate >= today))
     .sort((a, b) => {
       if (!a.expiryDate && !b.expiryDate) return 0;
       if (!a.expiryDate) return 1;
@@ -35,16 +36,28 @@ export default function StockPage() {
   const c = t.color;
   const products = useErpStore((s) => s.products);
   const stockLots = useErpStore((s) => s.stockLots);
-
   const rows = useMemo(() => {
     return products.map((product) => {
+      const lots = stockLots.filter((item) => item.sku === product.sku && item.remainingQty > 0);
       const lot = earliestLot(stockLots, product.sku);
       const onHand = product.stock;
+      const reserved = product.reservedQty;
+      const available = Math.max(0, onHand - reserved);
       const value = onHand * product.cost;
       const status =
         onHand === 0 ? "out" : onHand <= product.reorder ? "low" : "ok";
       const ratio = Math.min(onHand / Math.max(product.reorder * 2, 1), 1);
-      return { ...product, lot, onHand, value, status, ratio };
+      return {
+        ...product,
+        lot,
+        lots,
+        onHand,
+        reserved,
+        available,
+        value,
+        status,
+        ratio,
+      };
     });
   }, [products, stockLots]);
 
@@ -201,6 +214,12 @@ export default function StockPage() {
                     className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
                     style={{ color: "var(--erp-ink3)" }}
                   >
+                    Available
+                  </TableHead>
+                  <TableHead
+                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
+                    style={{ color: "var(--erp-ink3)" }}
+                  >
                     Reorder
                   </TableHead>
                   <TableHead
@@ -253,7 +272,7 @@ export default function StockPage() {
                       <TableCell className="p-4 px-5 align-middle">
                         <Mono t={t} size={11} color={p.lot ? c.ink2 : c.ink4}>
                           {p.lot
-                            ? `${p.lot.lot}${p.lot.expiryDate ? ` · exp ${p.lot.expiryDate}` : ""}`
+                            ? `${p.lot.lot}${p.lot.expiryDate ? ` · exp ${p.lot.expiryDate}` : ""} · ${p.lots.length} Lot`
                             : "No active lot"}
                         </Mono>
                       </TableCell>
@@ -266,6 +285,9 @@ export default function StockPage() {
                         >
                           {fmtNum(p.onHand)}
                         </Mono>
+                      </TableCell>
+                      <TableCell className="p-4 px-5 align-middle text-right">
+                        <div><Mono t={t} size={13} weight={600} color={p.available === 0 ? c.neg : c.ink}>{fmtNum(p.available)}</Mono><div className="mt-0.5 text-[10px]" style={{ color: c.ink3 }}>Reserved {fmtNum(p.reserved)}</div></div>
                       </TableCell>
                       <TableCell className="p-4 px-5 align-middle text-right">
                         <Mono t={t} size={12} color={c.ink3}>

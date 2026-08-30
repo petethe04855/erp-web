@@ -14,7 +14,16 @@ export type SalesOrderStatus =
 export type SalesOrderChannel = 'Manual' | 'LINE' | 'Shopee' | 'TikTok'
 export type InvoiceStatus = 'Paid' | 'Unpaid' | 'Partial' | 'Overdue'
 
-export type SalesOrderLine = { id?: number; salesOrderId?: number; productId?: number; sku: string; qty: number }
+export type SalesStockAllocation = {
+  id?: number; salesOrderId: number; salesOrderLineId: number; stockLotId: number
+  sku: string; lot: string; qty: number; unitCost: number; totalCost: number; expiryDate: string
+}
+
+export type SalesOrderLine = {
+  id?: number; salesOrderId?: number; productId?: number; sku: string; qty: number
+  unitPrice?: number; lineTotal?: number; unitCost?: number; totalCost?: number
+  allocations?: SalesStockAllocation[]
+}
 
 export type SalesOrder = {
   id: number | string
@@ -22,6 +31,7 @@ export type SalesOrder = {
   customer: string
   date: string
   amount: number
+  totalCogs?: number
   status: SalesOrderStatus
   channel: SalesOrderChannel
   items: number
@@ -39,12 +49,36 @@ export type Invoice = {
   salesOrderId?: number | null
   soRef: number | string
   customer: string
+  customerAddress?: string
+  customerTaxId?: string
+  customerBranch?: string
+  purchaseOrderRef?: string
+  paymentTerms?: string
   issueDate: string
   dueDate: string
+  subtotal?: number
+  vatAmount?: number
   amount: number
   paid: number
+  credited?: number
+  refundDue?: number
   status: InvoiceStatus
+  lines?: InvoiceLine[]
   auditTrail: AuditEvent[]     // Gap 9
+}
+
+export type InvoiceLine = {
+  id?: number
+  invoiceId?: number
+  productId?: number
+  sku: string
+  lot?: string
+  name: string
+  qty: number
+  unit: string
+  unitPrice: number
+  discount?: number
+  lineTotal: number
 }
 
 // ── Purchasing ─────────────────────────────────────────────────────────────
@@ -102,15 +136,21 @@ export type GoodsReceiveItem = {
   qtyReceived: number
   lot: string
   expiryDate: string           // Gap 1: FEFO expiry (yyyy-mm-dd or '' = no expiry)
-  landedUnitCost?: number      // Price + allocated landed cost per unit
+  supplierLot?: string
+  qcStatus?: 'Accepted' | 'Quarantine' | 'Rejected'
+  acceptedQty?: number
+  rejectedQty?: number
+  qcNote?: string
+  landedUnitCost?: number      // Remains 0 until a later costing step
 }
 
 export type GoodsReceive = {
   id: number | string
   code?: string
   purchaseOrderId?: number | null
-  poRef: number | string
+  poRef?: number | string
   receiveDate: string
+  note?: string
   items: GoodsReceiveItem[]
   landedCosts?: LandedCostLine[]
   auditTrail: AuditEvent[]     // Gap 9
@@ -261,8 +301,8 @@ export const ROLE_BADGE_STYLE: Record<UserRole, { bg: string; color: string }> =
 export const ROLE_NAV: Record<UserRole, string[] | '*'> = {
   owner:      '*',
   sales:      ['/', '/dashboard', '/sales-orders', '/quotation', '/invoice', '/manual-order', '/tiktok-orders', '/live-sessions', '/sampling'],
-  warehouse:  ['/', '/dashboard', '/sku', '/bom', '/stock', '/goods-receive', '/goods-issue', '/purchase-req', '/purchase-order', '/stock-transfer', '/stock-check', '/sampling'],
-  accountant: ['/', '/dashboard', '/invoice', '/sales-orders', '/purchase-order', '/expenses', '/pl', '/budget'],
+  warehouse:  ['/', '/dashboard', '/sku', '/bom', '/stock', '/goods-receive', '/goods-issue', '/production-run', '/purchase-req', '/purchase-order', '/stock-transfer', '/stock-check', '/sampling'],
+  accountant: ['/', '/dashboard', '/invoice', '/sales-orders', '/purchase-order', '/journal', '/reports', '/integrity', '/expenses', '/budget'],
 }
 
 // ── Input types ────────────────────────────────────────────────────────────
@@ -289,9 +329,17 @@ export type CreateSalesOrderInput = {
 export type CreateInvoiceInput = {
   soRef?: string
   customer: string
+  customerAddress?: string
+  customerTaxId?: string
+  customerBranch?: string
+  purchaseOrderRef?: string
+  paymentTerms?: string
   issueDate?: string
   dueDate?: string
   amount: number
+  subtotal?: number
+  vatAmount?: number
+  lines?: InvoiceLine[]
   status?: InvoiceStatus
 }
 
@@ -310,9 +358,9 @@ export type CreatePurchaseOrderInput = {
 }
 
 export type CreateGoodsReceiveInput = {
-  poRef: string | number
   receiveDate: string
-  items: Array<{ sku: string; qtyReceived: number; lot: string; expiryDate: string }>
+  note?: string
+  items: Array<{ sku: string; qtyReceived: number; lot?: string; expiryDate: string; supplierLot?: string; qcStatus?: 'Accepted' | 'Quarantine' | 'Rejected'; acceptedQty?: number; rejectedQty?: number; qcNote?: string; landedUnitCost?: number }>
   landedCosts?: LandedCostLine[]
 }
 
@@ -376,7 +424,24 @@ export type StockReturn = {
   returnedBy: string
   refunded: boolean
   channel: string
-  status: 'Pending' | 'Completed' | 'Cancelled'
+  status: 'Pending' | 'Pending Approval' | 'QC Pending' | 'Completed' | 'Cancelled'
+  quarantineQty?: number
+  qcStatus?: 'Pending' | 'Passed' | 'Failed'
+  creditAmount?: number
+  creditSubtotal?: number
+  creditVatAmount?: number
+  creditDiscount?: number
+  totalCost?: number
+  creditNoteId?: number
+  creditNoteRef?: string
+  allocations?: Array<{
+    id: number
+    lot: string
+    qty: number
+    unitCost: number
+    totalCost: number
+    restocked: boolean
+  }>
 }
 
 export type CreateStockReturnInput = {
@@ -502,9 +567,14 @@ export type CreateProductInput = {
   isBundle?: boolean
   note?: string
   baseUnit?: string
+  components?: SetBundleComponentsInput['components']
 }
 
-export type UpdateProductInput = Partial<Omit<Product, 'sku' | 'reservedQty' >> & { sku: string }
+export type UpdateProductInput = Partial<Omit<Product, 'sku' | 'reservedQty' >> & {
+  sku: string
+  newSku?: string
+  components?: SetBundleComponentsInput['components']
+}
 
 export type SetBundleComponentsInput = {
   bundleSku: string
@@ -521,7 +591,19 @@ export type SetBundleComponentsInput = {
 // ── TikTok Orders ──────────────────────────────────────────────────────────
 
 export type TiktokOrderStatus =
-  | 'COMPLETED' | 'AWAITING_SHIPMENT' | 'IN_TRANSIT' | 'DELIVERED' | 'CANCELLED'
+  | 'UNPAID' | 'ON_HOLD' | 'AWAITING_SHIPMENT' | 'AWAITING_COLLECTION'
+  | 'PARTIALLY_SHIPPING' | 'IN_TRANSIT' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED'
+
+export type TiktokOrderItem = {
+  id?: number
+  orderId: string
+  lineItemId: string
+  productName: string
+  sku: string
+  qty: number
+  unitPrice: number
+  amount: number
+}
 
 export type TiktokOrder = {
   id: string
@@ -538,6 +620,7 @@ export type TiktokOrder = {
   platformFee?: number      // sum of all fees (commission + transaction + shipping subsidy, etc.)
   settled?: boolean         // true once settlement data has been applied
   settlementRef?: string    // settlement period identifier from TikTok (e.g. "2026-05-01_2026-05-14")
+  items?: TiktokOrderItem[]  // all SKU lines returned by TikTok Shop Orders API
 }
 
 export type CreateTiktokOrderInput = {
@@ -628,7 +711,7 @@ export type ModuleSettings = {
   stockCheck: boolean        // /stock-check
   // FINANCE
   expenses: boolean          // /expenses
-  plReport: boolean          // /pl
+  plReport: boolean          // /reports (รวม P&L)
   budget: boolean            // /budget
   // CHANNELS
   tiktokOrders: boolean      // /tiktok-orders

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/sheet";
 import { useTheme } from "@/lib/design/ThemeContext";
 import type { ReturnReason, ReturnCondition } from "@/lib/store/erpWorkflow";
+import { ValidationAlert } from "@/components/ValidationAlert";
 
 const REASONS: ReturnReason[] = [
   "สินค้าชำรุด",
@@ -55,6 +56,14 @@ interface SalesOrder {
   customer: string;
   channel: string;
   status: string;
+  lines?: Array<{ sku: string; qty: number }>;
+}
+
+interface StockReturn {
+  soRef: string;
+  sku: string;
+  qty: number;
+  status: string;
 }
 
 interface NewReturnSheetProps {
@@ -62,6 +71,7 @@ interface NewReturnSheetProps {
   onOpenChange: (open: boolean) => void;
   products: Product[];
   salesOrders: SalesOrder[];
+  stockReturns: StockReturn[];
   onSubmit: (data: {
     soRef: string;
     sku: string;
@@ -70,7 +80,7 @@ interface NewReturnSheetProps {
     reason: ReturnReason;
     note: string;
     channel: string;
-  }) => void;
+  }) => Promise<void>;
   showToast: (msg: string) => void;
 }
 
@@ -79,6 +89,7 @@ export function NewReturnSheet({
   onOpenChange,
   products,
   salesOrders,
+  stockReturns,
   onSubmit,
   showToast,
 }: NewReturnSheetProps) {
@@ -86,34 +97,92 @@ export function NewReturnSheet({
   const c = t.color;
 
   const [form, setForm] = useState<FormState>(BLANK);
+  const [validationError, setValidationError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (open) {
       setForm(BLANK);
+      setValidationError("");
     }
   }, [open]);
 
   const completedSOs = salesOrders.filter((o) => o.status === "Completed");
+  const selectedSO = completedSOs.find((order) => String(order.id) === form.soRef);
+  const soldSkus = new Set(selectedSO?.lines?.map((line) => line.sku) ?? []);
+  const soldQty = selectedSO?.lines
+    ?.filter((line) => line.sku === form.sku)
+    .reduce((sum, line) => sum + line.qty, 0) ?? 0;
+  const returnedQty = selectedSO
+    ? stockReturns
+        .filter(
+          (item) =>
+            item.sku === form.sku &&
+            item.status.toLowerCase() !== "cancelled" &&
+            (String(item.soRef) === String(selectedSO.id) ||
+              String(item.soRef) === String(selectedSO.code)),
+        )
+        .reduce((sum, item) => sum + item.qty, 0)
+    : 0;
+  const remainingQty = Math.max(0, soldQty - returnedQty);
+  const returnableProducts = selectedSO
+    ? products.filter((product) => {
+        if (!soldSkus.has(product.sku)) return false;
+        const productSoldQty = selectedSO.lines
+          ?.filter((line) => line.sku === product.sku)
+          .reduce((sum, line) => sum + line.qty, 0) ?? 0;
+        const productReturnedQty = stockReturns
+          .filter(
+            (item) =>
+              item.sku === product.sku &&
+              item.status.toLowerCase() !== "cancelled" &&
+              (String(item.soRef) === String(selectedSO.id) ||
+                String(item.soRef) === String(selectedSO.code)),
+          )
+          .reduce((sum, item) => sum + item.qty, 0);
+        return productReturnedQty < productSoldQty;
+      })
+    : [];
 
-  function handleSubmit() {
+  async function handleSubmit() {
+	if (!form.soRef) {
+		setValidationError("กรุณาเลือก Sales Order ที่จัดส่งสำเร็จ");
+		return;
+	}
     if (!form.sku) {
-      showToast("กรุณาเลือกสินค้า");
+      setValidationError("กรุณาเลือกสินค้า");
       return;
     }
     if (form.qty === "" || Number(form.qty) < 1) {
-      showToast("กรุณากรอกจำนวนอย่างน้อย 1 ชิ้น");
+      setValidationError("กรุณากรอกจำนวนอย่างน้อย 1 ชิ้น");
       return;
     }
-    onSubmit({
-      soRef: form.soRef,
-      sku: form.sku,
-      qty: Number(form.qty),
-      condition: form.condition,
-      reason: form.reason,
-      note: form.note,
-      channel: form.channel,
-    });
-    onOpenChange(false);
+    if (Number(form.qty) > remainingQty) {
+      setValidationError(
+        `คืนได้สูงสุด ${remainingQty} ชิ้น (ซื้อ ${soldQty} ชิ้น คืนไปแล้ว ${returnedQty} ชิ้น)`,
+      );
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await onSubmit({
+        soRef: form.soRef,
+        sku: form.sku,
+        qty: Number(form.qty),
+        condition: form.condition,
+        reason: form.reason,
+        note: form.note,
+        channel: form.channel,
+      });
+      setValidationError("");
+      onOpenChange(false);
+    } catch (error) {
+      setValidationError(
+        error instanceof Error ? error.message : "บันทึกรายการคืนไม่สำเร็จ",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -133,6 +202,7 @@ export function NewReturnSheet({
             บันทึกการรับสินค้ากลับจากลูกค้า
           </div>
         </SheetHeader>
+        <ValidationAlert message={validationError} />
         <SheetBody className="space-y-3">
           <div>
             <Label
@@ -145,15 +215,17 @@ export function NewReturnSheet({
               value={form.soRef}
               onChange={(e) => {
                 const soId = e.target.value;
-                const so = salesOrders.find((o) => o.id === soId);
+                const so = salesOrders.find((o) => String(o.id) === soId);
                 setForm((f) => ({
                   ...f,
                   soRef: soId,
+                  sku: "",
+                  qty: 1,
                   channel: so ? so.channel : f.channel,
                 }));
               }}
             >
-              <option value="">No SO reference</option>
+			  <option value="">Select completed Sales Order</option>
               {completedSOs.map((o) => (
                 <option key={o.id} value={o.id}>
                   {o.id} — {o.customer}
@@ -171,10 +243,12 @@ export function NewReturnSheet({
             </Label>
             <NativeSelect
               value={form.sku}
-              onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, sku: e.target.value, qty: 1 }))
+              }
             >
               <option value="">Select product</option>
-              {products.map((p) => (
+              {returnableProducts.map((p) => (
                 <option key={p.sku} value={p.sku}>
                   {p.name} ({p.sku})
                 </option>
@@ -192,6 +266,7 @@ export function NewReturnSheet({
             <Input
               type="number"
               min={1}
+              max={remainingQty || undefined}
               value={form.qty}
               onChange={(e) =>
                 setForm((f) => ({
@@ -201,6 +276,11 @@ export function NewReturnSheet({
                 }))
               }
             />
+            {form.sku && (
+              <div className="mt-1 text-xs text-muted-foreground">
+                ซื้อ {soldQty} ชิ้น · คืนแล้ว {returnedQty} ชิ้น · คืนได้อีก {remainingQty} ชิ้น
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -299,10 +379,10 @@ export function NewReturnSheet({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={!form.sku}
+			disabled={submitting || !form.soRef || !form.sku || form.qty === "" || Number(form.qty) < 1 || Number(form.qty) > remainingQty}
             className="bg-[var(--erp-accent)] text-white hover:opacity-90 border-none shadow-none cursor-pointer disabled:opacity-45"
           >
-            Save Return
+            {submitting ? "Saving..." : "Save Return"}
           </Button>
         </SheetFooter>
       </SheetContent>

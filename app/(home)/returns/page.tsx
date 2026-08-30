@@ -33,6 +33,8 @@ export default function ReturnsPage() {
   const products = useErpStore((s) => s.products);
   const createStockReturn = useErpStore((s) => s.createStockReturn);
   const updateStockReturnStatus = useErpStore((s) => s.updateStockReturnStatus);
+  const stockLots = useErpStore((s) => s.stockLots);
+  const expiredLots = stockLots.filter((lot) => lot.remainingQty > 0 && lot.expiryDate && lot.expiryDate < new Date().toISOString().slice(0, 10)).length;
 
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState("");
@@ -45,8 +47,8 @@ export default function ReturnsPage() {
   const rows = useMemo(() => {
     return stockReturns.map((ret) => {
       const product = products.find((p) => p.sku === ret.sku);
-      const so = salesOrders.find((o) => o.id === ret.soRef);
-      const amount = (product?.price ?? 0) * ret.qty;
+      const so = salesOrders.find((o) => o.id === ret.soRef || o.code === ret.soRef);
+      const amount = ret.creditAmount || (product?.price ?? 0) * ret.qty;
       const status = ret.status
         ? ret.status.toLowerCase()
         : ret.refunded
@@ -73,7 +75,7 @@ export default function ReturnsPage() {
     })).sort((a, b) => b.count - a.count)[0];
   }, [stockReturns]);
 
-  function handleCreateReturn(data: {
+  async function handleCreateReturn(data: {
     soRef: string;
     sku: string;
     qty: number;
@@ -82,18 +84,28 @@ export default function ReturnsPage() {
     note: string;
     channel: string;
   }) {
-    const result = createStockReturn(data);
+    const result = await createStockReturn(data);
     showToast(`รับคืน ${result.id} แล้ว · สถานะ: รอดำเนินการ`);
   }
 
   function handleUpdateStatus(
     id: string,
-    newStatus: "Completed" | "Cancelled",
+    newStatus: "Approved" | "QC Passed" | "Cancelled",
   ) {
     updateStockReturnStatus(id, newStatus);
     showToast(
-      `อัปเดต ${id} เป็น ${newStatus === "Completed" ? "ของกลับมาแล้ว" : "ยกเลิก"} สำเร็จ`,
+      `อัปเดต ${id} สำเร็จ`,
     );
+  }
+
+  async function handleReverseCreditNote(ref: string) {
+    if (!window.confirm(`ยืนยันการกลับรายการ ${ref} หรือไม่?`)) return;
+    const api = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+    const token = localStorage.getItem("chawy_token") || "";
+    const response = await fetch(`${api}/api/credit-notes/${ref}/reverse`, { method: "PUT", headers: { Authorization: token ? `Bearer ${token}` : "" } });
+    if (!response.ok) { showToast("ไม่สามารถกลับรายการ Credit Note ได้"); return; }
+    await useErpStore.getState().loadResources(["stockReturns"], true);
+    showToast(`กลับรายการ ${ref} สำเร็จ`);
   }
 
   async function handleExport() {
@@ -146,6 +158,7 @@ export default function ReturnsPage() {
       />
 
       <div className="p-6 md:p-8 max-w-full mx-auto grid gap-6">
+        {expiredLots > 0 && <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">พบ Lot หมดอายุที่ยังมี Stock {expiredLots} รายการ สินค้าคืนต้องผ่านการตรวจสอบก่อนนำกลับเข้าคลัง</div>}
         {/* KPI Strip */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
@@ -274,6 +287,9 @@ export default function ReturnsPage() {
                   >
                     Amount
                   </TableHead>
+                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left">
+                    Credit Note / Lot
+                  </TableHead>
                   <TableHead
                     className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
                     style={{ color: "var(--erp-ink3)" }}
@@ -353,18 +369,28 @@ export default function ReturnsPage() {
                       </Mono>
                     </TableCell>
                     <TableCell className="p-4 px-5 align-middle">
-                      <StatusPill t={t} status={r.status} />
+                      <div className="font-mono text-xs font-semibold">{r.creditNoteRef || "–"}</div>
+                      {r.creditNoteRef && <div className="text-[10px] text-muted-foreground">ก่อน VAT {fmtBaht(r.creditSubtotal || r.amount)} · VAT {fmtBaht(r.creditVatAmount || 0)} · ส่วนลด {fmtBaht(r.creditDiscount || 0)}</div>}
+                      {r.allocations?.map((allocation) => (
+                        <div key={allocation.id} className="text-xs text-muted-foreground">
+                          {allocation.lot} · {allocation.qty} ชิ้น · {allocation.restocked ? "คืนสต๊อก" : "เสียหาย"}
+                        </div>
+                      ))}
                     </TableCell>
                     <TableCell className="p-4 px-5 align-middle">
-                      {r.status === "pending" && (
+                      <StatusPill t={t} status={r.status} />
+                      {r.status === "qc pending" && <div className="mt-1 text-[10px] text-amber-700">Quarantine: {r.quarantineQty || r.qty}</div>}
+                    </TableCell>
+                    <TableCell className="p-4 px-5 align-middle">
+                      {r.status === "pending approval" && (
                         <div className="flex gap-2">
                           <Button
                             onClick={() =>
-                              handleUpdateStatus(r.id, "Completed")
+                              handleUpdateStatus(r.id, "Approved")
                             }
                             className="h-7 text-xs px-2.5 cursor-pointer bg-[var(--erp-accent)] text-white border-none"
                           >
-                            ของกลับมาแล้ว
+                            อนุมัติการคืน
                           </Button>
                           <Button
                             variant="outline"
@@ -377,6 +403,8 @@ export default function ReturnsPage() {
                           </Button>
                         </div>
                       )}
+                      {r.status === "qc pending" && <div className="flex gap-2"><Button onClick={() => handleUpdateStatus(r.id, "QC Passed")} className="h-7 text-xs px-2.5 cursor-pointer bg-[var(--erp-accent)] text-white border-none">ผ่าน QC / รับเข้าสต็อก</Button><Button variant="outline" onClick={() => handleUpdateStatus(r.id, "Cancelled")} className="h-7 text-xs px-2.5 cursor-pointer">ไม่ผ่าน QC</Button></div>}
+                      {r.status === "completed" && r.creditNoteRef && <Button variant="outline" onClick={() => handleReverseCreditNote(r.creditNoteRef!)} className="h-7 text-xs px-2.5 cursor-pointer">Reverse CN</Button>}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -391,6 +419,7 @@ export default function ReturnsPage() {
         onOpenChange={setOpen}
         products={products}
         salesOrders={salesOrders}
+        stockReturns={stockReturns}
         onSubmit={handleCreateReturn}
         showToast={showToast}
       />

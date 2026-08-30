@@ -18,7 +18,7 @@ interface RecordPaymentDialogProps {
   onOpenChange: (open: boolean) => void;
   invoiceId: number | string;
   outstanding: number;
-  onSubmit: (amount: number) => void;
+  onSubmit: (amount: number, details: { accountCode: string; method: string; reference: string }) => void;
   showToast: (msg: string) => void;
 }
 
@@ -34,6 +34,9 @@ export function RecordPaymentDialog({
   const c = t.color;
 
   const [payAmount, setPayAmount] = useState<number | "">(0);
+  const [accountCode, setAccountCode] = useState("1100");
+  const [method, setMethod] = useState("Cash");
+  const [reference, setReference] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -46,7 +49,7 @@ export function RecordPaymentDialog({
       showToast("กรุณากรอกจำนวนเงินชำระมากกว่า 0");
       return;
     }
-    onSubmit(Number(payAmount));
+    onSubmit(Number(payAmount), { accountCode, method, reference: reference.trim() });
     onOpenChange(false);
   }
 
@@ -87,6 +90,11 @@ export function RecordPaymentDialog({
               placeholder="0.00"
             />
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label className="mb-1 block text-xs font-semibold">ช่องทางชำระ</Label><select value={method} onChange={(e) => setMethod(e.target.value)} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="Cash">เงินสด</option><option value="Bank Transfer">โอนเงิน</option><option value="PromptPay">PromptPay</option></select></div>
+            <div><Label className="mb-1 block text-xs font-semibold">เข้าบัญชี</Label><select value={accountCode} onChange={(e) => setAccountCode(e.target.value)} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="1100">เงินสด</option><option value="1110">ธนาคาร</option></select></div>
+          </div>
+          <div><Label className="mb-1 block text-xs font-semibold">เลขอ้างอิงการชำระ</Label><Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="เลขที่สลิป/รายการโอน (ถ้ามี)" /></div>
         </div>
         <DialogFooter className="flex justify-end gap-2 mt-5">
           <Button

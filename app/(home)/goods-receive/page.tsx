@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { formatBaht } from "@/lib/mockData";
 import { useErpStore } from "@/lib/store/useErpStore";
 import { useTheme } from "@/lib/design/ThemeContext";
 import { Card, Mono, StatStrip, TopBar } from "@/components/ui";
@@ -15,7 +14,6 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
-import type { LandedCostLine } from "@/lib/store/erpWorkflow";
 import { ReceiveGoodsSheet } from "./components/ReceiveGoodsSheet";
 import { ViewGoodsReceiveSheet } from "./components/ViewGoodsReceiveSheet";
 
@@ -23,75 +21,55 @@ export default function GoodsReceivePage() {
   const { tokens: t } = useTheme();
   const c = t.color;
   const grList = useErpStore((s) => s.goodsReceives);
-  const poList = useErpStore((s) => s.purchaseOrders);
+  const products = useErpStore((s) => s.products);
   const createGR = useErpStore((s) => s.createGoodsReceive);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedGR, setSelectedGR] = useState<any | null>(null);
   const [toast, setToast] = useState("");
 
-  const eligiblePOs = poList.filter(
-    (po) => po.status === "Sent" || po.status === "Partial Received",
-  );
-
   const rows = useMemo(() => {
     return grList.map((gr) => {
-      const po = poList.find((p) => p.id === gr.poRef);
-      const value = gr.items.reduce((sum, item) => {
-        const poItem = po?.items.find((i) => i.sku === item.sku);
-        return sum + item.qtyReceived * (poItem?.unitCost ?? 0);
-      }, 0);
-
-      const landedValue = gr.items.reduce((sum, item) => {
-        const unitCost =
-          item.landedUnitCost ||
-          po?.items.find((i) => i.sku === item.sku)?.unitCost ||
-          0;
-        return sum + item.qtyReceived * unitCost;
-      }, 0);
-
       const qty = gr.items.reduce((sum, item) => sum + item.qtyReceived, 0);
       return {
         ...gr,
-        supplier: po?.supplier ?? "Unknown supplier",
-        value,
-        landedValue,
+        supplier: "รับเข้าคลังโดยตรง",
         qty,
-        status: po?.status === "Partial Received" ? "pending" : "completed",
+        status: gr.items.some((item) => item.qcStatus === "Quarantine") ? "pending" : "completed",
       };
     });
-  }, [grList, poList]);
+  }, [grList]);
 
-  const total = rows.reduce((s, g) => s + g.value, 0);
+  const totalQty = rows.reduce((sum, receipt) => sum + receipt.qty, 0);
 
   function showToast(msg: string) {
     setToast(msg);
     setTimeout(() => setToast(""), 3000);
   }
 
-  function handleCreateGR(data: {
-    poRef: string;
+  async function handleCreateGR(data: {
     receiveDate: string;
     items: {
       sku: string;
       qtyReceived: number;
-      lot: string;
       expiryDate: string;
     }[];
-    landedCosts: LandedCostLine[];
   }) {
-    const gr = createGR({
-      poRef: data.poRef,
-      receiveDate: data.receiveDate,
-      items: data.items,
-      landedCosts: data.landedCosts,
-    });
-    if (!gr) {
-      showToast("ไม่สามารถรับสินค้าได้");
-      return false;
+    try {
+      const gr = await createGR({
+        receiveDate: data.receiveDate,
+        items: data.items,
+      });
+      if (!gr) {
+        throw new Error("ไม่สามารถรับสินค้าได้");
+      }
+      showToast(`สร้าง ${gr.code || gr.id} แล้ว · อัปเดต Lot และสต็อกเรียบร้อย`);
+      return true;
+    } catch (reason) {
+      const error = reason instanceof Error ? reason : new Error("ไม่สามารถรับสินค้าได้");
+      showToast(error.message);
+      throw error;
     }
-    showToast(`สร้าง ${gr.id} แล้ว · อัปเดต LOT/stock และคำนวณ Landed Cost`);
-    return true;
   }
 
   return (
@@ -101,9 +79,9 @@ export default function GoodsReceivePage() {
     >
       <TopBar
         t={t}
-        breadcrumb={["Chawy", "Inventory", "Goods Receive"]}
-        title="Goods Receive"
-        subtitle={`รับสินค้าเข้า · ${rows.length} รายการ · ${formatBaht(total)} มูลค่ารวม`}
+        breadcrumb={["Chawy", "Inventory", "Stock Receipt"]}
+        title="Stock Receipt"
+        subtitle={`รับสินค้าเข้า · ${rows.length} เอกสาร · ${totalQty.toLocaleString("th-TH")} ชิ้น`}
         right={
           <div className="flex items-center gap-2">
             {toast && (
@@ -123,7 +101,7 @@ export default function GoodsReceivePage() {
               onClick={() => setCreateOpen(true)}
               className="cursor-pointer bg-[var(--erp-accent)] text-white hover:opacity-90 border-none shadow-none"
             >
-              + Receive Goods
+              + Stock Receipt
             </Button>
           </div>
         }
@@ -135,8 +113,8 @@ export default function GoodsReceivePage() {
           tiles={[
             {
               label: "Received · MTD",
-              value: formatBaht(total),
-              sub: `${rows.length} receipts`,
+              value: totalQty.toLocaleString("th-TH"),
+              sub: `${rows.length} receipts · ยังไม่คิดต้นทุน`,
             },
             {
               label: "Pending QC",
@@ -182,7 +160,7 @@ export default function GoodsReceivePage() {
                     className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
                     style={{ color: "var(--erp-ink3)" }}
                   >
-                    PO Ref
+                    Source
                   </TableHead>
                   <TableHead
                     className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
@@ -209,18 +187,6 @@ export default function GoodsReceivePage() {
                     Quantity
                   </TableHead>
                   <TableHead
-                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
-                    style={{ color: "var(--erp-ink3)" }}
-                  >
-                    Base Value
-                  </TableHead>
-                  <TableHead
-                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
-                    style={{ color: "var(--erp-ink3)" }}
-                  >
-                    Landed Value
-                  </TableHead>
-                  <TableHead
                     className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
                     style={{ color: "var(--erp-ink3)" }}
                   >
@@ -238,12 +204,12 @@ export default function GoodsReceivePage() {
                   >
                     <TableCell className="p-4 px-5 align-middle">
                       <Mono t={t} size={12} weight={500}>
-                        {g.id}
+                        {g.code || g.id}
                       </Mono>
                     </TableCell>
                     <TableCell className="p-4 px-5 align-middle">
                       <Mono t={t} size={12} color={c.accent}>
-                        {g.poRef}
+                        รับตรง
                       </Mono>
                     </TableCell>
                     <TableCell
@@ -267,21 +233,6 @@ export default function GoodsReceivePage() {
                         {g.qty}
                       </Mono>
                     </TableCell>
-                    <TableCell className="p-4 px-5 align-middle text-right">
-                      <Mono t={t} size={13} color={c.ink3}>
-                        {formatBaht(g.value)}
-                      </Mono>
-                    </TableCell>
-                    <TableCell className="p-4 px-5 align-middle text-right">
-                      <Mono
-                        t={t}
-                        size={13}
-                        weight={600}
-                        color={g.landedValue > g.value ? c.accent : c.ink}
-                      >
-                        {formatBaht(g.landedValue)}
-                      </Mono>
-                    </TableCell>
                     <TableCell className="p-4 px-5 align-middle">
                       <Badge
                         variant={g.status === "pending" ? "low" : "normal"}
@@ -300,7 +251,7 @@ export default function GoodsReceivePage() {
       <ReceiveGoodsSheet
         open={createOpen}
         onOpenChange={setCreateOpen}
-        eligiblePOs={eligiblePOs}
+        products={products}
         onSubmit={handleCreateGR}
         showToast={showToast}
       />
@@ -308,7 +259,6 @@ export default function GoodsReceivePage() {
       <ViewGoodsReceiveSheet
         selectedGR={selectedGR}
         onClose={() => setSelectedGR(null)}
-        poList={poList}
       />
     </div>
   );

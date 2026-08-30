@@ -884,7 +884,7 @@ export function StockBadge({
         variant="virtual"
         className="px-2.5 py-0.5 text-[11px] font-semibold"
       >
-        Virtual
+        มี BOM
       </Badge>
     );
   }
