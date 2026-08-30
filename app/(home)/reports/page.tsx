@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useTheme } from "@/lib/design/ThemeContext";
 import { readApiResponse } from "@/lib/apiResponse";
 
-type Summary = { revenue: number; salesRevenue: number; salesReturns: number; cogs: number; grossProfit: number; damageLoss: number; operatingExpenses: number; netProfit: number };
+type Summary = { revenue: number; salesRevenue: number; salesReturns: number; cogs: number; grossProfit: number; grossMargin: number; damageLoss: number; operatingExpenses: number; netProfit: number; netMargin: number };
 type TrialRow = { AccountCode: string; AccountName: string; AccountType: string; OpeningDebit: number; OpeningCredit: number; Debit: number; Credit: number; EndingBalance: number; EndingDebit: number; EndingCredit: number; BalanceSide: string };
 type Trial = { rows: TrialRow[]; totalDebit: number; totalCredit: number; openingDebit: number; openingCredit: number; endingDebit: number; endingCredit: number; balanced: boolean };
 type ValuationRow = { SKU: string; ProductName: string; Lot: string; ExpiryDate: string; RemainingQty: number; UnitCost: number; Value: number };
@@ -54,8 +54,8 @@ export default function ReportsPage() {
 
   useEffect(() => { load(); }, [load]);
   const cards = [
-    ["รายได้สุทธิ", summary?.revenue], ["ต้นทุนขาย", summary?.cogs], ["กำไรขั้นต้น", summary?.grossProfit],
-    ["ค่าใช้จ่ายดำเนินงาน", summary?.operatingExpenses], ["กำไรสุทธิ", summary?.netProfit], ["มูลค่า Stock ปัจจุบัน", valuation?.totalValue],
+    ["รายได้สุทธิ", summary?.revenue, false], ["ต้นทุนขาย", summary?.cogs, false], ["กำไรขั้นต้น", summary?.grossProfit, false],
+    ["ค่าใช้จ่ายดำเนินงาน", summary?.operatingExpenses, false], ["กำไรสุทธิ", summary?.netProfit, false], ["Gross Margin %", summary?.grossMargin, true], ["Net Margin %", summary?.netMargin, true], ["มูลค่า Stock ปัจจุบัน", valuation?.totalValue, false],
   ] as const;
   const filteredLedger = ledger.filter((row) => (!accountFilter || row.AccountCode.toLowerCase().includes(accountFilter.toLowerCase())) && (!skuFilter || row.SKU?.toLowerCase().includes(skuFilter.toLowerCase())) && (!channelFilter || row.Channel?.toLowerCase().includes(channelFilter.toLowerCase())));
   const reportPeriod = from || to ? `${from || "เริ่มต้น"} ถึง ${to || "ปัจจุบัน"}` : month;
@@ -246,7 +246,7 @@ export default function ReportsPage() {
     <div className="space-y-5 p-4 md:p-8">
       {error && <Card className="border-red-200 p-4 text-red-600">{error}</Card>}
       <Card className="flex flex-wrap items-end gap-3 p-4"><label className="text-xs">Account<input className="mt-1 block h-9 rounded border px-2 text-sm" value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)} placeholder="เช่น 1100" /></label><label className="text-xs">SKU<input className="mt-1 block h-9 rounded border px-2 text-sm" value={skuFilter} onChange={(e) => setSkuFilter(e.target.value)} placeholder="ค้นหา SKU" /></label><label className="text-xs">Channel<input className="mt-1 block h-9 rounded border px-2 text-sm" value={channelFilter} onChange={(e) => setChannelFilter(e.target.value)} placeholder="เช่น TikTok" /></label><button className="h-9 rounded border px-3 text-sm" onClick={() => { setAccountFilter(""); setSkuFilter(""); setChannelFilter(""); }}>ล้างตัวกรอง</button><button className="h-9 rounded bg-emerald-700 px-3 text-sm text-white" onClick={() => download("general-ledger.csv", filteredLedger)}>Export CSV</button></Card>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{cards.map(([label, value]) => <Card key={label} className="p-4"><div className="text-xs text-muted-foreground">{label}</div><div className="mt-1 text-2xl font-bold">{fmtBaht(value ?? 0)}</div></Card>)}</div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{cards.map(([label, value, percent]) => <Card key={label} className="p-4"><div className="text-xs text-muted-foreground">{label}</div><div className="mt-1 text-2xl font-bold">{percent ? `${(value ?? 0).toFixed(2)}%` : fmtBaht(value ?? 0)}</div></Card>)}</div>
 
       <Card className="overflow-hidden"><div className="flex items-center justify-between border-b p-4"><div className="font-semibold">Trial Balance · {month}</div><div className="flex items-center gap-2"><Badge variant="secondary">{trial?.balanced ? "Balanced" : "Not balanced"}</Badge><button className="h-8 rounded border px-3 text-xs disabled:opacity-50" disabled={exportingPdf !== null} onClick={exportTrialPdf}>{exportingPdf === "trial" ? "กำลังสร้าง PDF..." : "Export PDF"}</button></div></div>
         <Table><TableHeader><TableRow><TableHead>บัญชี</TableHead><TableHead>ประเภท</TableHead><TableHead className="text-right">ยอดยกมา</TableHead><TableHead className="text-right">เดบิต</TableHead><TableHead className="text-right">เครดิต</TableHead><TableHead className="text-right">ปลายงวด Dr</TableHead><TableHead className="text-right">ปลายงวด Cr</TableHead></TableRow></TableHeader><TableBody>

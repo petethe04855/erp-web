@@ -90,12 +90,22 @@ export default function ReturnsPage() {
 
   function handleUpdateStatus(
     id: string,
-    newStatus: "Completed" | "Cancelled",
+    newStatus: "Approved" | "QC Passed" | "Cancelled",
   ) {
     updateStockReturnStatus(id, newStatus);
     showToast(
-      `อัปเดต ${id} เป็น ${newStatus === "Completed" ? "ของกลับมาแล้ว" : "ยกเลิก"} สำเร็จ`,
+      `อัปเดต ${id} สำเร็จ`,
     );
+  }
+
+  async function handleReverseCreditNote(ref: string) {
+    if (!window.confirm(`ยืนยันการกลับรายการ ${ref} หรือไม่?`)) return;
+    const api = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+    const token = localStorage.getItem("chawy_token") || "";
+    const response = await fetch(`${api}/api/credit-notes/${ref}/reverse`, { method: "PUT", headers: { Authorization: token ? `Bearer ${token}` : "" } });
+    if (!response.ok) { showToast("ไม่สามารถกลับรายการ Credit Note ได้"); return; }
+    await useErpStore.getState().loadResources(["stockReturns"], true);
+    showToast(`กลับรายการ ${ref} สำเร็จ`);
   }
 
   async function handleExport() {
@@ -360,6 +370,7 @@ export default function ReturnsPage() {
                     </TableCell>
                     <TableCell className="p-4 px-5 align-middle">
                       <div className="font-mono text-xs font-semibold">{r.creditNoteRef || "–"}</div>
+                      {r.creditNoteRef && <div className="text-[10px] text-muted-foreground">ก่อน VAT {fmtBaht(r.creditSubtotal || r.amount)} · VAT {fmtBaht(r.creditVatAmount || 0)} · ส่วนลด {fmtBaht(r.creditDiscount || 0)}</div>}
                       {r.allocations?.map((allocation) => (
                         <div key={allocation.id} className="text-xs text-muted-foreground">
                           {allocation.lot} · {allocation.qty} ชิ้น · {allocation.restocked ? "คืนสต๊อก" : "เสียหาย"}
@@ -368,17 +379,18 @@ export default function ReturnsPage() {
                     </TableCell>
                     <TableCell className="p-4 px-5 align-middle">
                       <StatusPill t={t} status={r.status} />
+                      {r.status === "qc pending" && <div className="mt-1 text-[10px] text-amber-700">Quarantine: {r.quarantineQty || r.qty}</div>}
                     </TableCell>
                     <TableCell className="p-4 px-5 align-middle">
-                      {r.status === "pending" && (
+                      {r.status === "pending approval" && (
                         <div className="flex gap-2">
                           <Button
                             onClick={() =>
-                              handleUpdateStatus(r.id, "Completed")
+                              handleUpdateStatus(r.id, "Approved")
                             }
                             className="h-7 text-xs px-2.5 cursor-pointer bg-[var(--erp-accent)] text-white border-none"
                           >
-                            ของกลับมาแล้ว
+                            อนุมัติการคืน
                           </Button>
                           <Button
                             variant="outline"
@@ -391,6 +403,8 @@ export default function ReturnsPage() {
                           </Button>
                         </div>
                       )}
+                      {r.status === "qc pending" && <div className="flex gap-2"><Button onClick={() => handleUpdateStatus(r.id, "QC Passed")} className="h-7 text-xs px-2.5 cursor-pointer bg-[var(--erp-accent)] text-white border-none">ผ่าน QC / รับเข้าสต็อก</Button><Button variant="outline" onClick={() => handleUpdateStatus(r.id, "Cancelled")} className="h-7 text-xs px-2.5 cursor-pointer">ไม่ผ่าน QC</Button></div>}
+                      {r.status === "completed" && r.creditNoteRef && <Button variant="outline" onClick={() => handleReverseCreditNote(r.creditNoteRef!)} className="h-7 text-xs px-2.5 cursor-pointer">Reverse CN</Button>}
                     </TableCell>
                   </TableRow>
                 ))}

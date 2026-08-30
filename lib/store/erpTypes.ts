@@ -424,8 +424,13 @@ export type StockReturn = {
   returnedBy: string
   refunded: boolean
   channel: string
-  status: 'Pending' | 'Completed' | 'Cancelled'
+  status: 'Pending' | 'Pending Approval' | 'QC Pending' | 'Completed' | 'Cancelled'
+  quarantineQty?: number
+  qcStatus?: 'Pending' | 'Passed' | 'Failed'
   creditAmount?: number
+  creditSubtotal?: number
+  creditVatAmount?: number
+  creditDiscount?: number
   totalCost?: number
   creditNoteId?: number
   creditNoteRef?: string

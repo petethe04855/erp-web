@@ -121,7 +121,7 @@ export type ErpWorkflowActions = {
   setCurrentUser: (user: AppUser) => void  // Gap 7
   createGoodsIssue: (input: CreateGoodsIssueInput) => GoodsIssue | null
   createStockReturn: (input: CreateStockReturnInput) => StockReturn
-  updateStockReturnStatus: (id: number | string, status: 'Completed' | 'Cancelled') => StockReturn | null
+  updateStockReturnStatus: (id: number | string, status: 'Approved' | 'QC Passed' | 'Completed' | 'Cancelled') => StockReturn | null
   createStockAdjustment: (input: CreateStockAdjustmentInput) => StockAdjustment
   createStockTransfer: (input: CreateStockTransferInput) => StockTransfer | null
   createExpense: (input: CreateExpenseInput) => Expense
@@ -1133,7 +1133,7 @@ export function createErpWorkflowState(
         qty: input.qty, condition: input.condition as ReturnCondition,
         reason: input.reason as ReturnReason,
         note: input.note, date: todayIso(), returnedBy: by, refunded: false,
-        channel, status: 'Pending',
+        channel, status: 'Pending Approval',
       }
       set(s => ({
         stockReturns: [ret, ...s.stockReturns],
@@ -1144,14 +1144,15 @@ export function createErpWorkflowState(
     updateStockReturnStatus(id, status) {
       const by = get().currentUser.name
       const ret = get().stockReturns.find(r => r.id === id)
-      if (!ret || ret.status !== 'Pending') return null
+      if (!ret || !['Pending', 'Pending Approval', 'QC Pending'].includes(ret.status)) return null
 
-      const updated: StockReturn = { ...ret, status }
+      const nextStatus: StockReturn['status'] = ret.status === 'Pending Approval' && status === 'Approved' ? 'QC Pending' : status === 'QC Passed' ? 'Completed' : status === 'Approved' ? 'QC Pending' : status
+      const updated: StockReturn = { ...ret, status: nextStatus, qcStatus: nextStatus === 'QC Pending' ? 'Pending' : nextStatus === 'Completed' ? 'Passed' : nextStatus === 'Cancelled' ? 'Failed' : ret.qcStatus, quarantineQty: nextStatus === 'QC Pending' ? ret.qty : 0 }
       const newMovements: StockMovement[] = []
 
       let updatedProducts = get().products
 
-      if (status === 'Completed') {
+      if (nextStatus === 'Completed') {
         if (ret.condition === 'ดี') {
           updatedProducts = get().products.map(p =>
             p.sku === ret.sku ? { ...p, stock: p.stock + ret.qty } : p

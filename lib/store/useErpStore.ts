@@ -766,9 +766,14 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 		fetch(`${getApiUrl()}/api/budgets`, {
 			method: 'POST',
 			headers: getHeaders(),
-			body: JSON.stringify(budget),
-		}).then(res => {
-			if (res.ok) get().fetchInitialState()
+			// Do not send the local string id (BUD-...) to the API's uint primary key.
+			body: JSON.stringify(input),
+		}).then(async res => {
+			await readApiResponse(res)
+			await get().loadResources(['budgets'], true)
+		}).catch(error => {
+			console.error('Failed to save budget', error)
+			set(s => ({ budgets: s.budgets.filter(item => item.id !== budget.id) }))
 		})
 		return budget
 	},

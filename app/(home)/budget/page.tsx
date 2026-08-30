@@ -111,10 +111,9 @@ export default function BudgetPage() {
     channel: ExpenseChannel,
     amount: number,
   ) {
-    const now = new Date();
     upsertBudget({
-      year: now.getFullYear(),
-      month: now.getMonth() + 1,
+      year,
+      month,
       category,
       channel,
       budgetAmount: amount,
