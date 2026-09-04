@@ -12,6 +12,7 @@ import {
   InvoicesTable,
   InvoicePrintTemplate,
 } from "./components";
+import { exportInvoicePdf } from "../components/exportInvoicePdf";
 import {
   balance,
   templateId,
@@ -25,26 +26,70 @@ export default function CustomerInvoiceDetailPage() {
   const salesOrders = useErpStore((state) => state.salesOrders);
   const products = useErpStore((state) => state.products);
   const settings = useErpStore((state) => state.settings);
+  const customers = useErpStore((state) => state.customers);
+  const loadResources = useErpStore((state) => state.loadResources);
   const [customer, setCustomer] = useState("");
+  const [targetInvoiceId, setTargetInvoiceId] = useState<string>("");
+  const [selectedLot, setSelectedLot] = useState<string>("");
   const [toast, setToast] = useState("");
 
-  useEffect(
-    () => setCustomer(new URLSearchParams(window.location.search).get("name") || ""),
-    [],
-  );
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setCustomer(params.get("name") || "");
+    setTargetInvoiceId(params.get("invoiceId") || "");
+    setSelectedLot(params.get("lot") || "");
+    loadResources(["customers"]);
+  }, [loadResources]);
 
-  const customerInvoices = useMemo(
+  const allCustomerInvoices = useMemo(
     () =>
       invoices
-        .filter((invoice) => invoice.customer === customer && balance(invoice) > 0)
+        .filter(
+          (invoice) => invoice.customer === customer && balance(invoice) > 0,
+        )
         .sort((a, b) => a.dueDate.localeCompare(b.dueDate)),
     [invoices, customer],
   );
 
+  // Available lots across this customer's invoices
+  const availableLots = useMemo(() => {
+    const lots = new Set<string>();
+    allCustomerInvoices.forEach((inv) => {
+      inv.lines?.forEach((line) => {
+        if (line.lot && line.lot !== "UNSPECIFIED") {
+          lots.add(line.lot);
+        }
+      });
+    });
+    return Array.from(lots);
+  }, [allCustomerInvoices]);
+
+  const customerInvoices = useMemo(() => {
+    let list = allCustomerInvoices;
+    if (targetInvoiceId) {
+      const matched = list.filter(
+        (inv) => String(inv.id) === String(targetInvoiceId),
+      );
+      if (matched.length > 0) list = matched;
+    }
+    if (selectedLot && selectedLot !== "ALL") {
+      list = list.filter((inv) => {
+        if (!inv.lines?.length) return true;
+        return inv.lines.some(
+          (line) => (line.lot || "UNSPECIFIED") === selectedLot,
+        );
+      });
+    }
+    return list;
+  }, [allCustomerInvoices, targetInvoiceId, selectedLot]);
+
   const totals = useMemo(
     () => ({
       original: customerInvoices.reduce((sum, inv) => sum + inv.amount, 0),
-      credited: customerInvoices.reduce((sum, inv) => sum + (inv.credited ?? 0), 0),
+      credited: customerInvoices.reduce(
+        (sum, inv) => sum + (inv.credited ?? 0),
+        0,
+      ),
       paid: customerInvoices.reduce((sum, inv) => sum + inv.paid, 0),
       outstanding: customerInvoices.reduce((sum, inv) => sum + balance(inv), 0),
       overdue: customerInvoices
@@ -63,9 +108,21 @@ export default function CustomerInvoiceDetailPage() {
         String(order.code) === String(invoice.soRef),
     );
 
+  const customerRecord = useMemo(
+    () => customers.find((c) => c.name === customer),
+    [customers, customer],
+  );
+
   const productLines = (invoice: Invoice): DisplayLine[] => {
-    if (invoice.lines?.length) {
-      return invoice.lines.map((line, index) => ({
+    let lines = invoice.lines;
+    if (lines?.length) {
+      if (selectedLot && selectedLot !== "ALL") {
+        const filtered = lines.filter(
+          (line) => (line.lot || "UNSPECIFIED") === selectedLot,
+        );
+        if (filtered.length > 0) lines = filtered;
+      }
+      return lines.map((line, index) => ({
         key: line.id ?? `${line.sku}-${index}`,
         sku: line.sku,
         lot: line.lot || "UNSPECIFIED",
@@ -104,45 +161,8 @@ export default function CustomerInvoiceDetailPage() {
     }
     try {
       setToast("กำลังเตรียมดาวน์โหลด PDF...");
-      const html2pdf = (await import("html2pdf.js")).default;
-
-      // Clone element to fixed container to prevent html2canvas coordinate clipping
-      const clone = element.cloneNode(true) as HTMLElement;
-      clone.style.position = "fixed";
-      clone.style.top = "0";
-      clone.style.left = "0";
-      clone.style.zIndex = "-99999";
-      clone.style.visibility = "visible";
-      clone.style.display = "block";
-      document.body.appendChild(clone);
-
-      const opt = {
-        margin: 0,
-        filename: `${invoice.code || invoice.id}.pdf`,
-        image: { type: "jpeg" as const, quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          backgroundColor: "#ffffff",
-          useCORS: true,
-          logging: false,
-          width: 794,
-          height: 1110,
-          windowWidth: 794,
-          windowHeight: 1110,
-          scrollX: 0,
-          scrollY: 0,
-        },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" as const },
-      };
-
-      try {
-        await html2pdf().set(opt).from(clone).save();
-        setToast("Export ใบแจ้งหนี้สำเร็จ");
-      } finally {
-        if (document.body.contains(clone)) {
-          document.body.removeChild(clone);
-        }
-      }
+      await exportInvoicePdf(element, `${invoice.code || invoice.id}.pdf`);
+      setToast("Export ใบแจ้งหนี้สำเร็จ");
     } catch (err) {
       console.error(err);
       setToast("Export ใบแจ้งหนี้ไม่สำเร็จ");
@@ -176,11 +196,73 @@ export default function CustomerInvoiceDetailPage() {
         ) : (
           <>
             <Card className="border-l-4 border-l-[var(--erp-accent)] p-5">
-              <div className="text-xs text-muted-foreground">ข้อมูลลูกค้า</div>
-              <div className="mt-1 text-2xl font-bold">{customer}</div>
-              <div className="mt-2 text-sm text-muted-foreground">
-                Invoice ค้างชำระ {customerInvoices.length} ใบ · หนึ่ง Invoice
-                ต่อหนึ่งเอกสาร
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div className="text-xs text-muted-foreground">
+                    ข้อมูลลูกค้า
+                  </div>
+                  <div className="mt-1 text-2xl font-bold">{customer}</div>
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    {targetInvoiceId ? (
+                      <span className="inline-flex items-center gap-1.5 font-medium text-[var(--erp-accent)]">
+                        แสดงเฉพาะ Invoice:{" "}
+                        <span className="font-mono">{targetInvoiceId}</span>
+                      </span>
+                    ) : (
+                      <span>
+                        Invoice ค้างชำระทั้งหมด {customerInvoices.length} ใบ
+                      </span>
+                    )}
+                    {selectedLot && selectedLot !== "ALL" && (
+                      <span className="ml-2 inline-flex items-center rounded bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                        Lot: {selectedLot}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2.5">
+                  {availableLots.length > 0 && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="text-muted-foreground">
+                        กรองตาม Lot:
+                      </span>
+                      <select
+                        value={selectedLot}
+                        onChange={(e) => setSelectedLot(e.target.value)}
+                        className="h-8 rounded-md border bg-background px-2 text-xs font-medium"
+                      >
+                        <option value="">ทั้งหมด</option>
+                        {availableLots.map((lot) => (
+                          <option key={lot} value={lot}>
+                            Lot: {lot}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {(targetInvoiceId ||
+                    (selectedLot && selectedLot !== "ALL")) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTargetInvoiceId("");
+                        setSelectedLot("");
+                      }}
+                      className="h-8 rounded-md border border-dashed px-3 text-xs text-muted-foreground hover:bg-muted cursor-pointer"
+                    >
+                      ดูข้อมูลทั้งหมดของลูกค้า
+                    </button>
+                  )}
+
+                  <Link
+                    href={`/customers`}
+                    className="h-8 inline-flex items-center gap-1.5 rounded-md border px-3 text-xs font-medium text-foreground hover:bg-muted cursor-pointer"
+                  >
+                    ⚙️ จัดการข้อมูลบริษัทลูกค้า
+                  </Link>
+                </div>
               </div>
             </Card>
 
@@ -207,8 +289,11 @@ export default function CustomerInvoiceDetailPage() {
                   key={invoice.id}
                   invoice={invoice}
                   company={settings.company}
-                  soRef={orderFor(invoice)?.code || String(invoice.soRef || "–")}
+                  soRef={
+                    orderFor(invoice)?.code || String(invoice.soRef || "–")
+                  }
                   lines={productLines(invoice)}
+                  customerData={customerRecord}
                 />
               ))}
             </div>

@@ -4,6 +4,21 @@
 import type { AuditEvent, Quotation, QuotationLine, QuotationStatus, LeadSource, LiveSession, LiveStatus } from '../mockData.ts'
 export type { AuditEvent, Quotation, QuotationLine, QuotationStatus, LeadSource, LiveSession, LiveStatus }
 
+export type Customer = {
+  id: string
+  name: string
+  taxId?: string
+  branch?: string
+  phone?: string
+  email?: string
+  website?: string
+  contactPerson?: string
+  address: string
+  logoUrl?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
 // ── Sales ──────────────────────────────────────────────────────────────────
 
 // Gap 4: added live-commerce statuses

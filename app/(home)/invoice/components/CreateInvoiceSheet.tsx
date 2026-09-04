@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/sheet";
 import { useTheme } from "@/lib/design/ThemeContext";
 import { ValidationAlert } from "@/components/ValidationAlert";
+import { useErpStore } from "@/lib/store/useErpStore";
 
 const today = new Date().toISOString().split("T")[0];
 const due14 = new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0];
@@ -52,7 +53,14 @@ interface CreateInvoiceSheetProps {
     customerBranch: string;
     purchaseOrderRef: string;
     paymentTerms: string;
-    lines?: Array<{ sku: string; name: string; qty: number; unit: string; unitPrice: number; lineTotal: number }>;
+    lines?: Array<{
+      sku: string;
+      name: string;
+      qty: number;
+      unit: string;
+      unitPrice: number;
+      lineTotal: number;
+    }>;
     issueDate: string;
     dueDate: string;
     amount: number;
@@ -70,6 +78,13 @@ export function CreateInvoiceSheet({
 }: CreateInvoiceSheetProps) {
   const { tokens: t } = useTheme();
   const c = t.color;
+
+  const customers = useErpStore((s) => s.customers);
+  const loadResources = useErpStore((s) => s.loadResources);
+
+  useEffect(() => {
+    loadResources(["customers"]);
+  }, [loadResources]);
 
   const [form, setForm] = useState<{
     soRef: string;
@@ -90,14 +105,35 @@ export function CreateInvoiceSheet({
   function onSoSelect(soId: string) {
     const so = eligibleSOs.find((s) => s.id === soId);
     if (so) {
+      const matchedCust = customers.find((c) => c.name === so.customer);
       setForm((f) => ({
         ...f,
         soRef: soId,
         customer: so.customer,
         amount: so.amount,
+        customerAddress: matchedCust?.address || f.customerAddress,
+        customerTaxId: matchedCust?.taxId || f.customerTaxId,
+        customerBranch: matchedCust?.branch || f.customerBranch,
+        paymentTerms: f.paymentTerms,
       }));
     } else {
       setForm((f) => ({ ...f, soRef: soId }));
+    }
+  }
+
+  function onCustomerSelect(customerName: string) {
+    const matched = customers.find((c) => c.name === customerName);
+    if (matched) {
+      setForm((f) => ({
+        ...f,
+        customer: matched.name,
+        customerAddress: matched.address || f.customerAddress,
+        customerTaxId: matched.taxId || f.customerTaxId,
+        customerBranch: matched.branch || f.customerBranch,
+        paymentTerms: f.paymentTerms,
+      }));
+    } else {
+      setForm((f) => ({ ...f, customer: customerName }));
     }
   }
 
@@ -139,7 +175,18 @@ export function CreateInvoiceSheet({
       dueDate: form.dueDate,
       amount: Number(form.amount),
       includeVat: form.includeVat,
-      lines: form.soRef ? undefined : [{ sku: "MANUAL", name: form.lineDescription, qty: 1, unit: "service", unitPrice: Number(form.amount), lineTotal: Number(form.amount) }],
+      lines: form.soRef
+        ? undefined
+        : [
+            {
+              sku: "MANUAL",
+              name: form.lineDescription,
+              qty: 1,
+              unit: "service",
+              unitPrice: Number(form.amount),
+              lineTotal: Number(form.amount),
+            },
+          ],
     });
     setValidationError("");
     setForm(BLANK);
@@ -180,30 +227,113 @@ export function CreateInvoiceSheet({
             </NativeSelect>
           </div>
 
-          {!form.soRef && <div><Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>รายการในใบแจ้งหนี้ *</Label><Input value={form.lineDescription} onChange={(e) => setForm((f) => ({ ...f, lineDescription: e.target.value }))} placeholder="เช่น ค่าบริการ / สินค้าตามข้อตกลง" /></div>}
-
-          <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>ที่อยู่ออกบิล *</Label>
-            <textarea value={form.customerAddress} onChange={(e) => setForm((f) => ({ ...f, customerAddress: e.target.value }))} placeholder="ชื่ออาคาร เลขที่ ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด รหัสไปรษณีย์" className="min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div><Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>เลขผู้เสียภาษี</Label><Input value={form.customerTaxId} onChange={(e) => setForm((f) => ({ ...f, customerTaxId: e.target.value }))} placeholder="13 หลัก" /></div>
-            <div><Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>สาขา</Label><Input value={form.customerBranch} onChange={(e) => setForm((f) => ({ ...f, customerBranch: e.target.value }))} placeholder="สำนักงานใหญ่" /></div>
-          </div>
-
-          <label className="flex cursor-pointer items-center gap-2 rounded-md border p-3 text-sm">
-            <input type="checkbox" checked={form.includeVat} onChange={(e) => setForm((f) => ({ ...f, includeVat: e.target.checked }))} />
-            <span>คิด VAT ใน Invoice</span>
-          </label>
+          {!form.soRef && (
+            <div>
+              <Label
+                className="text-xs font-semibold text-muted-foreground mb-1 block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
+                รายการในใบแจ้งหนี้ *
+              </Label>
+              <Input
+                value={form.lineDescription}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, lineDescription: e.target.value }))
+                }
+                placeholder="เช่น ค่าบริการ / สินค้าตามข้อตกลง"
+              />
+            </div>
+          )}
 
           <div>
             <Label
               className="text-xs font-semibold text-muted-foreground mb-1 block"
               style={{ color: "var(--erp-ink2)" }}
             >
-              ชื่อบริษัท *
+              ที่อยู่ออกบิล *
             </Label>
+            <textarea
+              value={form.customerAddress}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, customerAddress: e.target.value }))
+              }
+              placeholder="ชื่ออาคาร เลขที่ ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด รหัสไปรษณีย์"
+              className="min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label
+                className="text-xs font-semibold text-muted-foreground mb-1 block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
+                เลขผู้เสียภาษี
+              </Label>
+              <Input
+                value={form.customerTaxId}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, customerTaxId: e.target.value }))
+                }
+                placeholder="13 หลัก"
+              />
+            </div>
+            <div>
+              <Label
+                className="text-xs font-semibold text-muted-foreground mb-1 block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
+                สาขา
+              </Label>
+              <Input
+                value={form.customerBranch}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, customerBranch: e.target.value }))
+                }
+                placeholder="สำนักงานใหญ่"
+              />
+            </div>
+          </div>
+
+          <label className="flex cursor-pointer items-center gap-2 rounded-md border p-3 text-sm">
+            <input
+              type="checkbox"
+              checked={form.includeVat}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, includeVat: e.target.checked }))
+              }
+            />
+            <span>คิด VAT ใน Invoice</span>
+          </label>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <Label
+                className="text-xs font-semibold text-muted-foreground block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
+                ชื่อบริษัทลูกค้า *
+              </Label>
+              {customers.length > 0 && !form.soRef && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-muted-foreground">เลือกลูกค้าเดิม:</span>
+                  <select
+                    value={customers.some((c) => c.name === form.customer) ? form.customer : ""}
+                    onChange={(e) => {
+                      if (e.target.value) onCustomerSelect(e.target.value);
+                    }}
+                    className="text-xs border rounded px-1.5 py-0.5 bg-background text-foreground"
+                  >
+                    <option value="">-- เลือกลูกค้าในระบบ --</option>
+                    {customers.map((c) => (
+                      <option key={c.id} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
             <Input
               value={form.customer}
               onChange={(e) =>
@@ -247,8 +377,36 @@ export function CreateInvoiceSheet({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div><Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>PO ลูกค้า</Label><Input value={form.purchaseOrderRef} onChange={(e) => setForm((f) => ({ ...f, purchaseOrderRef: e.target.value }))} placeholder="PO-..." /></div>
-            <div><Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>เงื่อนไขชำระเงิน</Label><Input value={form.paymentTerms} onChange={(e) => setForm((f) => ({ ...f, paymentTerms: e.target.value }))} placeholder="เช่น 30 วัน" /></div>
+            <div>
+              <Label
+                className="text-xs font-semibold text-muted-foreground mb-1 block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
+                PO ลูกค้า
+              </Label>
+              <Input
+                value={form.purchaseOrderRef}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, purchaseOrderRef: e.target.value }))
+                }
+                placeholder="PO-..."
+              />
+            </div>
+            <div>
+              <Label
+                className="text-xs font-semibold text-muted-foreground mb-1 block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
+                เงื่อนไขชำระเงิน
+              </Label>
+              <Input
+                value={form.paymentTerms}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, paymentTerms: e.target.value }))
+                }
+                placeholder="เช่น 30 วัน"
+              />
+            </div>
           </div>
 
           <div>

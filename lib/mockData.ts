@@ -87,11 +87,37 @@ export type Quotation = {
   auditTrail: AuditEvent[]
 }
 
-export type Customer = { name: string; address: string }
+export type Customer = {
+  id: string
+  name: string
+  taxId?: string
+  branch?: string
+  phone?: string
+  email?: string
+  website?: string
+  contactPerson?: string
+  address: string
+  creditDays?: number
+  creditLimit?: number
+  notes?: string
+  logoUrl?: string
+}
 
 export const customers: Customer[] = [
-  { name: 'P2J MANAGEMENT CO.,LTD', address: '99/9 ถนนสุขุมวิท แขวงคลองตัน เขตคลองเตย กรุงเทพฯ 10110' },
-  
+  {
+    id: 'CUST-0001',
+    name: 'P2J MANAGEMENT CO.,LTD',
+    taxId: '0105562081491',
+    branch: 'สำนักงานใหญ่',
+    phone: '02-987-6543',
+    email: 'contact@p2j.co.th',
+    website: 'www.p2j.co.th',
+    contactPerson: 'คุณประจักษ์',
+    address: '89/37 ซอย พระยาสุเรนทร์ 21 แยก 3 ถนนพระยาสุเรนทร์ แขวงบางชัน เขตคลองสามวา กรุงเทพมหานคร 10510',
+    creditDays: 30,
+    creditLimit: 500000,
+    notes: 'ส่งบิลภายในวันที่ 25 ของทุกเดือน',
+  },
 ]
 
 export const quotations: Quotation[] = [

@@ -21,7 +21,7 @@ import {
 	type StockReturn,
 	type CreateStockReturnInput,
 } from '@/lib/store/erpWorkflow'
-import type { AppUser, ErpSettings } from '@/lib/store/erpTypes'
+import type { AppUser, ErpSettings, Customer } from '@/lib/store/erpTypes'
 import { readApiResponse } from '@/lib/apiResponse'
 
 const DEFAULT_SETTINGS: ErpSettings = {
@@ -118,6 +118,7 @@ export const ERP_RESOURCE_ENDPOINTS = {
 	liveSessions: '/api/live-sessions',
 	contentSchedule: '/api/content-schedule',
 	manualOrders: '/api/manual-orders',
+	customers: '/api/customers',
 	users: '/api/users',
 	settings: '/api/settings',
 } as const
@@ -171,6 +172,7 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 	liveSessions: [],
 	contentSchedule: [],
 	manualOrders: [],
+	customers: initialWorkflowState.customers,
 	users: [],
 	settings: DEFAULT_SETTINGS,
 
@@ -909,6 +911,60 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 			if (res.ok) get().fetchInitialState()
 		})
 		return order
+	},
+
+	// ── Customer Master ──
+	addCustomer: (input) => {
+		const customer = workflow.addCustomer(input)
+		fetch(`${getApiUrl()}/api/customers`, {
+			method: 'POST',
+			headers: getHeaders(),
+			body: JSON.stringify(customer),
+		}).then(async res => {
+			if (res.ok) {
+				const created = await readApiResponse<Customer>(res)
+				set(s => ({
+					customers: s.customers.map(c => c.id === customer.id ? created : c),
+				}))
+				get().loadResources(['customers'], true)
+			}
+		})
+		return customer
+	},
+
+	updateCustomer: (id, patch) => {
+		const updated = workflow.updateCustomer(id, patch)
+		if (updated) {
+			fetch(`${getApiUrl()}/api/customers/${id}`, {
+				method: 'PUT',
+				headers: getHeaders(),
+				body: JSON.stringify(patch),
+			}).then(async res => {
+				if (res.ok) {
+					const saved = await readApiResponse<Customer>(res)
+					set(s => ({
+						customers: s.customers.map(c => c.id === id ? saved : c),
+					}))
+					get().loadResources(['customers'], true)
+				}
+			})
+		}
+		return updated
+	},
+
+	deleteCustomer: (id) => {
+		const ok = workflow.deleteCustomer(id)
+		if (ok) {
+			fetch(`${getApiUrl()}/api/customers/${id}`, {
+				method: 'DELETE',
+				headers: getHeaders(),
+			}).then(res => {
+				if (res.ok) {
+					get().loadResources(['customers'], true)
+				}
+			})
+		}
+		return ok
 	},
 	})
 })

@@ -161,13 +161,13 @@ export function NewQuotationSheet({
       if (product) {
         if (!product.isBundle && totalQty > product.stock) {
           setValidationError(
-            `สินค้า "${product.name}" มีจำนวน ${totalQty} ชิ้น ซึ่งเกินสต็อกคงเหลือ (${product.stock} ชิ้น)`
+            `สินค้า "${product.name}" มีจำนวน ${totalQty} ชิ้น ซึ่งเกินสต็อกคงเหลือ (${product.stock} ชิ้น)`,
           );
           return;
         }
         if (product.isBundle && product.stock > 0 && totalQty > product.stock) {
           setValidationError(
-            `สินค้าแพ็ก "${product.name}" มีสต็อกส่วนประกอบพอจัดได้เพียง ${product.stock} แพ็ก (ระบุ ${totalQty} แพ็ก)`
+            `สินค้าแพ็ก "${product.name}" มีสต็อกส่วนประกอบพอจัดได้เพียง ${product.stock} แพ็ก (ระบุ ${totalQty} แพ็ก)`,
           );
           return;
         }
@@ -272,9 +272,7 @@ export function NewQuotationSheet({
 
           <div>
             <div className="flex justify-between items-center mb-2">
-              <span className="text-xs font-bold text-foreground">
-                Items
-              </span>
+              <span className="text-xs font-bold text-foreground">Items</span>
               <Button
                 variant="outline"
                 size="sm"
@@ -347,7 +345,9 @@ export function NewQuotationSheet({
                             max={
                               product
                                 ? product.isBundle
-                                  ? (product.stock > 0 ? product.stock : undefined)
+                                  ? product.stock > 0
+                                    ? product.stock
+                                    : undefined
                                   : Math.max(1, product.stock)
                                 : undefined
                             }
@@ -361,9 +361,18 @@ export function NewQuotationSheet({
                               let parsed = parseInt(val, 10);
                               if (isNaN(parsed)) parsed = 1;
                               const isBundle = Boolean(product?.isBundle);
-                              if (product && !isBundle && parsed > product.stock) {
+                              if (
+                                product &&
+                                !isBundle &&
+                                parsed > product.stock
+                              ) {
                                 parsed = Math.max(1, product.stock);
-                              } else if (product && isBundle && product.stock > 0 && parsed > product.stock) {
+                              } else if (
+                                product &&
+                                isBundle &&
+                                product.stock > 0 &&
+                                parsed > product.stock
+                              ) {
                                 parsed = product.stock;
                               } else if (parsed < 1) {
                                 parsed = 1;
@@ -396,13 +405,17 @@ export function NewQuotationSheet({
                               type="number"
                               min={0}
                               step="0.01"
-                              value={line.price === 0 && !line.sku ? "" : line.price}
+                              value={
+                                line.price === 0 && !line.sku ? "" : line.price
+                              }
                               onChange={(e) => {
                                 const val = e.target.value;
                                 updateLine(
                                   i,
                                   "price",
-                                  val === "" ? 0 : Math.max(0, Number(val) || 0),
+                                  val === ""
+                                    ? 0
+                                    : Math.max(0, Number(val) || 0),
                                 );
                               }}
                               className="h-9 text-xs pl-2 pr-11 text-right font-mono"
@@ -463,4 +476,3 @@ export function NewQuotationSheet({
     </Sheet>
   );
 }
-

@@ -1,58 +1,42 @@
-import React from "react";
-import type { Invoice, Customer } from "@/lib/store/erpWorkflow";
+import type { Quotation } from "@/lib/mockData";
 import type { CompanySettings } from "@/lib/store/erpTypes";
 import {
   bahtText,
+  invoiceLogoUrl,
   money,
-  templateId,
   thaiDate,
   type DisplayLine,
-} from "./types";
+} from "../../invoice/customer/components/types";
 
-export interface InvoicePrintTemplateProps {
-  invoice: Invoice;
-  company: CompanySettings;
-  soRef?: string;
-  seller?: string;
-  lines: DisplayLine[];
-  customerData?: Customer;
-}
-
-export function InvoicePrintTemplate({
-  invoice,
+export function QuotationPrintTemplate({
+  quotation,
   company,
-  soRef,
-  seller,
   lines,
-  customerData,
-}: InvoicePrintTemplateProps) {
-  const total = invoice.amount;
-  const vatRate = invoice.includeVat === false ? 0 : company.vatRate || 7;
+  seller,
+}: {
+  quotation: Quotation;
+  company: CompanySettings;
+  lines: DisplayLine[];
+  seller: string;
+}) {
+  const total = quotation.amount;
+  const vatRate = company.vatRate || 7;
   const beforeVat = vatRate > 0 ? total / (1 + vatRate / 100) : total;
   const vat = total - beforeVat;
   const creditDays = Math.max(
     0,
     Math.round(
-      (new Date(invoice.dueDate).getTime() -
-        new Date(invoice.issueDate).getTime()) /
+      (new Date(quotation.validUntil).getTime() -
+        new Date(quotation.date).getTime()) /
         86400000,
     ),
   );
-
-  const displaySeller = seller || company.name;
-  const jobTitle = invoice.purchaseOrderRef || soRef || "–";
+  const logo = invoiceLogoUrl(company.logoUrl);
 
   return (
     <section
-      id={templateId(invoice.id)}
-      style={{
-        width: "794px",
-        height: "1122px",
-        minHeight: "1122px",
-        maxHeight: "1122px",
-        boxSizing: "border-box",
-      }}
-      className="invoice-card quotation-card box-border flex h-[1122px] w-[794px] flex-col justify-between overflow-hidden bg-white px-10 pb-12 pt-10 text-[#1f2937]"
+      id={`quotation-form-${quotation.id}`}
+      className="quotation-card box-border flex h-[1122px] w-[794px] flex-col justify-between overflow-hidden bg-white px-10 pb-12 pt-10 text-[#1f2937]"
     >
       <div>
         <header className="flex items-start justify-between border-b-2 border-gray-800 pb-4">
@@ -79,66 +63,35 @@ export function InvoicePrintTemplate({
             </div>
           </div>
           <div className="min-w-[250px] text-right">
-            <h1 className="text-[24px] font-bold leading-none text-black">
-              ใบแจ้งหนี้
+            <h1 className="text-[24px] font-bold leading-none text-text-black">
+              ใบเสนอราคา
             </h1>
             <div className="mt-2 text-[10px] tracking-[0.18em] text-gray-500">
-              INVOICE · ต้นฉบับ
+              QUOTATION · ต้นฉบับ
             </div>
             <div className="mt-3 grid grid-cols-[70px_1fr] gap-y-1 text-[10px]">
-              <span className="text-left text-black">เลขที่</span>
-              <b>{invoice.code || invoice.id}</b>
-              <span className="text-left text-black">วันที่</span>
-              <span>{thaiDate(invoice.issueDate)}</span>
-              <span className="text-left text-black">เครดิต</span>
-              <span>
-                {invoice.paymentTerms
-                  ? `${invoice.paymentTerms}`
-                  : `${creditDays} วัน`}
-              </span>
-              <span className="text-left text-black">ผู้ขาย</span>
-              <span>{displaySeller}</span>
-              <span className="text-left text-black">ชื่องาน</span>
-              <span>{jobTitle}</span>
+              <span className="text-left text-text-black">เลขที่</span>
+              <b>{quotation.code || quotation.id}</b>
+              <span className="text-left text-text-black">วันที่</span>
+              <span>{thaiDate(quotation.date)}</span>
+              <span className="text-left text-text-black">เครดิต</span>
+              <span>{creditDays} วัน</span>
+              <span className="text-left text-text-black">ผู้ขาย</span>
+              <span>{seller}</span>
+              <span className="text-left text-text-black">ชื่องาน</span>
+              <span>{quotation.leadSource || "–"}</span>
             </div>
           </div>
         </header>
 
         <div className="mt-6 border-b border-gray-300 pb-4 text-[10px]">
-          <div className="mb-1 font-bold text-black">ลูกค้า</div>
+          <div className="mb-1 font-bold text-text-black">ลูกค้า</div>
           <div className="text-[13px] font-bold text-gray-900">
-            {invoice.customer}
+            {quotation.customer}
           </div>
           <div className="mt-1 whitespace-pre-line text-gray-600">
-            {invoice.customerAddress || customerData?.address || "–"}
+            {quotation.customerAddress || "–"}
           </div>
-          {(invoice.customerTaxId ||
-            customerData?.taxId ||
-            invoice.customerBranch ||
-            customerData?.branch) && (
-            <div className="mt-1 text-gray-600">
-              {(invoice.customerTaxId || customerData?.taxId) && (
-                <span>
-                  เลขประจำตัวผู้เสียภาษี{" "}
-                  {invoice.customerTaxId || customerData?.taxId}
-                </span>
-              )}
-              {(invoice.customerTaxId || customerData?.taxId) &&
-                (invoice.customerBranch || customerData?.branch) &&
-                " · "}
-              {(invoice.customerBranch || customerData?.branch) && (
-                <span>
-                  สาขา {invoice.customerBranch || customerData?.branch}
-                </span>
-              )}
-            </div>
-          )}
-          {customerData?.phone && (
-            <div className="mt-1 text-gray-600">
-              โทร {customerData.phone}
-              {customerData.email && ` · ${customerData.email}`}
-            </div>
-          )}
         </div>
 
         <table className="mt-6 w-full border-collapse text-[11px]">
@@ -254,9 +207,6 @@ export function InvoicePrintTemplate({
                   <b>{line.name}</b>
                   <div className="font-mono text-[9px] text-gray-500">
                     {line.sku}
-                    {line.lot && line.lot !== "UNSPECIFIED"
-                      ? ` · Lot ${line.lot}`
-                      : ""}
                   </div>
                 </td>
                 <td className="p-2 text-right">{line.qty}</td>
@@ -275,12 +225,9 @@ export function InvoicePrintTemplate({
       <div>
         <div className="grid grid-cols-[1.2fr_1fr] gap-10 text-[11px]">
           <div>
-            <div className="font-bold text-black">หมายเหตุ</div>
+            <div className="font-bold text-text-black">หมายเหตุ</div>
             <div className="mt-2 text-gray-600">
-              เงื่อนไขการชำระเงิน {invoice.paymentTerms || "–"}
-            </div>
-            <div className="text-gray-600">
-              ครบกำหนด {thaiDate(invoice.dueDate)}
+              ราคานี้ยืนตามวันที่กำหนดในใบเสนอราคา
             </div>
           </div>
           <div className="space-y-2 border-t-2 border-gray-900 pt-3">
@@ -305,7 +252,7 @@ export function InvoicePrintTemplate({
         </div>
         <div className="mt-14 grid grid-cols-2 gap-20 text-center text-[11px]">
           <div>
-            <div className="mb-10">ผู้รับสินค้า / ผู้ซื้อ</div>
+            <div className="mb-10">ผู้สั่งซื้อสินค้า</div>
             <div className="border-b border-gray-400" />
             <div className="mt-2">วันที่ _____ / _____ / _________</div>
           </div>

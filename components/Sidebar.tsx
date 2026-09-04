@@ -40,6 +40,7 @@ const MODULE_KEY: Record<string, keyof ModuleSettings | null> = {
   "/sampling": "sampling",
   "/users": "userManagement",
   "/settings": null,
+  "/customers": null,
   "/tiktok-setup": "tiktokSetup",
 };
 
@@ -54,14 +55,26 @@ const NAV_STATIC: NavEntry[] = [
   { label: "Returns", subTH: "คืนสินค้า", href: "/returns" },
   { label: "SKU Master", subTH: "ข้อมูลสินค้า", href: "/sku" },
   { label: "Stock Balance", subTH: "สต็อคคงคลัง", href: "/stock" },
-  { label: "Stock Receipt", subTH: "รับสินค้าสำเร็จรูป", href: "/goods-receive" },
+  {
+    label: "Stock Receipt",
+    subTH: "รับสินค้าสำเร็จรูป",
+    href: "/goods-receive",
+  },
   { label: "Goods Issue", subTH: "เบิกสินค้าออก", href: "/goods-issue" },
   { label: "Stock Transfer", subTH: "โอนสต็อค", href: "/stock-transfer" },
   { label: "Stock Checking", subTH: "นับสต็อค", href: "/stock-check" },
   { section: "Finance" },
   { label: "Journal", subTH: "สมุดรายวันบัญชี", href: "/journal" },
-  { label: "Reports", subTH: "รายงานบัญชี สต็อก และกำไร-ขาดทุน", href: "/reports" },
-  { label: "Integrity Check", subTH: "ตรวจความถูกต้องของข้อมูล", href: "/integrity" },
+  {
+    label: "Reports",
+    subTH: "รายงานบัญชี สต็อก และกำไร-ขาดทุน",
+    href: "/reports",
+  },
+  {
+    label: "Integrity Check",
+    subTH: "ตรวจความถูกต้องของข้อมูล",
+    href: "/integrity",
+  },
   { label: "Budget", subTH: "งบประมาณ", href: "/budget" },
   { section: "Channels" },
   { label: "TikTok Orders", subTH: "ออร์เดอร์ TikTok", href: "/tiktok-orders" },
@@ -72,6 +85,7 @@ const NAV_STATIC: NavEntry[] = [
   { section: "System" },
   { label: "User Management", subTH: "จัดการผู้ใช้", href: "/users" },
   { label: "Settings", subTH: "ตั้งค่าหลัก", href: "/settings" },
+  { label: "Customer Settings", subTH: "ข้อมูลบริษัทลูกค้า", href: "/customers" },
   { label: "TikTok Setup", subTH: "เชื่อม API", href: "/tiktok-setup" },
 ];
 

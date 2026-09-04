@@ -109,10 +109,11 @@ export default function SalesOrdersPage() {
   useEffect(() => {
     for (const order of salesOrders) {
       if (order.status !== "Completed") continue;
-      const hasInvoice = invoices.some((invoice) =>
-        invoice.soRef === order.code ||
-        invoice.soRef === String(order.id) ||
-        invoice.salesOrderId === order.id
+      const hasInvoice = invoices.some(
+        (invoice) =>
+          invoice.soRef === order.code ||
+          invoice.soRef === String(order.id) ||
+          invoice.salesOrderId === order.id,
       );
       if (hasInvoice || autoInvoiceRequested.current.has(order.id)) continue;
       autoInvoiceRequested.current.add(order.id);
@@ -138,7 +139,8 @@ export default function SalesOrdersPage() {
   }
 
   const filtered = salesOrders.filter((order) => {
-    if (filter !== "all" && canonicalOrderStatus(order.status) !== filter) return false;
+    if (filter !== "all" && canonicalOrderStatus(order.status) !== filter)
+      return false;
     if (
       search &&
       !(
@@ -158,7 +160,9 @@ export default function SalesOrdersPage() {
     acc[item.key] =
       item.key === "all"
         ? salesOrders.length
-        : salesOrders.filter((order) => canonicalOrderStatus(order.status) === item.key).length;
+        : salesOrders.filter(
+            (order) => canonicalOrderStatus(order.status) === item.key,
+          ).length;
     return acc;
   }, {});
 
@@ -208,19 +212,28 @@ export default function SalesOrdersPage() {
     const quantitiesBySku = new Map<string, number>();
     for (const line of form.lines) {
       if (!line.sku) continue;
-      quantitiesBySku.set(line.sku, (quantitiesBySku.get(line.sku) ?? 0) + Number(line.qty));
+      quantitiesBySku.set(
+        line.sku,
+        (quantitiesBySku.get(line.sku) ?? 0) + Number(line.qty),
+      );
     }
     for (const [sku, qty] of quantitiesBySku) {
       const product = products.find((item) => item.sku === sku);
       const available = product ? product.stock - product.reservedQty : 0;
       if (qty > available) {
-        setFormError(`Stock ${sku} ไม่พอ: ต้องการ ${qty}, พร้อมขาย ${Math.max(0, available)}`);
+        setFormError(
+          `Stock ${sku} ไม่พอ: ต้องการ ${qty}, พร้อมขาย ${Math.max(0, available)}`,
+        );
         return;
       }
     }
     const validLines = form.lines
       .filter((line) => line.sku)
-      .map((line) => ({ sku: line.sku, qty: Number(line.qty), unitPrice: Number(line.unitPrice) }));
+      .map((line) => ({
+        sku: line.sku,
+        qty: Number(line.qty),
+        unitPrice: Number(line.unitPrice),
+      }));
     if (validLines.length === 0) {
       setFormError("กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ");
       return;
@@ -316,7 +329,7 @@ export default function SalesOrdersPage() {
             >
               Export CSV
             </Button>
-            <Button
+            {/* <Button
               variant="default"
               size="sm"
               onClick={() => {
@@ -326,7 +339,7 @@ export default function SalesOrdersPage() {
               className="cursor-pointer bg-[var(--erp-accent)] text-white hover:opacity-90 shadow-none border-none"
             >
               + New Order
-            </Button>
+            </Button> */}
           </div>
         }
       />
@@ -498,9 +511,20 @@ export default function SalesOrdersPage() {
                         {fmtBaht2(order.amount)}
                       </Mono>
                     </TableCell>
-                    <TableCell className="p-3 text-right" title={order.lines.flatMap((line) => line.allocations ?? []).map((allocation) => `${allocation.lot}: ${allocation.qty} × ฿${allocation.unitCost.toFixed(2)}`).join("\n")}>
+                    <TableCell
+                      className="p-3 text-right"
+                      title={order.lines
+                        .flatMap((line) => line.allocations ?? [])
+                        .map(
+                          (allocation) =>
+                            `${allocation.lot}: ${allocation.qty} × ฿${allocation.unitCost.toFixed(2)}`,
+                        )
+                        .join("\n")}
+                    >
                       <Mono t={t} size={12} color={c.ink2}>
-                        {displayStatus === "Completed" ? fmtBaht2(order.totalCogs ?? 0) : "—"}
+                        {displayStatus === "Completed"
+                          ? fmtBaht2(order.totalCogs ?? 0)
+                          : "—"}
                       </Mono>
                     </TableCell>
                     <TableCell className="p-3">
@@ -542,9 +566,13 @@ export default function SalesOrdersPage() {
         form={form}
         setForm={setForm}
         products={products}
-        quotations={quotations.filter((quotation) =>
-          ["Approved", "Sent"].includes(quotation.status) &&
-          !salesOrders.some((order) => String(order.qtRef) === String(quotation.code || quotation.id))
+        quotations={quotations.filter(
+          (quotation) =>
+            ["Approved", "Sent"].includes(quotation.status) &&
+            !salesOrders.some(
+              (order) =>
+                String(order.qtRef) === String(quotation.code || quotation.id),
+            ),
         )}
         lineTotal={lineTotal}
         error={formError}

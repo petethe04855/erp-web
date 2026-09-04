@@ -7,6 +7,7 @@ import {
   tiktokOrders as seedTiktokOrders,
   liveSessions as seedLiveSessions,
   manualOrders as seedManualOrders,
+  customers as seedCustomers,
   type LeadSource,
   type QuotationStatus,
 } from '../mockData.ts'
@@ -37,6 +38,7 @@ import type {
   ApplySettlementInput,
   ErpSettings,
   ContentScheduleItem, ContentScheduleStatus,
+  Customer,
 } from './erpTypes.ts'
 
 export type { LandedCostLine, PurchaseRequestItem, GoodsReceiveItem } from './erpTypes.ts'
@@ -50,7 +52,7 @@ export type {
   GoodsReceive, StockMovement,
   Product, StockLot, ProductCategory, BundleComponent,
   SamplingStatus, SamplingRecipient, SamplingCampaign,
-  AppUser,
+  AppUser, Customer,
   CreateSalesOrderInput, CreateInvoiceInput,
   CreatePurchaseRequestInput, CreatePurchaseOrderInput,
   CreateGoodsReceiveInput, CreateSamplingCampaignInput, AddSamplingRecipientInput,
@@ -98,6 +100,7 @@ export type ErpWorkflowState = {
   liveSessions: LiveSession[]
   contentSchedule: ContentScheduleItem[]
   manualOrders: ManualOrder[]
+  customers: Customer[]
   settings: ErpSettings
 }
 
@@ -141,6 +144,9 @@ export type ErpWorkflowActions = {
   addContentSchedule: (input: Omit<ContentScheduleItem, 'id' | 'createdAt'>) => ContentScheduleItem
   updateContentScheduleStatus: (id: string, status: ContentScheduleStatus) => ContentScheduleItem | null
   addManualOrder: (input: CreateManualOrderInput) => ManualOrder
+  addCustomer: (input: Omit<Customer, 'id'>) => Customer
+  updateCustomer: (id: string, patch: Partial<Customer>) => Customer | null
+  deleteCustomer: (id: string) => boolean
   updateSettings: (patch: Partial<ErpSettings>) => void
 }
 
@@ -543,6 +549,7 @@ export const initialWorkflowState: ErpWorkflowState = {
     { id: 'CS-0003', platform: 'TikTok Live',   account: '@chawy_petfood',  status: 'draft',     topic: 'ตอบคำถามเรื่องอาหารแมว',    date: '2026-06-02', startTime: '20:00', endTime: '22:00', createdAt: '2026-05-29T09:00' },
   ] as ContentScheduleItem[],
   manualOrders: seededManualOrders,
+  customers: seedCustomers,
   settings: DEFAULT_SETTINGS,
 }
 
@@ -1500,6 +1507,32 @@ export function createErpWorkflowState(
       }
       set(s => ({ manualOrders: [order, ...s.manualOrders] }))
       return order
+    },
+
+    // ── Customer Master ────────────────────────────────────────
+
+    addCustomer(input) {
+      const customer: Customer = {
+        ...input,
+        id: nextId('CUST-', get().customers.map(c => c.id)),
+      }
+      set(s => ({ customers: [customer, ...s.customers] }))
+      return customer
+    },
+
+    updateCustomer(id, patch) {
+      const existing = get().customers.find(c => c.id === id)
+      if (!existing) return null
+      const updated: Customer = { ...existing, ...patch }
+      set(s => ({ customers: s.customers.map(c => c.id === id ? updated : c) }))
+      return updated
+    },
+
+    deleteCustomer(id) {
+      const exists = get().customers.some(c => c.id === id)
+      if (!exists) return false
+      set(s => ({ customers: s.customers.filter(c => c.id !== id) }))
+      return true
     },
 
     updateSettings(patch) {
