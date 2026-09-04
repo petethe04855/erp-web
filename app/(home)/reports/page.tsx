@@ -15,6 +15,8 @@ type Trial = { rows: TrialRow[]; totalDebit: number; totalCredit: number; openin
 type ValuationRow = { SKU: string; ProductName: string; Lot: string; ExpiryDate: string; RemainingQty: number; UnitCost: number; Value: number };
 type Valuation = { rows: ValuationRow[]; totalQty: number; totalValue: number };
 type LedgerRow = { Date: string; JournalCode: string; SourceType: string; SourceRef: string; AccountCode: string; AccountName: string; Description: string; SKU?: string; Lot?: string; Channel?: string; Debit: number; Credit: number; RunningBalance: number };
+type RevenueRow = { date: string; reference: string; customer: string; channel: "Manual" | "Shopee" | "TikTok"; amount: number };
+type RevenueReport = { rows: RevenueRow[]; total: number; byChannel: Record<RevenueRow["channel"], number> };
 
 export default function ReportsPage() {
   const { tokens: t } = useTheme();
@@ -25,6 +27,7 @@ export default function ReportsPage() {
   const [trial, setTrial] = useState<Trial | null>(null);
   const [valuation, setValuation] = useState<Valuation | null>(null);
   const [ledger, setLedger] = useState<LedgerRow[]>([]);
+  const [revenue, setRevenue] = useState<RevenueReport | null>(null);
   const [accountFilter, setAccountFilter] = useState("");
   const [skuFilter, setSkuFilter] = useState("");
   const [channelFilter, setChannelFilter] = useState("");
@@ -38,17 +41,19 @@ export default function ReportsPage() {
     const headers = { Authorization: token ? `Bearer ${token}` : "" };
     try {
       const range = from || to ? `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` : `month=${month}`;
-      const [summaryRes, trialRes, valuationRes, ledgerRes] = await Promise.all([
+      const [summaryRes, trialRes, valuationRes, ledgerRes, revenueRes] = await Promise.all([
         fetch(`${api}/api/reports/financial-summary?${range}`, { headers }),
         fetch(`${api}/api/reports/trial-balance?${range}`, { headers }),
         fetch(`${api}/api/reports/inventory-valuation`, { headers }),
         fetch(`${api}/api/reports/general-ledger?${range}`, { headers }),
+        fetch(`${api}/api/reports/revenue?${range}`, { headers }),
       ]);
-      const [summaryData, trialData, valuationData, ledgerData] = await Promise.all([
+      const [summaryData, trialData, valuationData, ledgerData, revenueData] = await Promise.all([
         readApiResponse<Summary>(summaryRes), readApiResponse<Trial>(trialRes),
         readApiResponse<Valuation>(valuationRes), readApiResponse<LedgerRow[]>(ledgerRes),
+        readApiResponse<RevenueReport>(revenueRes),
       ]);
-      setSummary(summaryData); setTrial(trialData); setValuation(valuationData); setLedger(ledgerData);
+      setSummary(summaryData); setTrial(trialData); setValuation(valuationData); setLedger(ledgerData); setRevenue(revenueData);
     } catch (reason) { setError(reason instanceof Error ? reason.message : "โหลดรายงานไม่สำเร็จ"); }
   }, [month, from, to]);
 
@@ -247,6 +252,19 @@ export default function ReportsPage() {
       {error && <Card className="border-red-200 p-4 text-red-600">{error}</Card>}
       <Card className="flex flex-wrap items-end gap-3 p-4"><label className="text-xs">Account<input className="mt-1 block h-9 rounded border px-2 text-sm" value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)} placeholder="เช่น 1100" /></label><label className="text-xs">SKU<input className="mt-1 block h-9 rounded border px-2 text-sm" value={skuFilter} onChange={(e) => setSkuFilter(e.target.value)} placeholder="ค้นหา SKU" /></label><label className="text-xs">Channel<input className="mt-1 block h-9 rounded border px-2 text-sm" value={channelFilter} onChange={(e) => setChannelFilter(e.target.value)} placeholder="เช่น TikTok" /></label><button className="h-9 rounded border px-3 text-sm" onClick={() => { setAccountFilter(""); setSkuFilter(""); setChannelFilter(""); }}>ล้างตัวกรอง</button><button className="h-9 rounded bg-emerald-700 px-3 text-sm text-white" onClick={() => download("general-ledger.csv", filteredLedger)}>Export CSV</button></Card>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{cards.map(([label, value, percent]) => <Card key={label} className="p-4"><div className="text-xs text-muted-foreground">{label}</div><div className="mt-1 text-2xl font-bold">{percent ? `${(value ?? 0).toFixed(2)}%` : fmtBaht(value ?? 0)}</div></Card>)}</div>
+
+      <Card className="overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
+          <div><div className="font-semibold">รายรับจากยอดขาย · {reportPeriod}</div><div className="text-xs text-muted-foreground">นับเฉพาะ Sales Entry ที่ Completed</div></div>
+          <button className="h-8 rounded border px-3 text-xs" onClick={() => download(`revenue-${reportPeriod.replaceAll(" ", "-")}.csv`, revenue?.rows || [])}>Export CSV</button>
+        </div>
+        <div className="grid border-b sm:grid-cols-2 lg:grid-cols-4">
+          {(["รวม", "Manual", "Shopee", "TikTok"] as const).map((channel) => <div key={channel} className="border-b p-4 last:border-b-0 sm:border-r lg:border-b-0"><div className="text-xs text-muted-foreground">{channel === "รวม" ? "รายรับรวม" : channel}</div><div className="mt-1 text-xl font-bold">{fmtBaht(channel === "รวม" ? revenue?.total ?? 0 : revenue?.byChannel?.[channel] ?? 0)}</div></div>)}
+        </div>
+        <Table><TableHeader><TableRow><TableHead>วันที่</TableHead><TableHead>Sales Entry</TableHead><TableHead>ลูกค้า</TableHead><TableHead>ช่องทาง</TableHead><TableHead className="text-right">รายรับ</TableHead></TableRow></TableHeader><TableBody>
+          {revenue?.rows.length ? revenue.rows.map((row) => <TableRow key={row.reference}><TableCell>{row.date}</TableCell><TableCell className="font-mono">{row.reference}</TableCell><TableCell>{row.customer}</TableCell><TableCell><Badge variant="secondary">{row.channel}</Badge></TableCell><TableCell className="text-right font-semibold">{fmtBaht(row.amount)}</TableCell></TableRow>) : <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">ไม่พบรายรับจากยอดขายที่สำเร็จในช่วงเวลานี้</TableCell></TableRow>}
+        </TableBody></Table>
+      </Card>
 
       <Card className="overflow-hidden"><div className="flex items-center justify-between border-b p-4"><div className="font-semibold">Trial Balance · {month}</div><div className="flex items-center gap-2"><Badge variant="secondary">{trial?.balanced ? "Balanced" : "Not balanced"}</Badge><button className="h-8 rounded border px-3 text-xs disabled:opacity-50" disabled={exportingPdf !== null} onClick={exportTrialPdf}>{exportingPdf === "trial" ? "กำลังสร้าง PDF..." : "Export PDF"}</button></div></div>
         <Table><TableHeader><TableRow><TableHead>บัญชี</TableHead><TableHead>ประเภท</TableHead><TableHead className="text-right">ยอดยกมา</TableHead><TableHead className="text-right">เดบิต</TableHead><TableHead className="text-right">เครดิต</TableHead><TableHead className="text-right">ปลายงวด Dr</TableHead><TableHead className="text-right">ปลายงวด Cr</TableHead></TableRow></TableHeader><TableBody>

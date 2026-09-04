@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   formatBaht,
+  customers,
   type LeadSource,
   type QuotationStatus,
 } from "@/lib/mockData";
@@ -20,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import { NewQuotationSheet } from "./components/NewQuotationSheet";
 
-type Line = { sku: string; qty: number };
+type Line = { sku: string; qty: number; price: number };
 
 function quoteStatus(status: QuotationStatus) {
   if (status === "Approved" || status === "Converted") return "completed";
@@ -54,6 +55,7 @@ export default function QuotationPage() {
 
   function handleCreateQuotation(data: {
     customer: string;
+    customerAddress: string;
     validUntil: string;
     leadSource: LeadSource;
     lines: Line[];
@@ -227,11 +229,21 @@ export default function QuotationPage() {
                         {q.customer}
                       </span>
                       <div
-                        className="text-xs mt-1"
+                        className="mt-1 flex items-center gap-1.5 text-xs"
                         style={{ color: "var(--erp-ink3)" }}
                       >
-                        {q.leadSource} · {q.items} items
+                        {q.leadSource && <span>{q.leadSource}</span>}
+                        {q.leadSource && <span>·</span>}
+                        <span>{q.items} items</span>
                       </div>
+                      {q.customerAddress && (
+                        <div
+                          className="text-xs mt-1 max-w-xs"
+                          style={{ color: "var(--erp-ink3)" }}
+                        >
+                          {q.customerAddress}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="p-4 px-5 align-middle">
                       <Mono t={t} size={12} color={c.ink2}>
@@ -263,6 +275,7 @@ export default function QuotationPage() {
         open={open}
         onOpenChange={setOpen}
         products={products}
+        customers={customers}
         onSubmit={handleCreateQuotation}
         showToast={showToast}
       />

@@ -38,6 +38,13 @@ const FILTERS: Array<{ key: "all" | SalesOrderStatus; label: string }> = [
   { key: "Cancelled", label: "Cancelled" },
 ];
 
+function canonicalOrderStatus(status: string): SalesOrderStatus {
+  // Older quotations created Sales Entries as "Pending Payment". Treat those
+  // records as Pending so they remain visible and can enter the normal flow.
+  if (status === "Pending Payment") return "Pending";
+  return status as SalesOrderStatus;
+}
+
 const BLANK = {
   customer: "",
   date: new Date().toISOString().split("T")[0],
@@ -74,6 +81,7 @@ export default function SalesOrdersPage() {
   const { tokens: t } = useTheme();
   const c = t.color;
   const salesOrders = useErpStore((state) => state.salesOrders);
+  const quotations = useErpStore((state) => state.quotations);
   const invoices = useErpStore((state) => state.invoices);
   const products = useErpStore((state) => state.products);
   const createSalesOrder = useErpStore((state) => state.createSalesOrder);
@@ -114,7 +122,7 @@ export default function SalesOrdersPage() {
   }, [salesOrders, invoices, createInvoiceFromSO]);
 
   const filtered = salesOrders.filter((order) => {
-    if (filter !== "all" && order.status !== filter) return false;
+    if (filter !== "all" && canonicalOrderStatus(order.status) !== filter) return false;
     if (
       search &&
       !(
@@ -133,7 +141,7 @@ export default function SalesOrdersPage() {
     acc[item.key] =
       item.key === "all"
         ? salesOrders.length
-        : salesOrders.filter((order) => order.status === item.key).length;
+        : salesOrders.filter((order) => canonicalOrderStatus(order.status) === item.key).length;
     return acc;
   }, {});
 
@@ -158,6 +166,17 @@ export default function SalesOrdersPage() {
   }
 
   async function handleSubmit() {
+    if (!form.qtRef) {
+      setFormError("กรุณาเลือก Quotation");
+      return;
+    }
+    const selectedQuotation = quotations.find(
+      (quotation) => String(quotation.code || quotation.id) === form.qtRef,
+    );
+    if (!selectedQuotation || selectedQuotation.customer !== form.customer) {
+      setFormError("ข้อมูลลูกค้าต้องตรงกับ Quotation ที่เลือก");
+      return;
+    }
     if (!form.customer) {
       setFormError("กรุณากรอกชื่อบริษัท");
       return;
@@ -413,6 +432,7 @@ export default function SalesOrdersPage() {
             </TableHeader>
             <TableBody>
               {filtered.map((order, i) => {
+                const displayStatus = canonicalOrderStatus(order.status);
                 const hasInv = invoices.some(
                   (inv) =>
                     inv.soRef === order.code ||
@@ -463,15 +483,15 @@ export default function SalesOrdersPage() {
                     </TableCell>
                     <TableCell className="p-3 text-right" title={order.lines.flatMap((line) => line.allocations ?? []).map((allocation) => `${allocation.lot}: ${allocation.qty} × ฿${allocation.unitCost.toFixed(2)}`).join("\n")}>
                       <Mono t={t} size={12} color={c.ink2}>
-                        {order.status === "Completed" ? fmtBaht2(order.totalCogs ?? 0) : "—"}
+                        {displayStatus === "Completed" ? fmtBaht2(order.totalCogs ?? 0) : "—"}
                       </Mono>
                     </TableCell>
                     <TableCell className="p-3">
-                      <StatusPill t={t} status={order.status} />
+                      <StatusPill t={t} status={displayStatus} />
                     </TableCell>
                     <TableCell className="p-3 text-right min-w-[170px]">
                       <SOActions
-                        status={order.status}
+                        status={displayStatus}
                         hasInv={hasInv}
                         onStatus={(status) =>
                           handleStatusChange(order.id, status)
@@ -505,6 +525,10 @@ export default function SalesOrdersPage() {
         form={form}
         setForm={setForm}
         products={products}
+        quotations={quotations.filter((quotation) =>
+          ["Approved", "Sent"].includes(quotation.status) &&
+          !salesOrders.some((order) => String(order.qtRef) === String(quotation.code || quotation.id))
+        )}
         lineTotal={lineTotal}
         error={formError}
         onSubmit={handleSubmit}

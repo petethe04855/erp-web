@@ -20,7 +20,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { Label } from "@/components/ui/label";
 
 import { CashFlowChart } from "./components/CashFlowChart";
-import { ChannelBar } from "./components/ChannelBar";
+import { ChannelDonut } from "./components/ChannelDonut";
 import { AlertRow } from "./components/AlertRow";
 import { PnlBars } from "./components/PnlBars";
 
@@ -145,17 +145,22 @@ export default function DashboardPage() {
     },
   );
 
-  // Channels from salesOrders
-  const channelTotals: Record<string, number> = {};
-  periodOrders.forEach((o) => {
-    const ch = o.channel || "Other";
-    channelTotals[ch] = (channelTotals[ch] ?? 0) + o.amount;
-  });
-  const channels = Object.entries(channelTotals)
-    .map(([name, rev]) => ({ name, rev, delta: 0 }))
-    .sort((a, b) => b.rev - a.rev)
-    .slice(0, 5);
-  const maxChan = Math.max(...channels.map((c) => c.rev), 1);
+  // Completed Sales Entries are the shared revenue source for every platform.
+  const channelColors: Record<string, string> = {
+    TikTok: "#111827",
+    Shopee: "#f97316",
+    Manual: "#0f766e",
+  };
+  const completedPeriodOrders = salesOrders.filter(
+    (order) => order.date.startsWith(periodKey) && order.status === "Completed",
+  );
+  const channels = ["TikTok", "Shopee", "Manual"].map((name) => ({
+    name,
+    rev: completedPeriodOrders
+      .filter((order) => order.channel?.toLowerCase().replace(" ", "") === name.toLowerCase())
+      .reduce((sum, order) => sum + order.amount, 0),
+    color: channelColors[name],
+  }));
 
   // Alerts
   const nearExpiryLots = stockLots.filter(
@@ -519,8 +524,7 @@ export default function DashboardPage() {
 
         {/* Channels + Alerts */}
         <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-6 mb-6">
-          {channels.length > 0 && (
-            <Card t={t} className="border border-border bg-card" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)' }}>
+          <Card t={t} className="border border-border bg-card" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)' }}>
               <SectionLabel
                 t={t}
                 action={
@@ -533,20 +537,11 @@ export default function DashboardPage() {
                   </Link>
                 }
               >
-                Revenue by Channel · {periodLabel}
+                สัดส่วนยอดขายแต่ละแพลตฟอร์ม · {periodLabel}
               </SectionLabel>
-              {channels.map((ch) => (
-                <ChannelBar
-                  key={ch.name}
-                  t={t}
-                  name={ch.name}
-                  rev={ch.rev}
-                  delta={ch.delta}
-                  max={maxChan}
-                />
-              ))}
+              <div className="text-xs text-muted-foreground" style={{ color: c.ink3 }}>คำนวณจาก Sales Entry สถานะ Completed</div>
+              <ChannelDonut t={t} data={channels} />
             </Card>
-          )}
           {alerts.length > 0 && (
             <Card t={t} className="border border-border bg-card" style={{ borderColor: 'var(--erp-border)', background: 'var(--erp-surface)' }}>
               <SectionLabel

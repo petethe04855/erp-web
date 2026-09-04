@@ -17,6 +17,7 @@ interface CompanyState {
   vatRate: string;
   invoicePrefix: string;
   soPrefix: string;
+  logoUrl?: string;
 }
 
 interface CompanyTabProps {
@@ -83,6 +84,10 @@ export function CompanyTab({ company, onChange }: CompanyTabProps) {
               value={company.website}
               onChange={(e) => updateField("website", e.target.value)}
             />
+          </div>
+          <div className="md:col-span-2">
+            <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Logo URL สำหรับ Invoice</Label>
+            <Input value={company.logoUrl || ""} onChange={(e) => updateField("logoUrl", e.target.value)} placeholder="http://localhost:8080/api/images/logo.png" />
           </div>
           <div className="md:col-span-2">
             <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>

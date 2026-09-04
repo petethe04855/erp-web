@@ -28,7 +28,6 @@ const REASONS: ReturnReason[] = [
 export default function ReturnsPage() {
   const { tokens: t } = useTheme();
   const c = t.color;
-  const salesOrders = useErpStore((s) => s.salesOrders);
   const stockReturns = useErpStore((s) => s.stockReturns);
   const products = useErpStore((s) => s.products);
   const createStockReturn = useErpStore((s) => s.createStockReturn);
@@ -47,7 +46,6 @@ export default function ReturnsPage() {
   const rows = useMemo(() => {
     return stockReturns.map((ret) => {
       const product = products.find((p) => p.sku === ret.sku);
-      const so = salesOrders.find((o) => o.id === ret.soRef || o.code === ret.soRef);
       const amount = ret.creditAmount || (product?.price ?? 0) * ret.qty;
       const status = ret.status
         ? ret.status.toLowerCase()
@@ -56,12 +54,11 @@ export default function ReturnsPage() {
           : "pending";
       return {
         ...ret,
-        customer: so?.customer ?? "Walk-in / Manual",
         amount,
         status,
       };
     });
-  }, [stockReturns, products, salesOrders]);
+  }, [stockReturns, products]);
 
   const total = rows.reduce((s, r) => s + r.amount, 0);
   const openCount = rows.filter(
@@ -76,7 +73,6 @@ export default function ReturnsPage() {
   }, [stockReturns]);
 
   async function handleCreateReturn(data: {
-    soRef: string;
     sku: string;
     qty: number;
     condition: ReturnCondition;
@@ -127,7 +123,7 @@ export default function ReturnsPage() {
     >
       <TopBar
         t={t}
-        breadcrumb={["Chawy", "Sales", "Returns"]}
+        breadcrumb={["Chawy", "Inventory", "Returns"]}
         title="Returns"
         subtitle={`คืนสินค้า · ${rows.length} รายการ · ${fmtBaht(total)} มูลค่ารวม`}
         right={
@@ -174,9 +170,9 @@ export default function ReturnsPage() {
               tone: openCount ? c.warn : undefined,
             },
             {
-              label: "Return rate",
-              value: `${((rows.length / Math.max(1, salesOrders.length)) * 100).toFixed(1)}%`,
-              sub: "of orders",
+              label: "Completed",
+              value: String(rows.filter((row) => row.status === "completed").length),
+              sub: "returns passed QC",
             },
             {
               label: "Top reason",
@@ -249,18 +245,6 @@ export default function ReturnsPage() {
                     className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
                     style={{ color: "var(--erp-ink3)" }}
                   >
-                    SO Ref
-                  </TableHead>
-                  <TableHead
-                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
-                    style={{ color: "var(--erp-ink3)" }}
-                  >
-                    Customer
-                  </TableHead>
-                  <TableHead
-                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
-                    style={{ color: "var(--erp-ink3)" }}
-                  >
                     Channel
                   </TableHead>
                   <TableHead
@@ -315,19 +299,6 @@ export default function ReturnsPage() {
                       <Mono t={t} size={12} weight={500}>
                         {r.id}
                       </Mono>
-                    </TableCell>
-                    <TableCell className="p-4 px-5 align-middle">
-                      <Mono t={t} size={12} color={r.soRef ? c.accent : c.ink3}>
-                        {r.soRef || "—"}
-                      </Mono>
-                    </TableCell>
-                    <TableCell className="p-4 px-5 align-middle">
-                      <span
-                        className="text-sm font-medium"
-                        style={{ color: "var(--erp-ink)" }}
-                      >
-                        {r.customer}
-                      </span>
                     </TableCell>
                     <TableCell className="p-4 px-5 align-middle">
                       <span
@@ -418,8 +389,6 @@ export default function ReturnsPage() {
         open={open}
         onOpenChange={setOpen}
         products={products}
-        salesOrders={salesOrders}
-        stockReturns={stockReturns}
         onSubmit={handleCreateReturn}
         showToast={showToast}
       />

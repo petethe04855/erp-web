@@ -5,7 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
-import { Table, TableBody, TableRow, TableCell } from "@/components/ui/table";
+import {
+  Table,
+  TableHeader,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
 import {
   Sheet,
   SheetContent,
@@ -15,19 +22,11 @@ import {
   SheetFooter,
 } from "@/components/ui/sheet";
 import { useTheme } from "@/lib/design/ThemeContext";
-import { formatBaht, type LeadSource } from "@/lib/mockData";
+import { formatBaht, type Customer, type LeadSource } from "@/lib/mockData";
 import { Mono } from "@/components/ui";
 import { ValidationAlert } from "@/components/ValidationAlert";
 
-type Line = { sku: string; qty: number };
-const LEAD_SOURCES: LeadSource[] = [
-  "Live",
-  "LINE",
-  "Facebook",
-  "Shopee",
-  "Walk-in",
-  "B2B Referral",
-];
+type Line = { sku: string; qty: number; price: number };
 
 function addDaysIso(days: number) {
   const date = new Date();
@@ -37,9 +36,10 @@ function addDaysIso(days: number) {
 
 const BLANK_FORM = {
   customer: "",
-  leadSource: "Live" as LeadSource,
+  customerAddress: "",
+  leadSource: "",
   validUntil: "",
-  lines: [{ sku: "", qty: 1 }] as Line[],
+  lines: [{ sku: "", qty: 1, price: 0 }] as Line[],
 };
 
 interface Product {
@@ -53,8 +53,10 @@ interface NewQuotationSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   products: Product[];
+  customers: Customer[];
   onSubmit: (data: {
     customer: string;
+    customerAddress: string;
     leadSource: LeadSource;
     validUntil: string;
     lines: Line[];
@@ -66,11 +68,10 @@ export function NewQuotationSheet({
   open,
   onOpenChange,
   products,
+  customers,
   onSubmit,
-  showToast,
 }: NewQuotationSheetProps) {
   const { tokens: t } = useTheme();
-  const c = t.color;
 
   const [form, setForm] = useState(BLANK_FORM);
   const [validationError, setValidationError] = useState("");
@@ -79,20 +80,24 @@ export function NewQuotationSheet({
     if (open) {
       setForm({
         customer: "",
-        leadSource: "Live" as LeadSource,
+        customerAddress: "",
+        leadSource: "",
         validUntil: addDaysIso(15),
-        lines: [{ sku: "", qty: 1 }],
+        lines: [{ sku: "", qty: 1, price: 0 }],
       });
+      setValidationError("");
     }
   }, [open]);
 
   const lineTotal = form.lines.reduce((s, line) => {
-    const product = products.find((p) => p.sku === line.sku);
-    return s + (product ? product.price * line.qty : 0);
+    return s + line.price * line.qty;
   }, 0);
 
   function addLine() {
-    setForm((f) => ({ ...f, lines: [...f.lines, { sku: "", qty: 1 }] }));
+    setForm((f) => ({
+      ...f,
+      lines: [...f.lines, { sku: "", qty: 1, price: 0 }],
+    }));
   }
 
   function removeLine(i: number) {
@@ -108,14 +113,33 @@ export function NewQuotationSheet({
     }));
   }
 
+  function selectProduct(i: number, sku: string) {
+    const product = products.find((item) => item.sku === sku);
+    setForm((form) => ({
+      ...form,
+      lines: form.lines.map((line, index) =>
+        index === i ? { ...line, sku, price: product?.price ?? 0 } : line,
+      ),
+    }));
+  }
+
   function handleSubmit() {
-    const validLines = form.lines.filter((l) => l.sku && l.qty > 0);
-    if (!form.customer || !form.validUntil || validLines.length === 0) {
-      setValidationError("กรุณากรอกลูกค้า วันหมดอายุ และสินค้า");
+    const validLines = form.lines.filter(
+      (l) => l.sku && l.qty > 0 && l.price >= 0,
+    );
+    if (
+      !form.customer ||
+      !form.customerAddress ||
+      !form.leadSource.trim() ||
+      !form.validUntil ||
+      validLines.length === 0
+    ) {
+      setValidationError("กรุณากรอกลูกค้า Lead Source วันหมดอายุ และสินค้า");
       return;
     }
     onSubmit({
       customer: form.customer,
+      customerAddress: form.customerAddress,
       validUntil: form.validUntil,
       leadSource: form.leadSource,
       lines: validLines,
@@ -131,66 +155,72 @@ export function NewQuotationSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex h-full w-[min(540px,100vw)] flex-col border-l bg-card text-card-foreground shadow-2xl outline-none">
         <SheetHeader className="mb-4">
-          <SheetTitle
-            className="text-base font-bold text-foreground"
-            style={{ color: "var(--erp-ink)" }}
-          >
+          <SheetTitle className="text-base font-bold text-foreground">
             New Quotation
           </SheetTitle>
-          <div
-            className="text-xs text-muted-foreground"
-            style={{ color: "var(--erp-ink3)" }}
-          >
+          <div className="text-xs text-muted-foreground">
             Total {formatBaht(lineTotal)}
           </div>
         </SheetHeader>
+
         <ValidationAlert message={validationError} />
+
         <SheetBody className="flex flex-col gap-4 overflow-y-auto">
           <div>
-            <Label
-              className="text-xs font-semibold text-muted-foreground mb-1 block"
-              style={{ color: "var(--erp-ink2)" }}
-            >
+            <Label className="text-xs font-semibold text-muted-foreground mb-1 block">
               Customer
             </Label>
-            <Input
+            <NativeSelect
               value={form.customer}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, customer: e.target.value }))
-              }
-              placeholder="Customer name"
-            />
+              onChange={(e) => {
+                const customerName = e.target.value;
+                const customer = customers.find(
+                  (item) => item.name === customerName,
+                );
+                setForm((f) => ({
+                  ...f,
+                  customer: customer?.name ?? customerName,
+                  customerAddress: customer?.address ?? "",
+                }));
+              }}
+            >
+              <option value="">เลือกลูกค้า</option>
+              {customers.map((customer) => (
+                <option key={customer.name} value={customer.name}>
+                  {customer.name}
+                </option>
+              ))}
+            </NativeSelect>
+            {form.customer && (
+              <div className="mt-2 rounded-md border border-border bg-muted/40 p-3">
+                <div className="text-xs font-semibold text-muted-foreground">
+                  ที่อยู่บริษัท
+                </div>
+                <div className="mt-1 text-sm text-foreground">
+                  {form.customerAddress}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label
-                className="text-xs font-semibold text-muted-foreground mb-1 block"
-                style={{ color: "var(--erp-ink2)" }}
-              >
+              <Label className="text-xs font-semibold text-muted-foreground mb-1 block">
                 Lead source
               </Label>
-              <NativeSelect
+              <Input
                 value={form.leadSource}
                 onChange={(e) =>
                   setForm((f) => ({
                     ...f,
-                    leadSource: e.target.value as LeadSource,
+                    leadSource: e.target.value,
                   }))
                 }
-              >
-                {LEAD_SOURCES.map((source) => (
-                  <option key={source} value={source}>
-                    {source}
-                  </option>
-                ))}
-              </NativeSelect>
+                placeholder="เช่น Facebook, ลูกค้าแนะนำ, งานแสดงสินค้า"
+              />
             </div>
             <div>
-              <Label
-                className="text-xs font-semibold text-muted-foreground mb-1 block"
-                style={{ color: "var(--erp-ink2)" }}
-              >
+              <Label className="text-xs font-semibold text-muted-foreground mb-1 block">
                 Valid until
               </Label>
               <Input
@@ -205,10 +235,7 @@ export function NewQuotationSheet({
 
           <div>
             <div className="flex justify-between items-center mb-2">
-              <span
-                className="text-xs font-bold text-foreground"
-                style={{ color: "var(--erp-ink2)" }}
-              >
+              <span className="text-xs font-bold text-foreground">
                 Items
               </span>
               <Button
@@ -221,26 +248,37 @@ export function NewQuotationSheet({
               </Button>
             </div>
 
-            <div
-              className="border border-border rounded-lg overflow-hidden"
-              style={{ borderColor: "var(--erp-border)" }}
-            >
+            <div className="border border-border rounded-lg overflow-hidden">
               <Table className="w-full border-collapse">
+                <TableHeader className="bg-muted/40">
+                  <TableRow className="border-b border-border hover:bg-transparent">
+                    <TableHead className="h-8 px-2 text-xs font-semibold text-muted-foreground">
+                      สินค้า
+                    </TableHead>
+                    <TableHead className="h-8 px-2 text-center text-xs font-semibold text-muted-foreground w-18">
+                      จำนวน
+                    </TableHead>
+                    <TableHead className="h-8 px-2 text-right text-xs font-semibold text-muted-foreground w-32">
+                      ราคา/หน่วย
+                    </TableHead>
+                    <TableHead className="h-8 px-2 text-right text-xs font-semibold text-muted-foreground w-24">
+                      รวม
+                    </TableHead>
+                    <TableHead className="h-8 w-8 p-0" />
+                  </TableRow>
+                </TableHeader>
                 <TableBody>
                   {form.lines.map((line, i) => {
                     const product = products.find((p) => p.sku === line.sku);
                     return (
                       <TableRow
                         key={i}
-                        className="border-b border-border"
-                        style={{ borderColor: "var(--erp-border)" }}
+                        className="border-b border-border last:border-0"
                       >
                         <TableCell className="p-2 align-middle">
                           <NativeSelect
                             value={line.sku}
-                            onChange={(e) =>
-                              updateLine(i, "sku", e.target.value)
-                            }
+                            onChange={(e) => selectProduct(i, e.target.value)}
                             className="text-xs cursor-pointer w-full"
                           >
                             <option value="">Select product</option>
@@ -250,16 +288,8 @@ export function NewQuotationSheet({
                               </option>
                             ))}
                           </NativeSelect>
-                          {line.sku && (
-                            <div
-                              className="text-[10px] mt-1"
-                              style={{ color: "var(--erp-ink3)" }}
-                            >
-                              {getProductName(line.sku)}
-                            </div>
-                          )}
                         </TableCell>
-                        <TableCell className="p-2 align-middle w-20">
+                        <TableCell className="p-2 align-middle w-18">
                           <Input
                             type="number"
                             min={1}
@@ -275,21 +305,45 @@ export function NewQuotationSheet({
                               );
                             }}
                             className="h-9 text-xs p-1 text-center font-mono"
+                            placeholder="1"
                           />
+                        </TableCell>
+                        <TableCell className="p-2 align-middle w-32">
+                          <div className="relative flex items-center">
+                            <Input
+                              aria-label={`ราคาขาย ${getProductName(line.sku)}`}
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              value={line.price === 0 && !line.sku ? "" : line.price}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                updateLine(
+                                  i,
+                                  "price",
+                                  val === "" ? 0 : Math.max(0, Number(val) || 0),
+                                );
+                              }}
+                              className="h-9 text-xs pl-2 pr-11 text-right font-mono"
+                              placeholder="ราคา/หน่วย"
+                            />
+                            <span className="pointer-events-none absolute right-2 text-[10px] text-muted-foreground select-none">
+                              /หน่วย
+                            </span>
+                          </div>
                         </TableCell>
                         <TableCell className="p-2 align-middle text-right w-24">
                           <Mono t={t} size={12}>
-                            {product
-                              ? formatBaht(product.price * line.qty)
-                              : "—"}
+                            {product ? formatBaht(line.price * line.qty) : "—"}
                           </Mono>
                         </TableCell>
-                        <TableCell className="p-2 align-middle text-center w-10">
+                        <TableCell className="p-2 align-middle text-center w-8">
                           {form.lines.length > 1 && (
                             <button
                               type="button"
                               onClick={() => removeLine(i)}
-                              className="bg-transparent border-none cursor-pointer text-red-500 text-base"
+                              className="inline-flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                              aria-label="ลบรายการ"
                             >
                               ✕
                             </button>
@@ -303,6 +357,7 @@ export function NewQuotationSheet({
             </div>
           </div>
         </SheetBody>
+
         <SheetFooter className="flex justify-between items-center border-t p-4 px-6">
           <Mono t={t} size={14} weight={600}>
             {formatBaht(lineTotal)}
@@ -312,11 +367,6 @@ export function NewQuotationSheet({
               variant="outline"
               onClick={() => onOpenChange(false)}
               className="cursor-pointer border-border"
-              style={{
-                borderColor: "var(--erp-border)",
-                background: "var(--erp-surface)",
-                color: "#374151",
-              }}
             >
               Cancel
             </Button>
@@ -332,3 +382,4 @@ export function NewQuotationSheet({
     </Sheet>
   );
 }
+

@@ -69,12 +69,16 @@ export default function GoodsIssuePage() {
     qty: number;
     reason: GoodsIssueReason;
     note: string;
+    channel: 'Manual' | 'Shopee' | 'TikTok';
+    orderRef?: string;
   }) {
     const result = await createGoodsIssue({
       sku: form.sku,
       qty: form.qty,
       reason: form.reason,
       note: form.note,
+      channel: form.channel,
+      orderRef: form.orderRef,
     });
     if (!result) {
       showToast("สต๊อกไม่พอ กรุณาตรวจสอบ");
@@ -183,6 +187,9 @@ export default function GoodsIssuePage() {
                   >
                     Purpose
                   </TableHead>
+                  <TableHead className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left">
+                    Channel / Order
+                  </TableHead>
                   <TableHead
                     className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
                     style={{ color: "var(--erp-ink3)" }}
@@ -247,6 +254,10 @@ export default function GoodsIssuePage() {
                         {g.skuName}
                       </div>
                     </TableCell>
+                    <TableCell className="p-4 px-5 align-middle">
+                      <div className="text-sm font-medium">{g.channel || "Manual"}</div>
+                      {g.orderRef && <div className="text-xs text-muted-foreground">{g.orderRef}</div>}
+                    </TableCell>
                     <TableCell
                       className="p-4 px-5 align-middle text-sm text-muted-foreground"
                       style={{ color: "var(--erp-ink2)" }}
@@ -281,7 +292,7 @@ export default function GoodsIssuePage() {
                 {rows.length === 0 && (
                   <TableRow>
                     <TableCell
-                      colSpan={8}
+                      colSpan={9}
                       className="text-center p-10 text-sm text-muted-foreground"
                       style={{ color: "var(--erp-ink3)" }}
                     >

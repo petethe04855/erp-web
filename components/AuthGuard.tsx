@@ -8,8 +8,8 @@ import { useErpStore } from '@/lib/store/useErpStore'
 import type { ErpResource } from '@/lib/store/useErpStore'
 
 const ROUTE_RESOURCES: Record<string, ErpResource[]> = {
-	'/': ['salesOrders', 'expenses', 'invoices', 'products', 'purchaseRequests', 'purchaseOrders', 'stockLots'],
-	'/dashboard': ['salesOrders', 'expenses', 'invoices', 'products', 'purchaseRequests', 'purchaseOrders', 'stockLots'],
+	'/': ['salesOrders', 'invoices', 'products', 'purchaseRequests', 'purchaseOrders', 'stockLots'],
+	'/dashboard': ['salesOrders', 'invoices', 'products', 'purchaseRequests', 'purchaseOrders', 'stockLots'],
 	'/quotation': ['quotations', 'products'],
 	'/sales-orders': ['salesOrders', 'invoices', 'products'],
 	'/invoice': ['invoices', 'salesOrders', 'products', 'settings'],
@@ -25,13 +25,11 @@ const ROUTE_RESOURCES: Record<string, ErpResource[]> = {
 	'/production-run': ['products', 'stockLots', 'stockMovements'],
 	'/stock-transfer': ['products', 'stockTransfers'],
 	'/stock-check': ['products', 'stockAdjustments'],
-	'/expenses': ['expenses'],
 	'/journal': [],
 	'/reports': [],
 	'/integrity': [],
 	'/budget': ['budgets', 'expenses'],
 	'/tiktok-orders': ['tiktokOrders', 'liveSessions'],
-	'/tiktok-products': [],
 	'/live-sessions': ['liveSessions', 'contentSchedule', 'settings'],
 	'/manual-order': ['manualOrders', 'products'],
 	'/sampling': ['samplingCampaigns', 'products'],

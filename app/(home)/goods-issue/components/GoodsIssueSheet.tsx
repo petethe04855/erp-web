@@ -32,6 +32,8 @@ const BLANK = {
   qty: 1,
   reason: "ใช้ภายใน" as GoodsIssueReason,
   note: "",
+  channel: "Manual" as const,
+  orderRef: "",
 };
 
 interface Product {
@@ -50,6 +52,8 @@ interface GoodsIssueSheetProps {
     qty: number;
     reason: GoodsIssueReason;
     note: string;
+    channel: 'Manual' | 'Shopee' | 'TikTok';
+    orderRef?: string;
   }) => Promise<boolean> | boolean;
   products: Product[];
   showToast: (msg: string) => void;
@@ -70,6 +74,8 @@ export function GoodsIssueSheet({
     qty: number | "";
     reason: GoodsIssueReason;
     note: string;
+    channel: 'Manual' | 'Shopee' | 'TikTok';
+    orderRef: string;
   }>(BLANK);
   const [validationError, setValidationError] = useState("");
 
@@ -92,12 +98,18 @@ export function GoodsIssueSheet({
       setValidationError("จำนวนเกินสต๊อกพร้อมเบิก");
       return;
     }
+    if (form.channel !== "Manual" && !form.orderRef.trim()) {
+      setValidationError("กรุณากรอกเลขออเดอร์ Shopee หรือ TikTok");
+      return;
+    }
 
     const success = await onSubmit({
       sku: form.sku,
       qty: Number(form.qty),
       reason: form.reason,
       note: form.note,
+      channel: form.channel,
+      orderRef: form.channel === "Manual" ? undefined : form.orderRef.trim(),
     });
 
     if (success) {
@@ -108,7 +120,8 @@ export function GoodsIssueSheet({
   }
 
   const isFormInvalid =
-    !form.sku || isOverStock || form.qty === "" || Number(form.qty) < 1;
+    !form.sku || isOverStock || form.qty === "" || Number(form.qty) < 1 ||
+    (form.channel !== "Manual" && !form.orderRef.trim());
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -123,6 +136,41 @@ export function GoodsIssueSheet({
         </SheetHeader>
         <ValidationAlert message={validationError} />
         <SheetBody className="space-y-3">
+          <div>
+            <Label className="text-xs font-semibold text-muted-foreground mb-1 block">
+              ช่องทางการเบิก *
+            </Label>
+            <NativeSelect
+              value={form.channel}
+              onChange={(e) => setForm((form) => ({
+                ...form,
+                channel: e.target.value as 'Manual' | 'Shopee' | 'TikTok',
+                orderRef: e.target.value === 'Manual' ? '' : form.orderRef,
+              }))}
+              className="w-full cursor-pointer"
+            >
+              <option value="Manual">กรอกเอง (Manual)</option>
+              <option value="Shopee">Shopee Order</option>
+              <option value="TikTok">TikTok Order</option>
+            </NativeSelect>
+          </div>
+
+          {form.channel !== "Manual" && (
+            <div>
+              <Label className="text-xs font-semibold text-muted-foreground mb-1 block">
+                เลขออเดอร์ {form.channel} *
+              </Label>
+              <Input
+                value={form.orderRef}
+                onChange={(e) => setForm((form) => ({ ...form, orderRef: e.target.value }))}
+                placeholder={`กรอกเลขออเดอร์ ${form.channel}`}
+              />
+              <div className="mt-1 text-xs text-muted-foreground">
+                รายการนี้จะตัดสต็อกและอ้างอิงกับออเดอร์ดังกล่าว
+              </div>
+            </div>
+          )}
+
           <div>
             <Label
               className="text-xs font-semibold text-muted-foreground mb-1 block"

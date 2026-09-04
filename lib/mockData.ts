@@ -64,13 +64,14 @@ export const dashboardSummary = {
 
 // ── Quotations ────────────────────────────────────────────────
 export type QuotationStatus = 'Draft' | 'Sent' | 'Approved' | 'Rejected' | 'Converted' | 'Expired'
-export type LeadSource = 'Live' | 'LINE' | 'Facebook' | 'Shopee' | 'Walk-in' | 'B2B Referral'
+export type LeadSource = string
 export type AuditEvent = { action: string; by: string; at: string; note: string }
-export type QuotationLine = { sku: string; qty: number; reservedQty: number }
+export type QuotationLine = { sku: string; qty: number; price?: number; reservedQty: number }
 export type Quotation = {
   id: number | string
   code?: string
   customer: string
+  customerAddress?: string
   date: string
   validUntil: string
   amount: number
@@ -85,6 +86,13 @@ export type Quotation = {
   updatedAt: string
   auditTrail: AuditEvent[]
 }
+
+export type Customer = { name: string; address: string }
+
+export const customers: Customer[] = [
+  { name: 'P2J MANAGEMENT CO.,LTD', address: '99/9 ถนนสุขุมวิท แขวงคลองตัน เขตคลองเตย กรุงเทพฯ 10110' },
+  
+]
 
 export const quotations: Quotation[] = [
   { id: 'QT-2026-0045', customer: 'บริษัท ABC Pet Supply',  date: '2026-05-01', validUntil: '2026-05-15', amount: 125400, status: 'Approved',   items: 4, soRef: 'SO-2026-0412', leadSource: 'B2B Referral', lines: [{ sku: 'CAT-CHK-30', qty: 20, reservedQty: 20 }, { sku: 'CAT-SAL-100', qty: 18, reservedQty: 18 }], reservedStock: true, createdBy: 'Admin User', updatedBy: 'Admin User', updatedAt: '2026-05-02T09:30', auditTrail: [{ action: 'Approved', by: 'Admin User', at: '2026-05-02T09:30', note: 'ลูกค้ายืนยันยอดและเงื่อนไขแล้ว' }] },

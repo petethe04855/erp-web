@@ -81,14 +81,12 @@ export function ScheduleLiveSheet({
   const [scheduleForm, setScheduleForm] = useState(BLANK_SCHEDULE);
   const [scheduleErrors, setScheduleErrors] = useState<{
     date?: string;
-    topic?: string;
     time?: string;
   }>({});
 
   function submitSchedule() {
     const errors: typeof scheduleErrors = {};
     if (!scheduleForm.date) errors.date = "กรุณาเลือกวันที่";
-    if (!scheduleForm.topic.trim()) errors.topic = "กรุณาใส่หัวข้อ";
     if (!calcDuration(scheduleForm.startTime, scheduleForm.endTime)) {
       errors.time = "เวลาจบต้องมากกว่าเวลาเริ่ม";
     }
@@ -224,24 +222,6 @@ export function ScheduleLiveSheet({
             )
           )}
 
-          <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
-              หัวข้อ / Topic *
-            </Label>
-            <Input
-              value={scheduleForm.topic}
-              onChange={(e) => {
-                setScheduleForm((f) => ({ ...f, topic: e.target.value }));
-                setScheduleErrors((er) => ({ ...er, topic: undefined }));
-              }}
-              placeholder="เช่น รีวิวอาหารใหม่ แฮมอน+ไก่..."
-            />
-            {scheduleErrors.topic && (
-              <div className="text-xs text-red-500 mt-1" style={{ color: "var(--erp-neg)" }}>
-                {scheduleErrors.topic}
-              </div>
-            )}
-          </div>
         </SheetBody>
         <SheetFooter className="flex justify-end gap-2 border-t p-4 px-6">
           <Button

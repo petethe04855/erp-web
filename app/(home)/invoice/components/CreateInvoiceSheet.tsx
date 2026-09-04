@@ -30,6 +30,7 @@ const BLANK = {
   issueDate: today,
   dueDate: due14,
   amount: 0,
+  includeVat: true,
 };
 
 interface SalesOrder {
@@ -55,6 +56,7 @@ interface CreateInvoiceSheetProps {
     issueDate: string;
     dueDate: string;
     amount: number;
+    includeVat: boolean;
   }) => void;
   showToast: (msg: string) => void;
 }
@@ -81,6 +83,7 @@ export function CreateInvoiceSheet({
     issueDate: string;
     dueDate: string;
     amount: number | "";
+    includeVat: boolean;
   }>(BLANK);
   const [validationError, setValidationError] = useState("");
 
@@ -135,6 +138,7 @@ export function CreateInvoiceSheet({
       issueDate: form.issueDate,
       dueDate: form.dueDate,
       amount: Number(form.amount),
+      includeVat: form.includeVat,
       lines: form.soRef ? undefined : [{ sku: "MANUAL", name: form.lineDescription, qty: 1, unit: "service", unitPrice: Number(form.amount), lineTotal: Number(form.amount) }],
     });
     setValidationError("");
@@ -187,6 +191,11 @@ export function CreateInvoiceSheet({
             <div><Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>เลขผู้เสียภาษี</Label><Input value={form.customerTaxId} onChange={(e) => setForm((f) => ({ ...f, customerTaxId: e.target.value }))} placeholder="13 หลัก" /></div>
             <div><Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>สาขา</Label><Input value={form.customerBranch} onChange={(e) => setForm((f) => ({ ...f, customerBranch: e.target.value }))} placeholder="สำนักงานใหญ่" /></div>
           </div>
+
+          <label className="flex cursor-pointer items-center gap-2 rounded-md border p-3 text-sm">
+            <input type="checkbox" checked={form.includeVat} onChange={(e) => setForm((f) => ({ ...f, includeVat: e.target.checked }))} />
+            <span>คิด VAT ใน Invoice</span>
+          </label>
 
           <div>
             <Label

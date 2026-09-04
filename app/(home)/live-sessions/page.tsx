@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Check,
   CheckSquare,
@@ -15,6 +15,8 @@ import { useTheme } from "@/lib/design/ThemeContext";
 import { Card, Mono, TopBar, fmtNum } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableHeader,
@@ -85,6 +87,7 @@ export default function LiveSessionsPage() {
     (s) => s.updateContentScheduleStatus,
   );
   const livePayroll = useErpStore((s) => s.settings.livePayroll);
+  const updateSettings = useErpStore((s) => s.updateSettings);
   const currentUser = useErpStore((s) => s.currentUser);
   const canSeeAllPayroll =
     currentUser.role === "owner" || currentUser.role === "accountant";
@@ -96,9 +99,18 @@ export default function LiveSessionsPage() {
     useState<RoundingPolicy>("actual");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [toast, setToast] = useState("");
+  const [payrollMonth, setPayrollMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [hourlyRateDraft, setHourlyRateDraft] = useState(livePayroll.hourlyRate);
+
+  useEffect(() => setHourlyRateDraft(livePayroll.hourlyRate), [livePayroll.hourlyRate]);
+
+  const monthlySessions = useMemo(
+    () => sessions.filter((session) => session.live_date.startsWith(payrollMonth)),
+    [payrollMonth, sessions],
+  );
 
   const analytics = useMemo(() => {
-    const active = sessions.filter(
+    const active = monthlySessions.filter(
       (s) => getLiveNetMinutes(s) > 0 && s.status !== "Rejected",
     );
     const clips = active.filter((s) => s.has_clip).length;
@@ -116,14 +128,14 @@ export default function LiveSessionsPage() {
       contentRate: active.length
         ? Math.round((clips / active.length) * 100)
         : 0,
-      pending: sessions.filter((s) => s.status === "Pending"),
+      pending: monthlySessions.filter((s) => s.status === "Pending"),
       contentGaps: active.filter((s) => !s.has_clip),
     };
-  }, [roundingPolicy, sessions]);
+  }, [monthlySessions, roundingPolicy]);
 
   const payrollRows = useMemo(() => {
     return liveStaff.map((staff) => {
-      const rows = sessions.filter(
+      const rows = monthlySessions.filter(
         (s) => s.staff_id === staff.id && s.status !== "Rejected",
       );
       const minutes = rows.reduce(
@@ -145,7 +157,14 @@ export default function LiveSessionsPage() {
         grossPay: hourlyPay + clipBonus,
       };
     });
-  }, [roundingPolicy, sessions, livePayroll]);
+  }, [monthlySessions, roundingPolicy, livePayroll]);
+
+  const payrollTotals = useMemo(() => payrollRows.reduce((totals, row) => ({
+    hours: totals.hours + row.hours,
+    hourlyPay: totals.hourlyPay + row.hourlyPay,
+    clipBonus: totals.clipBonus + row.clipBonus,
+    grossPay: totals.grossPay + row.grossPay,
+  }), { hours: 0, hourlyPay: 0, clipBonus: 0, grossPay: 0 }), [payrollRows]);
 
   function showToast(msg: string) {
     setToast(msg);
@@ -201,7 +220,7 @@ export default function LiveSessionsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "live-payroll.csv";
+    a.download = `live-payroll-${payrollMonth}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -356,12 +375,6 @@ export default function LiveSessionsPage() {
                       className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
                       style={{ color: "var(--erp-ink3)" }}
                     >
-                      หัวข้อ
-                    </TableHead>
-                    <TableHead
-                      className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
-                      style={{ color: "var(--erp-ink3)" }}
-                    >
                       Host
                     </TableHead>
                     <TableHead
@@ -400,12 +413,6 @@ export default function LiveSessionsPage() {
                           style={{ color: c.accent }}
                         >
                           {s.platform}
-                        </TableCell>
-                        <TableCell
-                          className="p-4 px-5 align-middle text-sm font-medium text-foreground"
-                          style={{ color: "var(--erp-ink)" }}
-                        >
-                          {s.topic}
                         </TableCell>
                         <TableCell className="p-4 px-5 align-middle">
                           <Mono t={t} size={11} color={c.accent}>
@@ -494,12 +501,6 @@ export default function LiveSessionsPage() {
                       >
                         {s.status}
                       </Badge>
-                    </div>
-                    <div
-                      className="text-sm font-semibold text-foreground leading-snug min-h-[40px]"
-                      style={{ color: "var(--erp-ink)" }}
-                    >
-                      {s.topic}
                     </div>
                   </div>
                   <div
@@ -681,6 +682,19 @@ export default function LiveSessionsPage() {
 
         {/* Rounding toggle + export buttons */}
         <div className="flex gap-2 items-center justify-end flex-wrap">
+          <div className="grid gap-1">
+            <Label className="text-[11px] text-muted-foreground">เดือนเงินเดือน</Label>
+            <Input type="month" value={payrollMonth} onChange={(event) => setPayrollMonth(event.target.value)} className="h-9 w-40" />
+          </div>
+          {canSeeAllPayroll && (
+            <div className="grid gap-1">
+              <Label className="text-[11px] text-muted-foreground">ค่าไลฟ์ต่อชั่วโมง (บาท)</Label>
+              <div className="flex gap-2">
+                <Input type="number" min={0} value={hourlyRateDraft} onChange={(event) => setHourlyRateDraft(Math.max(0, Number(event.target.value)))} className="h-9 w-32" />
+                <Button size="sm" onClick={async () => { await updateSettings({ livePayroll: { ...livePayroll, hourlyRate: hourlyRateDraft } }); showToast("บันทึกค่าไลฟ์ต่อชั่วโมงแล้ว"); }} className="h-9 bg-[var(--erp-accent)] text-white">บันทึก</Button>
+              </div>
+            </div>
+          )}
           <div
             className="inline-flex p-1 bg-muted rounded-lg border border-border"
             style={{
@@ -971,7 +985,7 @@ export default function LiveSessionsPage() {
                   className="text-sm font-bold text-foreground"
                   style={{ color: "var(--erp-ink)" }}
                 >
-                  Payroll Export Preview
+                  สรุปเงินค่าไลฟ์ประจำเดือน {payrollMonth}
                 </div>
                 <div
                   className="text-xs text-muted-foreground mt-1"
@@ -1089,6 +1103,17 @@ export default function LiveSessionsPage() {
                       </TableCell>
                     </TableRow>
                   ))}
+                  {canSeeAllPayroll && (
+                    <TableRow className="bg-muted/40 font-bold">
+                      <TableCell className="p-4 px-5">รวมประจำเดือน</TableCell>
+                      <TableCell className="p-4 px-5">{payrollTotals.hours.toFixed(2)}</TableCell>
+                      <TableCell />
+                      <TableCell />
+                      <TableCell className="p-4 px-5 text-right">{formatBaht(payrollTotals.hourlyPay)}</TableCell>
+                      <TableCell className="p-4 px-5 text-right">{formatBaht(payrollTotals.clipBonus)}</TableCell>
+                      <TableCell className="p-4 px-5 text-right">{formatBaht(payrollTotals.grossPay)}</TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>

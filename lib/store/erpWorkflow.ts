@@ -7,6 +7,7 @@ import {
   tiktokOrders as seedTiktokOrders,
   liveSessions as seedLiveSessions,
   manualOrders as seedManualOrders,
+  type LeadSource,
   type QuotationStatus,
 } from '../mockData.ts'
 import type {
@@ -103,6 +104,7 @@ export type ErpWorkflowState = {
 export type ErpWorkflowActions = {
   createQuotation: (input: CreateQuotationInput) => Quotation
   updateQuotationStatus: (id: number | string, status: QuotationStatus, note: string) => Quotation | null
+  updateQuotationLeadSource: (id: number | string, leadSource: LeadSource) => Quotation | null
   convertQuotationToSalesOrder: (quotationId: number | string) => SalesOrder | null
   createSalesOrder: (input: CreateSalesOrderInput) => SalesOrder
   updateSalesOrderStatus: (soId: number | string, status: SalesOrderStatus) => SalesOrder | null
@@ -556,9 +558,11 @@ function nextId(prefix: string, ids: Array<number | string>) {
   }, 0)
   return `${prefix}${String(max + 1).padStart(4, '0')}`
 }
-function lineAmount(lines: Array<{ sku: string; qty: number }>, products: Product[]) {
+function lineAmount(lines: Array<{ sku: string; qty: number; price?: number }>, products: Product[]) {
   return lines.reduce((s, l) => {
-    const p = products.find(p => p.sku === l.sku); return s + (p ? p.price * l.qty : 0)
+    const p = products.find(p => p.sku === l.sku)
+    const price = l.price ?? p?.price ?? 0
+    return s + price * l.qty
   }, 0)
 }
 
@@ -606,8 +610,10 @@ function expandBundleLines(
   }
   return expanded
 }
-function validLines(lines: Array<{ sku: string; qty: number }>): QuotationLine[] {
-  return lines.filter(l => l.sku && l.qty > 0).map(l => ({ sku: l.sku, qty: l.qty, reservedQty: 0 }))
+function validLines(lines: Array<{ sku: string; qty: number; price: number }>): QuotationLine[] {
+  return lines
+    .filter(l => l.sku && l.qty > 0 && l.price >= 0)
+    .map(l => ({ sku: l.sku, qty: l.qty, price: l.price, reservedQty: 0 }))
 }
 function audit(trail: AuditEvent[] | undefined | null, action: string, by: string, note: string): AuditEvent[] {
   return [{ action, by, at: nowIso(), note }, ...(trail || [])]
@@ -671,12 +677,13 @@ export function createErpWorkflowState(
 
     createQuotation(input) {
       const lines = validLines(input.lines)
-      if (!input.customer || !input.validUntil || lines.length === 0)
-        throw new Error('Quotation requires customer, validUntil, and at least one valid line')
+      if (!input.customer || !input.customerAddress || !input.validUntil || lines.length === 0)
+        throw new Error('Quotation requires customer, customerAddress, validUntil, and at least one valid line')
       const by = get().currentUser.name
       const quotation: Quotation = {
         id: nextId('QT-2026-', get().quotations.map(q => q.id)),
-        customer: input.customer, date: todayIso(), validUntil: input.validUntil,
+        customer: input.customer, customerAddress: input.customerAddress,
+        date: todayIso(), validUntil: input.validUntil,
         amount: lineAmount(lines, get().products), status: 'Draft', items: lines.length,
         soRef: null, leadSource: input.leadSource, lines, reservedStock: false,
         createdBy: by, updatedBy: by, updatedAt: nowIso(),
@@ -698,13 +705,39 @@ export function createErpWorkflowState(
       return updated
     },
 
+    updateQuotationLeadSource(quotationId, leadSource) {
+      const quotation = get().quotations.find(q => q.id === quotationId)
+      if (!quotation) return null
+      const by = get().currentUser.name
+      const updated: Quotation = {
+        ...quotation,
+        leadSource,
+        updatedBy: by,
+        updatedAt: nowIso(),
+        auditTrail: audit(
+          quotation.auditTrail,
+          'Lead Source Updated',
+          by,
+          `เปลี่ยน Lead Source จาก ${quotation.leadSource} เป็น ${leadSource}`,
+        ),
+      }
+      set(s => ({
+        quotations: s.quotations.map(q => q.id === quotationId ? updated : q),
+      }))
+      return updated
+    },
+
     convertQuotationToSalesOrder(quotationId) {
       const state = get()
       if (state.salesOrders.find(o => o.qtRef === quotationId)) return null
       const q = state.quotations.find(q => q.id === quotationId)
       if (!q || !['Approved', 'Sent'].includes(q.status)) return null
       const by = state.currentUser.name
-      const soLines: SalesOrderLine[] = q.lines.map(l => ({ sku: l.sku, qty: l.qty }))
+      const soLines: SalesOrderLine[] = q.lines.map(l => ({
+        sku: l.sku,
+        qty: l.qty,
+        unitPrice: l.price ?? state.products.find(p => p.sku === l.sku)?.price ?? 0,
+      }))
       const so: SalesOrder = {
         id: nextId('SO-2026-', state.salesOrders.map(o => o.id)),
         customer: q.customer, date: todayIso(), amount: q.amount,
@@ -1060,6 +1093,7 @@ export function createErpWorkflowState(
         id, sku: input.sku, skuName: product.name,
         qty: input.qty, reason: input.reason as GoodsIssueReason,
         note: input.note, date: todayIso(), issuedBy: by,
+        channel: input.channel, orderRef: input.orderRef?.trim() || undefined,
       }
 
       if (product.isBundle) {
@@ -1122,18 +1156,12 @@ export function createErpWorkflowState(
       const by = get().currentUser.name
       const id = nextId('RET-2026-', get().stockReturns.map(r => r.id))
 
-      let channel = input.channel || 'Manual'
-      if (input.soRef) {
-        const so = get().salesOrders.find(o => o.id === input.soRef)
-        if (so) channel = so.channel
-      }
-
       const ret: StockReturn = {
-        id, soRef: input.soRef, sku: input.sku, skuName,
+        id, soRef: '', sku: input.sku, skuName,
         qty: input.qty, condition: input.condition as ReturnCondition,
         reason: input.reason as ReturnReason,
         note: input.note, date: todayIso(), returnedBy: by, refunded: false,
-        channel, status: 'Pending Approval',
+        channel: input.channel || 'Manual', status: 'Pending Approval',
       }
       set(s => ({
         stockReturns: [ret, ...s.stockReturns],
