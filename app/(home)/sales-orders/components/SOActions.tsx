@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import type { SalesOrderStatus } from '@/lib/store/erpWorkflow'
 
-const LIVE_CANCELLABLE = ['Pending', 'Processing', 'รอชำระจากไลฟ์', 'ยืนยัน Cart แล้ว', 'แพ็กแล้ว/รอส่ง'] as const
+const LIVE_CANCELLABLE = ['Pending', 'รอชำระจากไลฟ์', 'ยืนยัน Cart แล้ว', 'แพ็กแล้ว/รอส่ง'] as const
 
 interface SOActionsProps {
   status: SalesOrderStatus
@@ -45,8 +45,7 @@ export default function SOActions({
 
   return (
     <div className="flex items-center gap-1.5 justify-end">
-      {status === 'Pending' && <Button disabled={updating} onClick={() => changeStatus('Processing')} size="xs" className="cursor-pointer bg-[var(--erp-info)] hover:opacity-90 border-none text-white shadow-none">{updating ? 'Saving...' : 'Start'}</Button>}
-      {status === 'Processing' && <Button disabled={updating} onClick={() => changeStatus('Completed')} size="xs" className="cursor-pointer bg-[var(--erp-pos)] hover:opacity-90 border-none text-white shadow-none">{updating ? 'Completing...' : 'Complete'}</Button>}
+      {status === 'Pending' && <Button disabled={updating} onClick={() => changeStatus('Completed')} size="xs" className="cursor-pointer bg-[var(--erp-pos)] hover:opacity-90 border-none text-white shadow-none">{updating ? 'Completing...' : 'Complete'}</Button>}
       {status === 'Completed' && !hasInv && <Button onClick={onInvoice} size="xs" className="cursor-pointer bg-[var(--erp-accent)] hover:opacity-90 border-none text-white shadow-none">Invoice</Button>}
       {status === 'Completed' && hasInv && <span className="text-xs font-semibold text-emerald-600" style={{ color: 'var(--erp-pos)' }}>Invoiced</span>}
       {canCancel && (

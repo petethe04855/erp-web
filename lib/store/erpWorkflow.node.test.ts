@@ -14,12 +14,16 @@ test('create quotation defaults to Draft', () => {
 
   const quotation = store.getState().createQuotation({
     customer: 'Phase 1 Customer',
+    customerAddress: '123 Test Road, Bangkok 10110',
     validUntil: '2026-06-01',
     leadSource: 'Live',
-    lines: [{ sku: 'CAT-CHK-30', qty: 2 }],
+    lines: [{ sku: 'CAT-CHK-30', qty: 2, price: 125 }],
   })
 
   assert.equal(quotation.customer, 'Phase 1 Customer')
+  assert.equal(quotation.customerAddress, '123 Test Road, Bangkok 10110')
+  assert.equal(quotation.lines[0].price, 125)
+  assert.equal(quotation.amount, 250)
   assert.equal(quotation.status, 'Draft')
   assert.equal(store.getState().quotations.length, before + 1)
   assert.equal(store.getState().quotations[0].id, quotation.id)
@@ -247,6 +251,55 @@ test('goods receive rejects over-receive', () => {
   })
 
   assert.equal(gr, null, 'should reject over-receive')
+})
+
+test('update quotation lead source', () => {
+  const store = freshStore()
+  const quotation = store.getState().quotations[0]
+  const updated = store.getState().updateQuotationLeadSource(quotation.id, 'Facebook')
+
+  assert.equal(updated?.leadSource, 'Facebook')
+  assert.equal(store.getState().quotations[0].leadSource, 'Facebook')
+  assert.equal(updated?.auditTrail[0].action, 'Lead Source Updated')
+})
+
+test('stock return can be created without a sales order', () => {
+  const store = freshStore()
+  const before = store.getState().products.find(product => product.sku === 'CAT-CHK-30')!.stock
+
+  const stockReturn = store.getState().createStockReturn({
+    sku: 'CAT-CHK-30',
+    qty: 2,
+    condition: 'ดี',
+    reason: 'อื่นๆ',
+    note: 'รับคืนเข้าคลังโดยตรง',
+    channel: 'Manual',
+  })
+
+  assert.equal(stockReturn.soRef, '')
+  assert.equal(stockReturn.status, 'Pending Approval')
+  store.getState().updateStockReturnStatus(stockReturn.id, 'Approved')
+  store.getState().updateStockReturnStatus(stockReturn.id, 'QC Passed')
+  assert.equal(store.getState().products.find(product => product.sku === 'CAT-CHK-30')!.stock, before + 2)
+})
+
+test('goods issue records Shopee order reference and deducts stock', () => {
+  const store = freshStore()
+  const before = store.getState().products.find(product => product.sku === 'CAT-CHK-30')!.stock
+
+  const issue = store.getState().createGoodsIssue({
+    sku: 'CAT-CHK-30',
+    qty: 2,
+    reason: 'อื่นๆ',
+    note: 'ตัดตามออเดอร์ Shopee',
+    channel: 'Shopee',
+    orderRef: 'SP-TEST-001',
+  })
+
+  assert.ok(issue)
+  assert.equal(issue.channel, 'Shopee')
+  assert.equal(issue.orderRef, 'SP-TEST-001')
+  assert.equal(store.getState().products.find(product => product.sku === 'CAT-CHK-30')!.stock, before - 2)
 })
 
 test('finished goods can be received directly without PR or PO', () => {

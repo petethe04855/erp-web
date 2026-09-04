@@ -200,6 +200,15 @@ a:focus-visible {
   .erp-page-body { padding: 16px 14px 32px; }
 }
 
+/* A4 documents stay outside the visible application and are only used by
+   PDF export or the browser print flow. */
+.document-export-template {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  pointer-events: none;
+}
+
 @media print {
   /* Hide everything that shouldn't print */
   .no-print,
@@ -226,6 +235,13 @@ a:focus-visible {
     color: #000 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+
+  .document-export-template {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    pointer-events: auto !important;
   }
 
   /* Invoice page grid — single column, no side panels */

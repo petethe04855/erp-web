@@ -15,7 +15,6 @@ const MODULE_SECTIONS: Array<{
       { key: "quotation", label: "Quotation", desc: "ใบเสนอราคา" },
       { key: "salesOrders", label: "Sales Order", desc: "ออร์เดอร์ขาย" },
       { key: "invoice", label: "Invoice", desc: "ใบแจ้งหนี้" },
-      { key: "returns", label: "Returns", desc: "คืนสินค้า" },
     ],
   },
   {
@@ -28,6 +27,7 @@ const MODULE_SECTIONS: Array<{
   {
     section: "INVENTORY",
     items: [
+      { key: "returns", label: "Returns", desc: "คืนสินค้า" },
       { key: "skuMaster", label: "SKU Master", desc: "ข้อมูลสินค้า" },
       { key: "stockBalance", label: "Stock Balance", desc: "สต็อคคงคลัง" },
       { key: "goodsReceive", label: "Stock Receipt", desc: "รับสินค้าเข้า" },
@@ -39,7 +39,6 @@ const MODULE_SECTIONS: Array<{
   {
     section: "FINANCE",
     items: [
-      { key: "expenses", label: "Expenses", desc: "ค่าใช้จ่าย" },
       { key: "plReport", label: "Reports & P&L", desc: "รายงานบัญชี สต็อก และกำไร-ขาดทุน" },
       { key: "budget", label: "Budget", desc: "งบประมาณ" },
     ],

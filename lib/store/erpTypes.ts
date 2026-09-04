@@ -4,11 +4,26 @@
 import type { AuditEvent, Quotation, QuotationLine, QuotationStatus, LeadSource, LiveSession, LiveStatus } from '../mockData.ts'
 export type { AuditEvent, Quotation, QuotationLine, QuotationStatus, LeadSource, LiveSession, LiveStatus }
 
+export type Customer = {
+  id: string
+  name: string
+  taxId?: string
+  branch?: string
+  phone?: string
+  email?: string
+  website?: string
+  contactPerson?: string
+  address: string
+  logoUrl?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
 // ── Sales ──────────────────────────────────────────────────────────────────
 
 // Gap 4: added live-commerce statuses
 export type SalesOrderStatus =
-  | 'Pending' | 'Processing' | 'Completed' | 'Cancelled'
+  | 'Pending' | 'Completed' | 'Cancelled'
   | 'รอชำระจากไลฟ์' | 'ยืนยัน Cart แล้ว' | 'แพ็กแล้ว/รอส่ง'
 
 export type SalesOrderChannel = 'Manual' | 'LINE' | 'Shopee' | 'TikTok'
@@ -58,6 +73,7 @@ export type Invoice = {
   dueDate: string
   subtotal?: number
   vatAmount?: number
+  includeVat?: boolean
   amount: number
   paid: number
   credited?: number
@@ -301,17 +317,18 @@ export const ROLE_BADGE_STYLE: Record<UserRole, { bg: string; color: string }> =
 export const ROLE_NAV: Record<UserRole, string[] | '*'> = {
   owner:      '*',
   sales:      ['/', '/dashboard', '/sales-orders', '/quotation', '/invoice', '/manual-order', '/tiktok-orders', '/live-sessions', '/sampling'],
-  warehouse:  ['/', '/dashboard', '/sku', '/bom', '/stock', '/goods-receive', '/goods-issue', '/production-run', '/purchase-req', '/purchase-order', '/stock-transfer', '/stock-check', '/sampling'],
-  accountant: ['/', '/dashboard', '/invoice', '/sales-orders', '/purchase-order', '/journal', '/reports', '/integrity', '/expenses', '/budget'],
+  warehouse:  ['/', '/dashboard', '/returns', '/sku', '/bom', '/stock', '/goods-receive', '/goods-issue', '/production-run', '/purchase-req', '/purchase-order', '/stock-transfer', '/stock-check', '/sampling'],
+  accountant: ['/', '/dashboard', '/invoice', '/sales-orders', '/purchase-order', '/journal', '/reports', '/integrity', '/budget'],
 }
 
 // ── Input types ────────────────────────────────────────────────────────────
 
 export type CreateQuotationInput = {
   customer: string
+  customerAddress: string
   validUntil: string
   leadSource: LeadSource
-  lines: Array<{ sku: string; qty: number }>
+  lines: Array<{ sku: string; qty: number; price: number }>
 }
 
 export type CreateSalesOrderInput = {
@@ -397,6 +414,8 @@ export type GoodsIssue = {
   note: string
   date: string
   issuedBy: string
+  channel?: 'Manual' | 'Shopee' | 'TikTok'
+  orderRef?: string
 }
 
 export type CreateGoodsIssueInput = {
@@ -404,6 +423,8 @@ export type CreateGoodsIssueInput = {
   qty: number
   reason: GoodsIssueReason
   note: string
+  channel: 'Manual' | 'Shopee' | 'TikTok'
+  orderRef?: string
 }
 
 // ── Returns ────────────────────────────────────────────────────────────────
@@ -445,7 +466,6 @@ export type StockReturn = {
 }
 
 export type CreateStockReturnInput = {
-  soRef: string
   sku: string
   qty: number
   condition: ReturnCondition
@@ -679,6 +699,7 @@ export type CompanySettings = {
   vatRate: number           // e.g. 7 (%)
   invoicePrefix: string     // e.g. 'INV-2026-'
   soPrefix: string          // e.g. 'SO-2026-'
+  logoUrl?: string
 }
 
 export type NotificationSettings = {
@@ -698,11 +719,11 @@ export type ModuleSettings = {
   quotation: boolean         // /quotation
   salesOrders: boolean       // /sales-orders
   invoice: boolean           // /invoice
-  returns: boolean           // /returns
   // PURCHASING
   purchaseReq: boolean       // /purchase-req
   purchaseOrder: boolean     // /purchase-order
   // INVENTORY
+  returns: boolean           // /returns
   skuMaster: boolean         // /sku
   stockBalance: boolean      // /stock
   goodsReceive: boolean      // /goods-receive
@@ -744,6 +765,8 @@ export type LivePayrollSettings = {
   hourlyRate: number
   /** ฿ per clip — same global bonus for all live staff */
   clipBonus: number
+  /** Optional overrides keyed by live staff ID. */
+  staffRates?: Record<string, number>
 }
 
 export type ErpSettings = {

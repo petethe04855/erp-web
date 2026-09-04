@@ -19,6 +19,9 @@ import { exportXlsx } from "@/lib/utils/exportUtil";
 import { CreateInvoiceSheet } from "./components/CreateInvoiceSheet";
 import { RecordPaymentDialog } from "./components/RecordPaymentDialog";
 import { OutstandingCustomersPanel } from "./components/OutstandingCustomersPanel";
+import { exportInvoicePdf } from "./components/exportInvoicePdf";
+import { InvoicePrintTemplate } from "./customer/components/InvoicePrintTemplate";
+import { templateId } from "./customer/components/types";
 
 function fmtBaht(n: number, dec = 0): string {
   const sign = n < 0 ? "−" : "";
@@ -138,10 +141,15 @@ function preparePdfElement(source: HTMLElement) {
 
   const wrapper = document.createElement("div");
   wrapper.style.position = "fixed";
-  wrapper.style.left = "-10000px";
+  wrapper.style.left = "0";
   wrapper.style.top = "0";
   wrapper.style.width = `${source.offsetWidth}px`;
   wrapper.style.background = "#ffffff";
+  wrapper.style.zIndex = "2147483647";
+  wrapper.style.pointerEvents = "none";
+  clone.style.position = "relative";
+  clone.style.left = "0";
+  clone.style.top = "0";
   wrapper.appendChild(clone);
   document.body.appendChild(wrapper);
 
@@ -299,7 +307,10 @@ export default function InvoicePage() {
     showToast(`สร้าง ${inv.id} แล้ว`);
   }
 
-  function handlePayment(amount: number, details: { accountCode: string; method: string; reference: string }) {
+  function handlePayment(
+    amount: number,
+    details: { accountCode: string; method: string; reference: string },
+  ) {
     const updated = recordPayment(selected.id, amount, details);
     setPayOpen(false);
     if (updated) {
@@ -326,33 +337,14 @@ export default function InvoicePage() {
     if (!selected) return;
     try {
       showToast("กำลังเตรียมไฟล์ PDF...");
-      const html2pdf = (await import("html2pdf.js")).default;
-
-      const element = document.querySelector(".invoice-card") as HTMLElement;
+      const element = document.getElementById(templateId(selected.id));
       if (!element) {
         showToast("ไม่พบข้อมูล Invoice Card");
         return;
       }
-      const pdf = preparePdfElement(element);
 
-      const opt = {
-        margin: 10,
-        filename: `${selected.id}.pdf`,
-        image: { type: "jpeg" as const, quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          backgroundColor: "#ffffff",
-        },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" as const },
-      };
+      await exportInvoicePdf(element, `${selected.code || selected.id}.pdf`);
 
-      try {
-        await html2pdf().set(opt).from(pdf.element).save();
-      } finally {
-        pdf.cleanup();
-      }
       showToast("โหลดไฟล์สำเร็จ");
     } catch (err: any) {
       console.error(err);
@@ -462,12 +454,12 @@ export default function InvoicePage() {
       >
         Export PDF
       </Button>
-      <Button
+      {/* <Button
         onClick={() => setPayOpen(true)}
         className="cursor-pointer bg-[var(--erp-accent)] text-white hover:opacity-90 border-none shadow-none"
       >
         Record payment
-      </Button>
+      </Button> */}
       {documentLots.length > 1 && (
         <select
           value={activeLot}
@@ -503,6 +495,24 @@ export default function InvoicePage() {
 
       <div className="p-4 md:p-8 max-w-full mx-auto grid grid-cols-1 gap-6 items-start print:p-0">
         <div className="grid gap-6">
+          <div className="document-export-template bg-white">
+            <InvoicePrintTemplate
+              invoice={selected}
+              company={settings.company}
+              soRef={salesOrder?.code || String(selected.soRef || "–")}
+              lines={documentLines.map((line, index) => ({
+                key: `${line.sku}-${line.lot}-${index}`,
+                sku: String(line.sku),
+                lot: line.lot,
+                name: line.name,
+                qty: line.qty,
+                unit: "ชิ้น",
+                unitPrice: line.price,
+                discount: Math.max(0, line.qty * line.price - line.amount),
+                total: line.amount,
+              }))}
+            />
+          </div>
           <div className="no-print order-2 grid gap-3 mt-2">
             <div className="flex justify-between items-center">
               <span
@@ -511,14 +521,14 @@ export default function InvoicePage() {
               >
                 Invoice ledger
               </span>
-              <Button
+              {/* <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setCreateOpen(true)}
                 className="cursor-pointer h-7"
               >
                 Create invoice
-              </Button>
+              </Button> */}
             </div>
             <Card
               t={t}
@@ -586,13 +596,17 @@ export default function InvoicePage() {
                         String(order.id) === String(inv.soRef) ||
                         String(order.code) === String(inv.soRef),
                     );
-                    const invoiceItems =
-                      invoiceOrder?.lines.map((line, lineIndex) => ({
-                        key: line.id ?? `${line.sku}-${lineIndex}`,
-                        name:
-                          products.find((product) => product.sku === line.sku)
-                            ?.name || line.sku,
-                      })) ?? [];
+                    const invoiceItems = inv.lines?.length
+                      ? inv.lines.map((line, lineIndex) => ({
+                          key: line.id ?? `${line.sku}-${lineIndex}`,
+                          name: `${line.name || line.sku}${line.lot && line.lot !== "UNSPECIFIED" ? ` (Lot: ${line.lot})` : ""}`,
+                        }))
+                      : (invoiceOrder?.lines.map((line, lineIndex) => ({
+                          key: line.id ?? `${line.sku}-${lineIndex}`,
+                          name:
+                            products.find((product) => product.sku === line.sku)
+                              ?.name || line.sku,
+                        })) ?? []);
                     return (
                       <TableRow
                         key={inv.id}
@@ -667,7 +681,11 @@ export default function InvoicePage() {
                             variant="outline"
                             onClick={(event) => {
                               event.stopPropagation();
-                              window.location.href = `/invoice/customer?name=${encodeURIComponent(inv.customer)}`;
+                              const lotParam =
+                                activeLot && activeLot !== "UNSPECIFIED"
+                                  ? `&lot=${encodeURIComponent(activeLot)}`
+                                  : "";
+                              window.location.href = `/invoice/customer?name=${encodeURIComponent(inv.customer)}&invoiceId=${encodeURIComponent(inv.id)}${lotParam}`;
                             }}
                           >
                             ดูรายละเอียดลูกค้า

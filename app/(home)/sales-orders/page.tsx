@@ -33,10 +33,16 @@ import SalesOrderFormPanel, { Line } from "./components/SalesOrderFormPanel";
 const FILTERS: Array<{ key: "all" | SalesOrderStatus; label: string }> = [
   { key: "all", label: "All" },
   { key: "Pending", label: "Pending" },
-  { key: "Processing", label: "Processing" },
   { key: "Completed", label: "Completed" },
   { key: "Cancelled", label: "Cancelled" },
 ];
+
+function canonicalOrderStatus(status: string): SalesOrderStatus {
+  // Older quotations created Sales Entries as "Pending Payment". Treat those
+  // records as Pending so they remain visible and can enter the normal flow.
+  if (status === "Pending Payment" || status === "Processing") return "Pending";
+  return status as SalesOrderStatus;
+}
 
 const BLANK = {
   customer: "",
@@ -74,6 +80,7 @@ export default function SalesOrdersPage() {
   const { tokens: t } = useTheme();
   const c = t.color;
   const salesOrders = useErpStore((state) => state.salesOrders);
+  const quotations = useErpStore((state) => state.quotations);
   const invoices = useErpStore((state) => state.invoices);
   const products = useErpStore((state) => state.products);
   const createSalesOrder = useErpStore((state) => state.createSalesOrder);
@@ -102,10 +109,11 @@ export default function SalesOrdersPage() {
   useEffect(() => {
     for (const order of salesOrders) {
       if (order.status !== "Completed") continue;
-      const hasInvoice = invoices.some((invoice) =>
-        invoice.soRef === order.code ||
-        invoice.soRef === String(order.id) ||
-        invoice.salesOrderId === order.id
+      const hasInvoice = invoices.some(
+        (invoice) =>
+          invoice.soRef === order.code ||
+          invoice.soRef === String(order.id) ||
+          invoice.salesOrderId === order.id,
       );
       if (hasInvoice || autoInvoiceRequested.current.has(order.id)) continue;
       autoInvoiceRequested.current.add(order.id);
@@ -113,15 +121,34 @@ export default function SalesOrdersPage() {
     }
   }, [salesOrders, invoices, createInvoiceFromSO]);
 
+  function resolveChannel(order: (typeof salesOrders)[0]) {
+    if (order.channel && order.channel !== "Manual") return order.channel;
+    if (order.qtRef) {
+      const qt = quotations.find(
+        (q) => q.code === order.qtRef || String(q.id) === String(order.qtRef),
+      );
+      if (qt?.leadSource) {
+        const lead = qt.leadSource.toLowerCase();
+        if (lead.includes("tiktok")) return "TikTok";
+        if (lead.includes("shopee")) return "Shopee";
+        if (lead.includes("line")) return "LINE";
+        return qt.leadSource;
+      }
+    }
+    return order.channel || "Manual";
+  }
+
   const filtered = salesOrders.filter((order) => {
-    if (filter !== "all" && order.status !== filter) return false;
+    if (filter !== "all" && canonicalOrderStatus(order.status) !== filter)
+      return false;
     if (
       search &&
       !(
         String(order.code || order.id)
           .toLowerCase()
           .includes(search.toLowerCase()) ||
-        order.customer.toLowerCase().includes(search.toLowerCase())
+        order.customer.toLowerCase().includes(search.toLowerCase()) ||
+        resolveChannel(order).toLowerCase().includes(search.toLowerCase())
       )
     )
       return false;
@@ -133,7 +160,9 @@ export default function SalesOrdersPage() {
     acc[item.key] =
       item.key === "all"
         ? salesOrders.length
-        : salesOrders.filter((order) => order.status === item.key).length;
+        : salesOrders.filter(
+            (order) => canonicalOrderStatus(order.status) === item.key,
+          ).length;
     return acc;
   }, {});
 
@@ -158,6 +187,17 @@ export default function SalesOrdersPage() {
   }
 
   async function handleSubmit() {
+    if (!form.qtRef) {
+      setFormError("กรุณาเลือก Quotation");
+      return;
+    }
+    const selectedQuotation = quotations.find(
+      (quotation) => String(quotation.code || quotation.id) === form.qtRef,
+    );
+    if (!selectedQuotation || selectedQuotation.customer !== form.customer) {
+      setFormError("ข้อมูลลูกค้าต้องตรงกับ Quotation ที่เลือก");
+      return;
+    }
     if (!form.customer) {
       setFormError("กรุณากรอกชื่อบริษัท");
       return;
@@ -172,19 +212,28 @@ export default function SalesOrdersPage() {
     const quantitiesBySku = new Map<string, number>();
     for (const line of form.lines) {
       if (!line.sku) continue;
-      quantitiesBySku.set(line.sku, (quantitiesBySku.get(line.sku) ?? 0) + Number(line.qty));
+      quantitiesBySku.set(
+        line.sku,
+        (quantitiesBySku.get(line.sku) ?? 0) + Number(line.qty),
+      );
     }
     for (const [sku, qty] of quantitiesBySku) {
       const product = products.find((item) => item.sku === sku);
       const available = product ? product.stock - product.reservedQty : 0;
       if (qty > available) {
-        setFormError(`Stock ${sku} ไม่พอ: ต้องการ ${qty}, พร้อมขาย ${Math.max(0, available)}`);
+        setFormError(
+          `Stock ${sku} ไม่พอ: ต้องการ ${qty}, พร้อมขาย ${Math.max(0, available)}`,
+        );
         return;
       }
     }
     const validLines = form.lines
       .filter((line) => line.sku)
-      .map((line) => ({ sku: line.sku, qty: Number(line.qty), unitPrice: Number(line.unitPrice) }));
+      .map((line) => ({
+        sku: line.sku,
+        qty: Number(line.qty),
+        unitPrice: Number(line.unitPrice),
+      }));
     if (validLines.length === 0) {
       setFormError("กรุณาเลือกรายการสินค้าอย่างน้อย 1 รายการ");
       return;
@@ -280,7 +329,7 @@ export default function SalesOrdersPage() {
             >
               Export CSV
             </Button>
-            <Button
+            {/* <Button
               variant="default"
               size="sm"
               onClick={() => {
@@ -290,7 +339,7 @@ export default function SalesOrdersPage() {
               className="cursor-pointer bg-[var(--erp-accent)] text-white hover:opacity-90 shadow-none border-none"
             >
               + New Order
-            </Button>
+            </Button> */}
           </div>
         }
       />
@@ -413,6 +462,7 @@ export default function SalesOrdersPage() {
             </TableHeader>
             <TableBody>
               {filtered.map((order, i) => {
+                const displayStatus = canonicalOrderStatus(order.status);
                 const hasInv = invoices.some(
                   (inv) =>
                     inv.soRef === order.code ||
@@ -443,7 +493,7 @@ export default function SalesOrdersPage() {
                         className="text-xs text-muted-foreground"
                         style={{ color: "var(--erp-ink2)" }}
                       >
-                        {order.channel}
+                        {resolveChannel(order)}
                       </span>
                     </TableCell>
                     <TableCell className="p-3">
@@ -461,17 +511,28 @@ export default function SalesOrdersPage() {
                         {fmtBaht2(order.amount)}
                       </Mono>
                     </TableCell>
-                    <TableCell className="p-3 text-right" title={order.lines.flatMap((line) => line.allocations ?? []).map((allocation) => `${allocation.lot}: ${allocation.qty} × ฿${allocation.unitCost.toFixed(2)}`).join("\n")}>
+                    <TableCell
+                      className="p-3 text-right"
+                      title={order.lines
+                        .flatMap((line) => line.allocations ?? [])
+                        .map(
+                          (allocation) =>
+                            `${allocation.lot}: ${allocation.qty} × ฿${allocation.unitCost.toFixed(2)}`,
+                        )
+                        .join("\n")}
+                    >
                       <Mono t={t} size={12} color={c.ink2}>
-                        {order.status === "Completed" ? fmtBaht2(order.totalCogs ?? 0) : "—"}
+                        {displayStatus === "Completed"
+                          ? fmtBaht2(order.totalCogs ?? 0)
+                          : "—"}
                       </Mono>
                     </TableCell>
                     <TableCell className="p-3">
-                      <StatusPill t={t} status={order.status} />
+                      <StatusPill t={t} status={displayStatus} />
                     </TableCell>
                     <TableCell className="p-3 text-right min-w-[170px]">
                       <SOActions
-                        status={order.status}
+                        status={displayStatus}
                         hasInv={hasInv}
                         onStatus={(status) =>
                           handleStatusChange(order.id, status)
@@ -505,6 +566,14 @@ export default function SalesOrdersPage() {
         form={form}
         setForm={setForm}
         products={products}
+        quotations={quotations.filter(
+          (quotation) =>
+            ["Approved", "Sent"].includes(quotation.status) &&
+            !salesOrders.some(
+              (order) =>
+                String(order.qtRef) === String(quotation.code || quotation.id),
+            ),
+        )}
         lineTotal={lineTotal}
         error={formError}
         onSubmit={handleSubmit}

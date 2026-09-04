@@ -64,13 +64,14 @@ export const dashboardSummary = {
 
 // ── Quotations ────────────────────────────────────────────────
 export type QuotationStatus = 'Draft' | 'Sent' | 'Approved' | 'Rejected' | 'Converted' | 'Expired'
-export type LeadSource = 'Live' | 'LINE' | 'Facebook' | 'Shopee' | 'Walk-in' | 'B2B Referral'
+export type LeadSource = string
 export type AuditEvent = { action: string; by: string; at: string; note: string }
-export type QuotationLine = { sku: string; qty: number; reservedQty: number }
+export type QuotationLine = { sku: string; qty: number; price?: number; reservedQty: number }
 export type Quotation = {
   id: number | string
   code?: string
   customer: string
+  customerAddress?: string
   date: string
   validUntil: string
   amount: number
@@ -85,6 +86,39 @@ export type Quotation = {
   updatedAt: string
   auditTrail: AuditEvent[]
 }
+
+export type Customer = {
+  id: string
+  name: string
+  taxId?: string
+  branch?: string
+  phone?: string
+  email?: string
+  website?: string
+  contactPerson?: string
+  address: string
+  creditDays?: number
+  creditLimit?: number
+  notes?: string
+  logoUrl?: string
+}
+
+export const customers: Customer[] = [
+  {
+    id: 'CUST-0001',
+    name: 'P2J MANAGEMENT CO.,LTD',
+    taxId: '0105562081491',
+    branch: 'สำนักงานใหญ่',
+    phone: '02-987-6543',
+    email: 'contact@p2j.co.th',
+    website: 'www.p2j.co.th',
+    contactPerson: 'คุณประจักษ์',
+    address: '89/37 ซอย พระยาสุเรนทร์ 21 แยก 3 ถนนพระยาสุเรนทร์ แขวงบางชัน เขตคลองสามวา กรุงเทพมหานคร 10510',
+    creditDays: 30,
+    creditLimit: 500000,
+    notes: 'ส่งบิลภายในวันที่ 25 ของทุกเดือน',
+  },
+]
 
 export const quotations: Quotation[] = [
   { id: 'QT-2026-0045', customer: 'บริษัท ABC Pet Supply',  date: '2026-05-01', validUntil: '2026-05-15', amount: 125400, status: 'Approved',   items: 4, soRef: 'SO-2026-0412', leadSource: 'B2B Referral', lines: [{ sku: 'CAT-CHK-30', qty: 20, reservedQty: 20 }, { sku: 'CAT-SAL-100', qty: 18, reservedQty: 18 }], reservedStock: true, createdBy: 'Admin User', updatedBy: 'Admin User', updatedAt: '2026-05-02T09:30', auditTrail: [{ action: 'Approved', by: 'Admin User', at: '2026-05-02T09:30', note: 'ลูกค้ายืนยันยอดและเงื่อนไขแล้ว' }] },

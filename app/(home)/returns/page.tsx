@@ -28,7 +28,6 @@ const REASONS: ReturnReason[] = [
 export default function ReturnsPage() {
   const { tokens: t } = useTheme();
   const c = t.color;
-  const salesOrders = useErpStore((s) => s.salesOrders);
   const stockReturns = useErpStore((s) => s.stockReturns);
   const products = useErpStore((s) => s.products);
   const createStockReturn = useErpStore((s) => s.createStockReturn);
@@ -38,6 +37,7 @@ export default function ReturnsPage() {
 
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState("");
+  const [reversingRef, setReversingRef] = useState<string | null>(null);
 
   function showToast(msg: string) {
     setToast(msg);
@@ -47,7 +47,6 @@ export default function ReturnsPage() {
   const rows = useMemo(() => {
     return stockReturns.map((ret) => {
       const product = products.find((p) => p.sku === ret.sku);
-      const so = salesOrders.find((o) => o.id === ret.soRef || o.code === ret.soRef);
       const amount = ret.creditAmount || (product?.price ?? 0) * ret.qty;
       const status = ret.status
         ? ret.status.toLowerCase()
@@ -56,12 +55,11 @@ export default function ReturnsPage() {
           : "pending";
       return {
         ...ret,
-        customer: so?.customer ?? "Walk-in / Manual",
         amount,
         status,
       };
     });
-  }, [stockReturns, products, salesOrders]);
+  }, [stockReturns, products]);
 
   const total = rows.reduce((s, r) => s + r.amount, 0);
   const openCount = rows.filter(
@@ -76,7 +74,6 @@ export default function ReturnsPage() {
   }, [stockReturns]);
 
   async function handleCreateReturn(data: {
-    soRef: string;
     sku: string;
     qty: number;
     condition: ReturnCondition;
@@ -100,12 +97,22 @@ export default function ReturnsPage() {
 
   async function handleReverseCreditNote(ref: string) {
     if (!window.confirm(`ยืนยันการกลับรายการ ${ref} หรือไม่?`)) return;
+    setReversingRef(ref);
     const api = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
     const token = localStorage.getItem("chawy_token") || "";
-    const response = await fetch(`${api}/api/credit-notes/${ref}/reverse`, { method: "PUT", headers: { Authorization: token ? `Bearer ${token}` : "" } });
-    if (!response.ok) { showToast("ไม่สามารถกลับรายการ Credit Note ได้"); return; }
-    await useErpStore.getState().loadResources(["stockReturns"], true);
-    showToast(`กลับรายการ ${ref} สำเร็จ`);
+    try {
+      const response = await fetch(`${api}/api/credit-notes/${ref}/reverse`, { method: "PUT", headers: { Authorization: token ? `Bearer ${token}` : "" } });
+      if (!response.ok) {
+        let message = "ไม่สามารถกลับรายการ Credit Note ได้";
+        try { const body = await response.json(); message = body?.error?.message || body?.error || message; } catch { /* non-JSON error */ }
+        showToast(message);
+        return;
+      }
+      await useErpStore.getState().loadResources(["stockReturns", "products", "stockLots", "stockMovements", "invoices"], true);
+      showToast(`กลับรายการ ${ref} สำเร็จ`);
+    } finally {
+      setReversingRef(null);
+    }
   }
 
   async function handleExport() {
@@ -127,7 +134,7 @@ export default function ReturnsPage() {
     >
       <TopBar
         t={t}
-        breadcrumb={["Chawy", "Sales", "Returns"]}
+        breadcrumb={["Chawy", "Inventory", "Returns"]}
         title="Returns"
         subtitle={`คืนสินค้า · ${rows.length} รายการ · ${fmtBaht(total)} มูลค่ารวม`}
         right={
@@ -174,9 +181,9 @@ export default function ReturnsPage() {
               tone: openCount ? c.warn : undefined,
             },
             {
-              label: "Return rate",
-              value: `${((rows.length / Math.max(1, salesOrders.length)) * 100).toFixed(1)}%`,
-              sub: "of orders",
+              label: "Completed",
+              value: String(rows.filter((row) => row.status === "completed").length),
+              sub: "returns passed QC",
             },
             {
               label: "Top reason",
@@ -249,18 +256,6 @@ export default function ReturnsPage() {
                     className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
                     style={{ color: "var(--erp-ink3)" }}
                   >
-                    SO Ref
-                  </TableHead>
-                  <TableHead
-                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
-                    style={{ color: "var(--erp-ink3)" }}
-                  >
-                    Customer
-                  </TableHead>
-                  <TableHead
-                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
-                    style={{ color: "var(--erp-ink3)" }}
-                  >
                     Channel
                   </TableHead>
                   <TableHead
@@ -315,19 +310,6 @@ export default function ReturnsPage() {
                       <Mono t={t} size={12} weight={500}>
                         {r.id}
                       </Mono>
-                    </TableCell>
-                    <TableCell className="p-4 px-5 align-middle">
-                      <Mono t={t} size={12} color={r.soRef ? c.accent : c.ink3}>
-                        {r.soRef || "—"}
-                      </Mono>
-                    </TableCell>
-                    <TableCell className="p-4 px-5 align-middle">
-                      <span
-                        className="text-sm font-medium"
-                        style={{ color: "var(--erp-ink)" }}
-                      >
-                        {r.customer}
-                      </span>
                     </TableCell>
                     <TableCell className="p-4 px-5 align-middle">
                       <span
@@ -404,7 +386,7 @@ export default function ReturnsPage() {
                         </div>
                       )}
                       {r.status === "qc pending" && <div className="flex gap-2"><Button onClick={() => handleUpdateStatus(r.id, "QC Passed")} className="h-7 text-xs px-2.5 cursor-pointer bg-[var(--erp-accent)] text-white border-none">ผ่าน QC / รับเข้าสต็อก</Button><Button variant="outline" onClick={() => handleUpdateStatus(r.id, "Cancelled")} className="h-7 text-xs px-2.5 cursor-pointer">ไม่ผ่าน QC</Button></div>}
-                      {r.status === "completed" && r.creditNoteRef && <Button variant="outline" onClick={() => handleReverseCreditNote(r.creditNoteRef!)} className="h-7 text-xs px-2.5 cursor-pointer">Reverse CN</Button>}
+                      {r.status === "completed" && r.creditNoteRef && <Button variant="outline" disabled={reversingRef === r.creditNoteRef} onClick={() => handleReverseCreditNote(r.creditNoteRef!)} className="h-7 text-xs px-2.5 cursor-pointer">{reversingRef === r.creditNoteRef ? "กำลังทำรายการ..." : "Reverse CN"}</Button>}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -418,8 +400,6 @@ export default function ReturnsPage() {
         open={open}
         onOpenChange={setOpen}
         products={products}
-        salesOrders={salesOrders}
-        stockReturns={stockReturns}
         onSubmit={handleCreateReturn}
         showToast={showToast}
       />

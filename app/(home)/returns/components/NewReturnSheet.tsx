@@ -26,7 +26,6 @@ const REASONS: ReturnReason[] = [
   "อื่นๆ",
 ];
 interface FormState {
-  soRef: string;
   sku: string;
   qty: number | "";
   condition: ReturnCondition;
@@ -36,7 +35,6 @@ interface FormState {
 }
 
 const BLANK: FormState = {
-  soRef: "",
   sku: "",
   qty: 1,
   condition: "ดี",
@@ -48,32 +46,14 @@ const BLANK: FormState = {
 interface Product {
   sku: string;
   name: string;
-}
-
-interface SalesOrder {
-  id: number | string;
-  code?: string;
-  customer: string;
-  channel: string;
-  status: string;
-  lines?: Array<{ sku: string; qty: number }>;
-}
-
-interface StockReturn {
-  soRef: string;
-  sku: string;
-  qty: number;
-  status: string;
+  stock: number;
 }
 
 interface NewReturnSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   products: Product[];
-  salesOrders: SalesOrder[];
-  stockReturns: StockReturn[];
   onSubmit: (data: {
-    soRef: string;
     sku: string;
     qty: number;
     condition: ReturnCondition;
@@ -88,8 +68,6 @@ export function NewReturnSheet({
   open,
   onOpenChange,
   products,
-  salesOrders,
-  stockReturns,
   onSubmit,
   showToast,
 }: NewReturnSheetProps) {
@@ -99,6 +77,8 @@ export function NewReturnSheet({
   const [form, setForm] = useState<FormState>(BLANK);
   const [validationError, setValidationError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const selectedProduct = products.find((product) => product.sku === form.sku);
+  const maxQty = selectedProduct?.stock ?? 0;
 
   useEffect(() => {
     if (open) {
@@ -107,48 +87,7 @@ export function NewReturnSheet({
     }
   }, [open]);
 
-  const completedSOs = salesOrders.filter((o) => o.status === "Completed");
-  const selectedSO = completedSOs.find((order) => String(order.id) === form.soRef);
-  const soldSkus = new Set(selectedSO?.lines?.map((line) => line.sku) ?? []);
-  const soldQty = selectedSO?.lines
-    ?.filter((line) => line.sku === form.sku)
-    .reduce((sum, line) => sum + line.qty, 0) ?? 0;
-  const returnedQty = selectedSO
-    ? stockReturns
-        .filter(
-          (item) =>
-            item.sku === form.sku &&
-            item.status.toLowerCase() !== "cancelled" &&
-            (String(item.soRef) === String(selectedSO.id) ||
-              String(item.soRef) === String(selectedSO.code)),
-        )
-        .reduce((sum, item) => sum + item.qty, 0)
-    : 0;
-  const remainingQty = Math.max(0, soldQty - returnedQty);
-  const returnableProducts = selectedSO
-    ? products.filter((product) => {
-        if (!soldSkus.has(product.sku)) return false;
-        const productSoldQty = selectedSO.lines
-          ?.filter((line) => line.sku === product.sku)
-          .reduce((sum, line) => sum + line.qty, 0) ?? 0;
-        const productReturnedQty = stockReturns
-          .filter(
-            (item) =>
-              item.sku === product.sku &&
-              item.status.toLowerCase() !== "cancelled" &&
-              (String(item.soRef) === String(selectedSO.id) ||
-                String(item.soRef) === String(selectedSO.code)),
-          )
-          .reduce((sum, item) => sum + item.qty, 0);
-        return productReturnedQty < productSoldQty;
-      })
-    : [];
-
   async function handleSubmit() {
-	if (!form.soRef) {
-		setValidationError("กรุณาเลือก Sales Order ที่จัดส่งสำเร็จ");
-		return;
-	}
     if (!form.sku) {
       setValidationError("กรุณาเลือกสินค้า");
       return;
@@ -157,16 +96,13 @@ export function NewReturnSheet({
       setValidationError("กรุณากรอกจำนวนอย่างน้อย 1 ชิ้น");
       return;
     }
-    if (Number(form.qty) > remainingQty) {
-      setValidationError(
-        `คืนได้สูงสุด ${remainingQty} ชิ้น (ซื้อ ${soldQty} ชิ้น คืนไปแล้ว ${returnedQty} ชิ้น)`,
-      );
+    if (Number(form.qty) > maxQty) {
+      setValidationError(`จำนวนคืนต้องไม่เกินจำนวนที่มี ${maxQty} ชิ้น`);
       return;
     }
     setSubmitting(true);
     try {
       await onSubmit({
-        soRef: form.soRef,
         sku: form.sku,
         qty: Number(form.qty),
         condition: form.condition,
@@ -209,36 +145,6 @@ export function NewReturnSheet({
               className="text-xs font-semibold text-muted-foreground mb-1 block"
               style={{ color: "var(--erp-ink2)" }}
             >
-              Sales Order
-            </Label>
-            <NativeSelect
-              value={form.soRef}
-              onChange={(e) => {
-                const soId = e.target.value;
-                const so = salesOrders.find((o) => String(o.id) === soId);
-                setForm((f) => ({
-                  ...f,
-                  soRef: soId,
-                  sku: "",
-                  qty: 1,
-                  channel: so ? so.channel : f.channel,
-                }));
-              }}
-            >
-			  <option value="">Select completed Sales Order</option>
-              {completedSOs.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.id} — {o.customer}
-                </option>
-              ))}
-            </NativeSelect>
-          </div>
-
-          <div>
-            <Label
-              className="text-xs font-semibold text-muted-foreground mb-1 block"
-              style={{ color: "var(--erp-ink2)" }}
-            >
               Product
             </Label>
             <NativeSelect
@@ -248,9 +154,9 @@ export function NewReturnSheet({
               }
             >
               <option value="">Select product</option>
-              {returnableProducts.map((p) => (
+              {products.map((p) => (
                 <option key={p.sku} value={p.sku}>
-                  {p.name} ({p.sku})
+                  {p.name} ({p.sku}) · มี {p.stock} ชิ้น
                 </option>
               ))}
             </NativeSelect>
@@ -266,7 +172,7 @@ export function NewReturnSheet({
             <Input
               type="number"
               min={1}
-              max={remainingQty || undefined}
+              max={maxQty}
               value={form.qty}
               onChange={(e) =>
                 setForm((f) => ({
@@ -276,9 +182,9 @@ export function NewReturnSheet({
                 }))
               }
             />
-            {form.sku && (
-              <div className="mt-1 text-xs text-muted-foreground">
-                ซื้อ {soldQty} ชิ้น · คืนแล้ว {returnedQty} ชิ้น · คืนได้อีก {remainingQty} ชิ้น
+            {selectedProduct && (
+              <div className="mt-1 text-[11px] text-muted-foreground">
+                จำนวนสูงสุดที่คืนได้ {maxQty} ชิ้น
               </div>
             )}
           </div>
@@ -313,7 +219,6 @@ export function NewReturnSheet({
               </Label>
               <NativeSelect
                 value={form.channel}
-                disabled={!!form.soRef}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, channel: e.target.value }))
                 }
@@ -379,7 +284,7 @@ export function NewReturnSheet({
           </Button>
           <Button
             onClick={handleSubmit}
-			disabled={submitting || !form.soRef || !form.sku || form.qty === "" || Number(form.qty) < 1 || Number(form.qty) > remainingQty}
+			disabled={submitting || !form.sku || form.qty === "" || Number(form.qty) < 1 || Number(form.qty) > maxQty}
             className="bg-[var(--erp-accent)] text-white hover:opacity-90 border-none shadow-none cursor-pointer disabled:opacity-45"
           >
             {submitting ? "Saving..." : "Save Return"}
