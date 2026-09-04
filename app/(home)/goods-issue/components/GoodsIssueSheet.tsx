@@ -78,6 +78,7 @@ export function GoodsIssueSheet({
     orderRef: string;
   }>(BLANK);
   const [validationError, setValidationError] = useState("");
+  const isOrderReferenceError = /order reference|order ref|order .*not found/i.test(validationError);
 
   const selectedProduct = products.find((p) => p.sku === form.sku);
   const available = selectedProduct
@@ -103,19 +104,23 @@ export function GoodsIssueSheet({
       return;
     }
 
-    const success = await onSubmit({
-      sku: form.sku,
-      qty: Number(form.qty),
-      reason: form.reason,
-      note: form.note,
-      channel: form.channel,
-      orderRef: form.channel === "Manual" ? undefined : form.orderRef.trim(),
-    });
+    try {
+      const success = await onSubmit({
+        sku: form.sku,
+        qty: Number(form.qty),
+        reason: form.reason,
+        note: form.note,
+        channel: form.channel,
+        orderRef: form.channel === "Manual" ? undefined : form.orderRef.trim(),
+      });
 
-    if (success) {
-      setValidationError("");
-      setForm(BLANK);
-      onOpenChange(false);
+      if (success) {
+        setValidationError("");
+        setForm(BLANK);
+        onOpenChange(false);
+      }
+    } catch (error) {
+      setValidationError(error instanceof Error ? error.message : "ไม่สามารถตรวจสอบเลขออเดอร์ได้");
     }
   }
 
@@ -134,7 +139,7 @@ export function GoodsIssueSheet({
             Issue Goods
           </SheetTitle>
         </SheetHeader>
-        <ValidationAlert message={validationError} />
+        <ValidationAlert message={isOrderReferenceError ? "" : validationError} />
         <SheetBody className="space-y-3">
           <div>
             <Label className="text-xs font-semibold text-muted-foreground mb-1 block">
@@ -162,9 +167,14 @@ export function GoodsIssueSheet({
               </Label>
               <Input
                 value={form.orderRef}
-                onChange={(e) => setForm((form) => ({ ...form, orderRef: e.target.value }))}
+                onChange={(e) => { setForm((form) => ({ ...form, orderRef: e.target.value })); setValidationError(""); }}
                 placeholder={`กรอกเลขออเดอร์ ${form.channel}`}
               />
+              {isOrderReferenceError && (
+                <div className="mt-1 text-xs text-red-500" style={{ color: "var(--erp-neg)" }}>
+                  {validationError}
+                </div>
+              )}
               <div className="mt-1 text-xs text-muted-foreground">
                 รายการนี้จะตัดสต็อกและอ้างอิงกับออเดอร์ดังกล่าว
               </div>

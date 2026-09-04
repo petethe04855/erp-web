@@ -8,7 +8,7 @@ export type { AuditEvent, Quotation, QuotationLine, QuotationStatus, LeadSource,
 
 // Gap 4: added live-commerce statuses
 export type SalesOrderStatus =
-  | 'Pending' | 'Processing' | 'Completed' | 'Cancelled'
+  | 'Pending' | 'Completed' | 'Cancelled'
   | 'รอชำระจากไลฟ์' | 'ยืนยัน Cart แล้ว' | 'แพ็กแล้ว/รอส่ง'
 
 export type SalesOrderChannel = 'Manual' | 'LINE' | 'Shopee' | 'TikTok'
@@ -750,6 +750,8 @@ export type LivePayrollSettings = {
   hourlyRate: number
   /** ฿ per clip — same global bonus for all live staff */
   clipBonus: number
+  /** Optional overrides keyed by live staff ID. */
+  staffRates?: Record<string, number>
 }
 
 export type ErpSettings = {

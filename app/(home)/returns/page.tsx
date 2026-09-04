@@ -37,6 +37,7 @@ export default function ReturnsPage() {
 
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState("");
+  const [reversingRef, setReversingRef] = useState<string | null>(null);
 
   function showToast(msg: string) {
     setToast(msg);
@@ -96,12 +97,22 @@ export default function ReturnsPage() {
 
   async function handleReverseCreditNote(ref: string) {
     if (!window.confirm(`ยืนยันการกลับรายการ ${ref} หรือไม่?`)) return;
+    setReversingRef(ref);
     const api = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
     const token = localStorage.getItem("chawy_token") || "";
-    const response = await fetch(`${api}/api/credit-notes/${ref}/reverse`, { method: "PUT", headers: { Authorization: token ? `Bearer ${token}` : "" } });
-    if (!response.ok) { showToast("ไม่สามารถกลับรายการ Credit Note ได้"); return; }
-    await useErpStore.getState().loadResources(["stockReturns"], true);
-    showToast(`กลับรายการ ${ref} สำเร็จ`);
+    try {
+      const response = await fetch(`${api}/api/credit-notes/${ref}/reverse`, { method: "PUT", headers: { Authorization: token ? `Bearer ${token}` : "" } });
+      if (!response.ok) {
+        let message = "ไม่สามารถกลับรายการ Credit Note ได้";
+        try { const body = await response.json(); message = body?.error?.message || body?.error || message; } catch { /* non-JSON error */ }
+        showToast(message);
+        return;
+      }
+      await useErpStore.getState().loadResources(["stockReturns", "products", "stockLots", "stockMovements", "invoices"], true);
+      showToast(`กลับรายการ ${ref} สำเร็จ`);
+    } finally {
+      setReversingRef(null);
+    }
   }
 
   async function handleExport() {
@@ -375,7 +386,7 @@ export default function ReturnsPage() {
                         </div>
                       )}
                       {r.status === "qc pending" && <div className="flex gap-2"><Button onClick={() => handleUpdateStatus(r.id, "QC Passed")} className="h-7 text-xs px-2.5 cursor-pointer bg-[var(--erp-accent)] text-white border-none">ผ่าน QC / รับเข้าสต็อก</Button><Button variant="outline" onClick={() => handleUpdateStatus(r.id, "Cancelled")} className="h-7 text-xs px-2.5 cursor-pointer">ไม่ผ่าน QC</Button></div>}
-                      {r.status === "completed" && r.creditNoteRef && <Button variant="outline" onClick={() => handleReverseCreditNote(r.creditNoteRef!)} className="h-7 text-xs px-2.5 cursor-pointer">Reverse CN</Button>}
+                      {r.status === "completed" && r.creditNoteRef && <Button variant="outline" disabled={reversingRef === r.creditNoteRef} onClick={() => handleReverseCreditNote(r.creditNoteRef!)} className="h-7 text-xs px-2.5 cursor-pointer">{reversingRef === r.creditNoteRef ? "กำลังทำรายการ..." : "Reverse CN"}</Button>}
                     </TableCell>
                   </TableRow>
                 ))}

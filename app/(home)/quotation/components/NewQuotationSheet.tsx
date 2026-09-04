@@ -47,6 +47,9 @@ interface Product {
   name: string;
   price: number;
   stock: number;
+  physicalStock?: number;
+  reservedQty?: number;
+  isBundle?: boolean;
 }
 
 interface NewQuotationSheetProps {
@@ -61,7 +64,7 @@ interface NewQuotationSheetProps {
     validUntil: string;
     lines: Line[];
   }) => void;
-  showToast: (msg: string) => void;
+  showToast?: (msg: string) => void;
 }
 
 export function NewQuotationSheet({
@@ -117,15 +120,24 @@ export function NewQuotationSheet({
     const product = products.find((item) => item.sku === sku);
     setForm((form) => ({
       ...form,
-      lines: form.lines.map((line, index) =>
-        index === i ? { ...line, sku, price: product?.price ?? 0 } : line,
-      ),
+      lines: form.lines.map((line, index) => {
+        if (index !== i) return line;
+        const maxStock = product ? product.stock : Infinity;
+        const currentQty = typeof line.qty === "number" ? line.qty : 1;
+        const adjustedQty = maxStock > 0 ? Math.min(currentQty, maxStock) : 1;
+        return {
+          ...line,
+          sku,
+          price: product?.price ?? 0,
+          qty: adjustedQty,
+        };
+      }),
     }));
   }
 
   function handleSubmit() {
     const validLines = form.lines.filter(
-      (l) => l.sku && l.qty > 0 && l.price >= 0,
+      (l) => l.sku && Number(l.qty) > 0 && Number(l.price) >= 0,
     );
     if (
       !form.customer ||
@@ -137,6 +149,31 @@ export function NewQuotationSheet({
       setValidationError("กรุณากรอกลูกค้า Lead Source วันหมดอายุ และสินค้า");
       return;
     }
+
+    // ตรวจสอบไม่ให้จำนวนเกินสต็อกในคลัง
+    const qtyBySku = validLines.reduce<Record<string, number>>((acc, line) => {
+      acc[line.sku] = (acc[line.sku] || 0) + Number(line.qty);
+      return acc;
+    }, {});
+
+    for (const [sku, totalQty] of Object.entries(qtyBySku)) {
+      const product = products.find((p) => p.sku === sku);
+      if (product) {
+        if (!product.isBundle && totalQty > product.stock) {
+          setValidationError(
+            `สินค้า "${product.name}" มีจำนวน ${totalQty} ชิ้น ซึ่งเกินสต็อกคงเหลือ (${product.stock} ชิ้น)`
+          );
+          return;
+        }
+        if (product.isBundle && product.stock > 0 && totalQty > product.stock) {
+          setValidationError(
+            `สินค้าแพ็ก "${product.name}" มีสต็อกส่วนประกอบพอจัดได้เพียง ${product.stock} แพ็ก (ระบุ ${totalQty} แพ็ก)`
+          );
+          return;
+        }
+      }
+    }
+
     onSubmit({
       customer: form.customer,
       customerAddress: form.customerAddress,
@@ -255,7 +292,7 @@ export function NewQuotationSheet({
                     <TableHead className="h-8 px-2 text-xs font-semibold text-muted-foreground">
                       สินค้า
                     </TableHead>
-                    <TableHead className="h-8 px-2 text-center text-xs font-semibold text-muted-foreground w-18">
+                    <TableHead className="h-8 px-2 text-center text-xs font-semibold text-muted-foreground w-20">
                       จำนวน
                     </TableHead>
                     <TableHead className="h-8 px-2 text-right text-xs font-semibold text-muted-foreground w-32">
@@ -282,30 +319,74 @@ export function NewQuotationSheet({
                             className="text-xs cursor-pointer w-full"
                           >
                             <option value="">Select product</option>
-                            {products.map((p) => (
-                              <option key={p.sku} value={p.sku}>
-                                {p.name} · stock {p.stock}
-                              </option>
-                            ))}
+                            {products.map((p) => {
+                              const isBundle = Boolean(p.isBundle);
+                              const isOutOfStock = !isBundle && p.stock <= 0;
+                              const label = isBundle
+                                ? `พร้อมจัด ${p.stock > 0 ? p.stock.toLocaleString() : 0} แพ็ก (มี BOM)`
+                                : isOutOfStock
+                                  ? "(สินค้าหมด)"
+                                  : `คงเหลือ ${p.stock.toLocaleString()}`;
+
+                              return (
+                                <option
+                                  key={p.sku}
+                                  value={p.sku}
+                                  disabled={isOutOfStock}
+                                >
+                                  {p.name} · {label}
+                                </option>
+                              );
+                            })}
                           </NativeSelect>
                         </TableCell>
-                        <TableCell className="p-2 align-middle w-18">
+                        <TableCell className="p-2 align-middle w-20">
                           <Input
                             type="number"
                             min={1}
+                            max={
+                              product
+                                ? product.isBundle
+                                  ? (product.stock > 0 ? product.stock : undefined)
+                                  : Math.max(1, product.stock)
+                                : undefined
+                            }
                             value={line.qty}
                             onChange={(e) => {
                               const val = e.target.value;
-                              updateLine(
-                                i,
-                                "qty",
-                                val === ""
-                                  ? ""
-                                  : Math.max(1, parseInt(val) || 0),
-                              );
+                              if (val === "") {
+                                updateLine(i, "qty", "");
+                                return;
+                              }
+                              let parsed = parseInt(val, 10);
+                              if (isNaN(parsed)) parsed = 1;
+                              const isBundle = Boolean(product?.isBundle);
+                              if (product && !isBundle && parsed > product.stock) {
+                                parsed = Math.max(1, product.stock);
+                              } else if (product && isBundle && product.stock > 0 && parsed > product.stock) {
+                                parsed = product.stock;
+                              } else if (parsed < 1) {
+                                parsed = 1;
+                              }
+                              updateLine(i, "qty", parsed);
                             }}
                             className="h-9 text-xs p-1 text-center font-mono"
                             placeholder="1"
+                            title={
+                              product
+                                ? product.isBundle
+                                  ? `สินค้าแพ็ก (มี BOM): ${
+                                      product.stock > 0
+                                        ? `พร้อมจัดชุดได้ ${product.stock.toLocaleString()} แพ็ก (คำนวณตาม BOM)`
+                                        : "ตัดสต็อกตามส่วนประกอบ BOM เมื่อขาย"
+                                    }`
+                                  : `สต็อกคงเหลือพร้อมขาย: ${product.stock.toLocaleString()} ชิ้น${
+                                      product.reservedQty
+                                        ? ` (จองแล้ว ${product.reservedQty})`
+                                        : ""
+                                    }`
+                                : undefined
+                            }
                           />
                         </TableCell>
                         <TableCell className="p-2 align-middle w-32">

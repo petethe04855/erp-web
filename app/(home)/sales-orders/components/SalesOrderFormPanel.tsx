@@ -46,7 +46,11 @@ export default function SalesOrderFormPanel({ t, open, onClose, form, setForm, p
                 ...current,
                 qtRef,
                 customer: quotation.customer,
-                channel: (["LINE", "Shopee", "TikTok"].includes(quotation.leadSource) ? quotation.leadSource : "Manual"),
+                channel: quotation.leadSource.toLowerCase().includes("tiktok")
+                  ? "TikTok"
+                  : quotation.leadSource.toLowerCase().includes("shopee")
+                    ? "Shopee"
+                    : "Manual",
                 lines: quotation.lines.map((line) => ({
                   sku: line.sku,
                   qty: line.qty,

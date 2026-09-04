@@ -46,6 +46,7 @@ const BLANK: FormState = {
 interface Product {
   sku: string;
   name: string;
+  stock: number;
 }
 
 interface NewReturnSheetProps {
@@ -76,6 +77,8 @@ export function NewReturnSheet({
   const [form, setForm] = useState<FormState>(BLANK);
   const [validationError, setValidationError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const selectedProduct = products.find((product) => product.sku === form.sku);
+  const maxQty = selectedProduct?.stock ?? 0;
 
   useEffect(() => {
     if (open) {
@@ -91,6 +94,10 @@ export function NewReturnSheet({
     }
     if (form.qty === "" || Number(form.qty) < 1) {
       setValidationError("กรุณากรอกจำนวนอย่างน้อย 1 ชิ้น");
+      return;
+    }
+    if (Number(form.qty) > maxQty) {
+      setValidationError(`จำนวนคืนต้องไม่เกินจำนวนที่มี ${maxQty} ชิ้น`);
       return;
     }
     setSubmitting(true);
@@ -149,7 +156,7 @@ export function NewReturnSheet({
               <option value="">Select product</option>
               {products.map((p) => (
                 <option key={p.sku} value={p.sku}>
-                  {p.name} ({p.sku})
+                  {p.name} ({p.sku}) · มี {p.stock} ชิ้น
                 </option>
               ))}
             </NativeSelect>
@@ -165,6 +172,7 @@ export function NewReturnSheet({
             <Input
               type="number"
               min={1}
+              max={maxQty}
               value={form.qty}
               onChange={(e) =>
                 setForm((f) => ({
@@ -174,6 +182,11 @@ export function NewReturnSheet({
                 }))
               }
             />
+            {selectedProduct && (
+              <div className="mt-1 text-[11px] text-muted-foreground">
+                จำนวนสูงสุดที่คืนได้ {maxQty} ชิ้น
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -271,7 +284,7 @@ export function NewReturnSheet({
           </Button>
           <Button
             onClick={handleSubmit}
-			disabled={submitting || !form.sku || form.qty === "" || Number(form.qty) < 1}
+			disabled={submitting || !form.sku || form.qty === "" || Number(form.qty) < 1 || Number(form.qty) > maxQty}
             className="bg-[var(--erp-accent)] text-white hover:opacity-90 border-none shadow-none cursor-pointer disabled:opacity-45"
           >
             {submitting ? "Saving..." : "Save Return"}

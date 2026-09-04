@@ -8,10 +8,10 @@ import { useErpStore } from '@/lib/store/useErpStore'
 import type { ErpResource } from '@/lib/store/useErpStore'
 
 const ROUTE_RESOURCES: Record<string, ErpResource[]> = {
-	'/': ['salesOrders', 'invoices', 'products', 'purchaseRequests', 'purchaseOrders', 'stockLots'],
-	'/dashboard': ['salesOrders', 'invoices', 'products', 'purchaseRequests', 'purchaseOrders', 'stockLots'],
-	'/quotation': ['quotations', 'products'],
-	'/sales-orders': ['salesOrders', 'invoices', 'products'],
+	'/': ['salesOrders', 'invoices', 'products', 'purchaseRequests', 'purchaseOrders', 'stockLots', 'quotations'],
+	'/dashboard': ['salesOrders', 'invoices', 'products', 'purchaseRequests', 'purchaseOrders', 'stockLots', 'quotations'],
+	'/quotation': ['quotations', 'products', 'bundleComponents'],
+	'/sales-orders': ['salesOrders', 'invoices', 'products', 'quotations'],
 	'/invoice': ['invoices', 'salesOrders', 'products', 'settings'],
 	'/invoice/customer': ['invoices', 'salesOrders', 'products', 'settings'],
 	'/returns': ['salesOrders', 'stockReturns', 'products'],

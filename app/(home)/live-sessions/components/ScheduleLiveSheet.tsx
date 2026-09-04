@@ -50,8 +50,8 @@ function calcDuration(start: string, end: string): string | null {
   return h > 0 && m > 0
     ? `${h} ชม. ${m} นาที`
     : h > 0
-    ? `${h} ชม.`
-    : `${m} นาที`;
+      ? `${h} ชม.`
+      : `${m} นาที`;
 }
 
 interface ScheduleLiveSheetProps {
@@ -108,13 +108,19 @@ export function ScheduleLiveSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex h-full w-[min(520px,100vw)] flex-col border-l bg-card text-card-foreground shadow-2xl outline-none">
         <SheetHeader className="mb-4">
-          <SheetTitle className="text-base font-bold text-foreground" style={{ color: "var(--erp-ink)" }}>
+          <SheetTitle
+            className="text-base font-bold text-foreground"
+            style={{ color: "var(--erp-ink)" }}
+          >
             Schedule Live
           </SheetTitle>
         </SheetHeader>
-        <SheetBody className="grid gap-4 overflow-y-auto">
+        <SheetBody className="flex flex-col gap-4 overflow-y-auto">
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               แพลตฟอร์ม
             </Label>
             <NativeSelect
@@ -138,12 +144,17 @@ export function ScheduleLiveSheet({
           </div>
 
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               ชื่อช่อง
             </Label>
             <NativeSelect
               value={scheduleForm.account}
-              onChange={(e) => setScheduleForm((f) => ({ ...f, account: e.target.value }))}
+              onChange={(e) =>
+                setScheduleForm((f) => ({ ...f, account: e.target.value }))
+              }
               className="w-full cursor-pointer"
             >
               {(SCHEDULE_ACCOUNTS[scheduleForm.platform] ?? []).map((a) => (
@@ -152,13 +163,19 @@ export function ScheduleLiveSheet({
                 </option>
               ))}
             </NativeSelect>
-            <div className="text-[11px] text-muted-foreground mt-1" style={{ color: "var(--erp-ink4)" }}>
+            <div
+              className="text-[11px] text-muted-foreground mt-1"
+              style={{ color: "var(--erp-ink4)" }}
+            >
               ตัวเลือกเปลี่ยนตามแพลตฟอร์มที่เลือก
             </div>
           </div>
 
           <div>
-            <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+            <Label
+              className="text-xs font-semibold text-muted-foreground mb-1 block"
+              style={{ color: "var(--erp-ink2)" }}
+            >
               วันที่ไลฟ์
             </Label>
             <Input
@@ -170,7 +187,10 @@ export function ScheduleLiveSheet({
               }}
             />
             {scheduleErrors.date && (
-              <div className="text-xs text-red-500 mt-1" style={{ color: "var(--erp-neg)" }}>
+              <div
+                className="text-xs text-red-500 mt-1"
+                style={{ color: "var(--erp-neg)" }}
+              >
                 {scheduleErrors.date}
               </div>
             )}
@@ -178,7 +198,10 @@ export function ScheduleLiveSheet({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+              <Label
+                className="text-xs font-semibold text-muted-foreground mb-1 block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
                 เวลาเริ่ม
               </Label>
               <Input
@@ -191,7 +214,10 @@ export function ScheduleLiveSheet({
               />
             </div>
             <div>
-              <Label className="text-xs font-semibold text-muted-foreground mb-1 block" style={{ color: "var(--erp-ink2)" }}>
+              <Label
+                className="text-xs font-semibold text-muted-foreground mb-1 block"
+                style={{ color: "var(--erp-ink2)" }}
+              >
                 เวลาจบ
               </Label>
               <Input
@@ -206,29 +232,44 @@ export function ScheduleLiveSheet({
           </div>
 
           {duration ? (
-            <div className="mt-1 p-3 bg-muted rounded-lg flex justify-between items-center" style={{ background: "var(--erp-subtle)" }}>
-              <span className="text-xs text-muted-foreground" style={{ color: "var(--erp-ink3)" }}>
+            <div
+              className="mt-1 p-3 bg-muted rounded-lg flex justify-between items-center"
+              style={{ background: "var(--erp-subtle)" }}
+            >
+              <span
+                className="text-xs text-muted-foreground"
+                style={{ color: "var(--erp-ink3)" }}
+              >
                 ระยะเวลา
               </span>
-              <span className="text-sm font-semibold text-foreground" style={{ color: "var(--erp-ink)" }}>
+              <span
+                className="text-sm font-semibold text-foreground"
+                style={{ color: "var(--erp-ink)" }}
+              >
                 {duration}
               </span>
             </div>
           ) : (
             scheduleErrors.time && (
-              <div className="text-xs text-red-500 mt-1" style={{ color: "var(--erp-neg)" }}>
+              <div
+                className="text-xs text-red-500 mt-1"
+                style={{ color: "var(--erp-neg)" }}
+              >
                 {scheduleErrors.time}
               </div>
             )
           )}
-
         </SheetBody>
         <SheetFooter className="flex justify-end gap-2 border-t p-4 px-6">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
             className="cursor-pointer border-border"
-            style={{ borderColor: "var(--erp-border)", background: "var(--erp-surface)", color: "#374151" }}
+            style={{
+              borderColor: "var(--erp-border)",
+              background: "var(--erp-surface)",
+              color: "#374151",
+            }}
           >
             ยกเลิก
           </Button>

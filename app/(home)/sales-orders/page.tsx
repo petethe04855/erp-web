@@ -33,7 +33,6 @@ import SalesOrderFormPanel, { Line } from "./components/SalesOrderFormPanel";
 const FILTERS: Array<{ key: "all" | SalesOrderStatus; label: string }> = [
   { key: "all", label: "All" },
   { key: "Pending", label: "Pending" },
-  { key: "Processing", label: "Processing" },
   { key: "Completed", label: "Completed" },
   { key: "Cancelled", label: "Cancelled" },
 ];
@@ -41,7 +40,7 @@ const FILTERS: Array<{ key: "all" | SalesOrderStatus; label: string }> = [
 function canonicalOrderStatus(status: string): SalesOrderStatus {
   // Older quotations created Sales Entries as "Pending Payment". Treat those
   // records as Pending so they remain visible and can enter the normal flow.
-  if (status === "Pending Payment") return "Pending";
+  if (status === "Pending Payment" || status === "Processing") return "Pending";
   return status as SalesOrderStatus;
 }
 
@@ -121,6 +120,23 @@ export default function SalesOrdersPage() {
     }
   }, [salesOrders, invoices, createInvoiceFromSO]);
 
+  function resolveChannel(order: (typeof salesOrders)[0]) {
+    if (order.channel && order.channel !== "Manual") return order.channel;
+    if (order.qtRef) {
+      const qt = quotations.find(
+        (q) => q.code === order.qtRef || String(q.id) === String(order.qtRef),
+      );
+      if (qt?.leadSource) {
+        const lead = qt.leadSource.toLowerCase();
+        if (lead.includes("tiktok")) return "TikTok";
+        if (lead.includes("shopee")) return "Shopee";
+        if (lead.includes("line")) return "LINE";
+        return qt.leadSource;
+      }
+    }
+    return order.channel || "Manual";
+  }
+
   const filtered = salesOrders.filter((order) => {
     if (filter !== "all" && canonicalOrderStatus(order.status) !== filter) return false;
     if (
@@ -129,7 +145,8 @@ export default function SalesOrdersPage() {
         String(order.code || order.id)
           .toLowerCase()
           .includes(search.toLowerCase()) ||
-        order.customer.toLowerCase().includes(search.toLowerCase())
+        order.customer.toLowerCase().includes(search.toLowerCase()) ||
+        resolveChannel(order).toLowerCase().includes(search.toLowerCase())
       )
     )
       return false;
@@ -463,7 +480,7 @@ export default function SalesOrdersPage() {
                         className="text-xs text-muted-foreground"
                         style={{ color: "var(--erp-ink2)" }}
                       >
-                        {order.channel}
+                        {resolveChannel(order)}
                       </span>
                     </TableCell>
                     <TableCell className="p-3">

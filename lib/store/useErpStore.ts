@@ -72,6 +72,7 @@ const DEFAULT_SETTINGS: ErpSettings = {
 	livePayroll: {
 		hourlyRate: 120,
 		clipBonus: 100,
+		staffRates: {},
 	},
 }
 
@@ -125,7 +126,7 @@ export type ErpResource = keyof typeof ERP_RESOURCE_ENDPOINTS
 const loadedResources = new Set<ErpResource>()
 const loadingResources = new Map<ErpResource, Promise<void>>()
 
-interface CustomErpStore extends Omit<ErpWorkflowStore, 'createGoodsIssue' | 'createSalesOrder' | 'createGoodsReceive' | 'createInvoiceFromSO' | 'updateSalesOrderStatus' | 'createStockReturn'> {
+interface CustomErpStore extends Omit<ErpWorkflowStore, 'createGoodsIssue' | 'createSalesOrder' | 'createGoodsReceive' | 'createInvoiceFromSO' | 'updateSalesOrderStatus' | 'createStockReturn' | 'convertQuotationToSalesOrder'> {
 	users: AppUser[]
 	fetchInitialState: () => Promise<void>
 	loadResources: (resources: ErpResource[], force?: boolean) => Promise<void>
@@ -140,6 +141,7 @@ interface CustomErpStore extends Omit<ErpWorkflowStore, 'createGoodsIssue' | 'cr
 	createSalesOrder: (input: CreateSalesOrderInput) => Promise<SalesOrder>
 	updateSalesOrderStatus: (soId: number | string, status: SalesOrderStatus) => Promise<SalesOrder>
 	createStockReturn: (input: CreateStockReturnInput) => Promise<StockReturn>
+	convertQuotationToSalesOrder: (quotationId: number | string) => Promise<SalesOrder>
 }
 
 export const useErpStore = create<CustomErpStore>((set, get) => {
@@ -257,13 +259,20 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 	},
 
 	updateSettings: async (patch: Partial<ErpSettings>) => {
-		const newSettings = { ...get().settings, ...patch }
+		const previousSettings = get().settings
+		const newSettings = { ...previousSettings, ...patch }
 		set({ settings: newSettings })
-		await fetch(`${getApiUrl()}/api/settings`, {
-			method: 'PUT',
-			headers: getHeaders(),
-			body: JSON.stringify(patch),
-		})
+		try {
+			const res = await fetch(`${getApiUrl()}/api/settings`, {
+				method: 'PUT',
+				headers: getHeaders(),
+				body: JSON.stringify(patch),
+			})
+			await readApiResponse<{ success: boolean }>(res)
+		} catch (error) {
+			set({ settings: previousSettings })
+			throw error
+		}
 	},
 
 	// ── Products ──
@@ -398,7 +407,9 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 	},
 
 	calcBundleVirtualStock: (bundleSku: string) => {
-		const comps = get().bundleComponents.filter(c => c.bundleSku === bundleSku)
+		const storeComps = get().bundleComponents
+		const comps = (storeComps && storeComps.length > 0 ? storeComps : (initialWorkflowState.bundleComponents || []))
+			.filter(c => c.bundleSku === bundleSku)
 		if (comps.length === 0) return 0
 		let virtualQty = Infinity
 		for (const comp of comps) {
@@ -410,6 +421,7 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 			if (comp.unit === 'g' && prod.baseUnit === 'kg') required /= 1000
 			if (comp.unit === 'kg' && prod.baseUnit === 'g') required *= 1000
 			required = Math.ceil(required)
+			if (required <= 0) continue
 			virtualQty = Math.min(virtualQty, Math.floor(available / required))
 		}
 		return virtualQty === Infinity ? 0 : virtualQty
@@ -451,14 +463,13 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 		return updated
 	},
 
-	convertQuotationToSalesOrder: (quotationId) => {
-		const salesOrder = workflow.convertQuotationToSalesOrder(quotationId)
-		fetch(`${getApiUrl()}/api/quotations/${quotationId}/convert`, {
+	convertQuotationToSalesOrder: async (quotationId) => {
+		const response = await fetch(`${getApiUrl()}/api/quotations/${quotationId}/convert`, {
 			method: 'POST',
 			headers: getHeaders(),
-		}).then(res => {
-			if (res.ok) get().fetchInitialState()
 		})
+		const salesOrder = await readApiResponse<SalesOrder>(response)
+		await get().loadResources(['salesOrders', 'quotations', 'products', 'stockLots', 'stockMovements'], true)
 		return salesOrder
 	},
 
@@ -705,8 +716,10 @@ export const useErpStore = create<CustomErpStore>((set, get) => {
 			// Force-refresh these resources even when the user has not opened their pages yet.
 			await get().loadResources(['products', 'stockLots', 'stockMovements', 'goodsIssues'], true)
 			return goodsIssue
-		} catch {
-			return null
+		} catch (error) {
+			// Preserve the API validation message so the Goods Issue form can
+			// tell the user which order reference is invalid.
+			throw error
 		}
 	},
 

@@ -353,6 +353,7 @@ export const DEFAULT_SETTINGS: ErpSettings = {
   livePayroll: {
     hourlyRate: 120,
     clipBonus: 100,
+    staffRates: {},
   },
 }
 
@@ -738,10 +739,12 @@ export function createErpWorkflowState(
         qty: l.qty,
         unitPrice: l.price ?? state.products.find(p => p.sku === l.sku)?.price ?? 0,
       }))
+      const lead = q.leadSource.toLowerCase();
+      const channel: SalesOrderChannel = lead.includes('tiktok') ? 'TikTok' : lead.includes('shopee') ? 'Shopee' : 'Manual';
       const so: SalesOrder = {
         id: nextId('SO-2026-', state.salesOrders.map(o => o.id)),
         customer: q.customer, date: todayIso(), amount: q.amount,
-        status: 'Pending', channel: 'Manual', items: q.items,
+        status: 'Pending', channel, items: q.items,
         lines: soLines, qtRef: q.id, invRef: null, sourceRef: null,
         auditTrail: [{ action: 'Created', by, at: nowIso(), note: `แปลงจาก ${quotationId}` }],
       }
@@ -1152,6 +1155,9 @@ export function createErpWorkflowState(
 
     createStockReturn(input) {
       const product = get().products.find(p => p.sku === input.sku)
+      if (!product) throw new Error('Product not found')
+      if (input.qty <= 0) throw new Error('Return quantity must be greater than zero')
+      if (input.qty > product.stock) throw new Error(`จำนวนคืนต้องไม่เกินจำนวนที่มี ${product.stock} ชิ้น`)
       const skuName = product?.name ?? input.sku
       const by = get().currentUser.name
       const id = nextId('RET-2026-', get().stockReturns.map(r => r.id))

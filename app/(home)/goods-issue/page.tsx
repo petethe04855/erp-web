@@ -203,22 +203,10 @@ export default function GoodsIssuePage() {
                     Date
                   </TableHead>
                   <TableHead
-                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
-                    style={{ color: "var(--erp-ink3)" }}
-                  >
-                    Items
-                  </TableHead>
-                  <TableHead
                     className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
                     style={{ color: "var(--erp-ink3)" }}
                   >
                     Quantity
-                  </TableHead>
-                  <TableHead
-                    className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-right"
-                    style={{ color: "var(--erp-ink3)" }}
-                  >
-                    Value
                   </TableHead>
                   <TableHead
                     className="p-3 px-5 text-xs font-bold text-muted-foreground uppercase text-left"
@@ -269,19 +257,9 @@ export default function GoodsIssuePage() {
                         {g.date}
                       </Mono>
                     </TableCell>
-                    <TableCell className="p-4 px-5 align-middle text-right">
-                      <Mono t={t} size={12} color={c.ink2}>
-                        1
-                      </Mono>
-                    </TableCell>
                     <TableCell className="p-4 px-5 align-middle">
                       <Mono t={t} size={12} color={c.ink2}>
                         {g.qty}
-                      </Mono>
-                    </TableCell>
-                    <TableCell className="p-4 px-5 align-middle text-right">
-                      <Mono t={t} size={13} weight={600}>
-                        {formatBaht(g.value)}
                       </Mono>
                     </TableCell>
                     <TableCell className="p-4 px-5 align-middle">
@@ -292,7 +270,7 @@ export default function GoodsIssuePage() {
                 {rows.length === 0 && (
                   <TableRow>
                     <TableCell
-                      colSpan={9}
+                      colSpan={7}
                       className="text-center p-10 text-sm text-muted-foreground"
                       style={{ color: "var(--erp-ink3)" }}
                     >
