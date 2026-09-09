@@ -1,400 +1,108 @@
-@import "../node_modules/tw-animate-css/dist/tw-animate.css";
-@import "../node_modules/shadcn/dist/tailwind.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --sidebar-w: 252px;
-  /* Legacy: kept for any hardcoded references still in codebase */
-  /* Design system tokens — set dynamically by BodyStyle.tsx */
-  --erp-canvas: #FBFAF7;
-  --erp-surface: #FFFFFF;
-  --erp-subtle: #F4F2EC;
-  --erp-border: #E8E4DA;
-  --erp-border-strong: #D7D2C5;
-  --erp-ink: #171717;
-  --erp-ink2: #525050;
-  --erp-ink3: #8A8881;
-  --erp-ink4: #B2AFA6;
-  --erp-accent: #0F6E58;
-  --erp-accent-bg: rgba(15,110,88,0.06);
-  --erp-pos: #0E7C49;
-  --erp-neg: #B91C1C;
-  --erp-warn: #B45309;
-  --erp-info: #1E5F8B;
-  --erp-pos-bg: rgba(14,124,73,0.08);
-  --erp-neg-bg: rgba(185,28,28,0.06);
-  --erp-warn-bg: rgba(180,83,9,0.08);
-  --erp-info-bg: rgba(30,95,139,0.08);
-  --erp-expense: #C2410C;
-  --erp-radius: 6px;
-  --erp-font-sans: var(--font-sans), system-ui, sans-serif;
-  --erp-font-mono: ui-monospace, monospace;
-  --brand: var(--erp-accent);
-  --brand-green: var(--erp-pos);
-  --brand-amber: var(--erp-warn);
-  --brand-red: var(--erp-neg);
-  --text-primary: var(--erp-ink);
-  --text-secondary: var(--erp-ink2);
-  --text-muted: var(--erp-ink3);
-  --text-label: var(--erp-ink4);
-  --card-border: var(--erp-border);
-}
+@layer base {
+  :root {
+    --background: 0 0% 100%; /* #ffffff */
+    --foreground: 0 0% 3.9%;  /* #09090b */
 
-* { box-sizing: border-box; }
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
 
-body {
-  font-family: var(--erp-font-sans);
-  background: var(--erp-canvas);
-  color: var(--erp-ink);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  font-feature-settings: 'cv11', 'ss01';
-  text-rendering: optimizeLegibility;
-}
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
 
-button,
-input,
-select,
-textarea {
-  font-family: var(--erp-font-sans);
-}
+    --primary: 0 0% 9%;       /* #18181b */
+    --primary-foreground: 0 0% 98%;
 
-button:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-a:focus-visible {
-  outline: 2px solid var(--erp-accent);
-  outline-offset: 2px;
-}
+    --secondary: 0 0% 96.1%;  /* #f4f4f5 */
+    --secondary-foreground: 0 0% 9%;
 
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(120,120,120,0.18); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(120,120,120,0.32); }
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%; /* #71717a */
 
-.erp-table { width: 100%; border-collapse: collapse; font-size: 13px; font-family: var(--erp-font-sans); }
-.erp-table th {
-  text-align: left; padding: 10px 14px; background: var(--erp-subtle);
-  font-size: 10px; font-weight: 600; text-transform: uppercase;
-  letter-spacing: 0.06em; color: var(--erp-ink4);
-  border-bottom: 1px solid var(--erp-border); white-space: nowrap;
-  font-family: var(--erp-font-sans);
-}
-.erp-table td { padding: 11px 14px; border-bottom: 1px solid var(--erp-border); vertical-align: middle; color: var(--erp-ink2); }
-.erp-table tr:last-child td { border-bottom: none; }
-.erp-table tbody tr:hover td { background: var(--erp-subtle); }
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
 
-.card {
-  background: var(--erp-surface);
-  border: 1px solid var(--erp-border);
-  border-radius: var(--erp-radius);
-  box-shadow: none;
-  overflow: hidden;
-  font-family: var(--erp-font-sans);
-}
+    --destructive: 0 0% 9%;   /* keep monochrome */
+    --destructive-foreground: 0 0% 98%;
 
-.badge {
-  display: inline-flex; align-items: center;
-  gap: 6px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 500;
-  white-space: nowrap;
-  border: 1px solid var(--erp-border);
-  background: var(--erp-subtle);
-  color: var(--erp-ink2);
-}
+    --border: 0 0% 89.8%;     /* #e4e4e7 */
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
 
-.erp-page {
-  min-height: 100vh;
-  background: var(--erp-canvas);
-  color: var(--erp-ink);
-  font-family: var(--erp-font-sans);
-}
-
-.erp-page-body {
-  padding: 24px 32px 40px;
-}
-
-.erp-legacy-title {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.10em;
-  text-transform: uppercase;
-  color: var(--erp-ink3);
-}
-
-.erp-action {
-  padding: 6px 12px;
-  border-radius: max(calc(var(--erp-radius) - 2px), 0px);
-  border: 1px solid var(--erp-border);
-  background: transparent;
-  color: var(--erp-ink);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: -0.005em;
-  cursor: pointer;
-}
-
-.erp-action-primary {
-  border-color: var(--erp-ink);
-  background: var(--erp-ink);
-  color: var(--erp-canvas);
-}
-
-.erp-action-accent {
-  border-color: var(--erp-accent);
-  background: var(--erp-accent);
-  color: #fff;
-}
-
-.erp-control {
-  width: 100%;
-  min-height: 34px;
-  padding: 7px 10px;
-  border: 1px solid var(--erp-border);
-  border-radius: max(calc(var(--erp-radius) - 2px), 0px);
-  background: var(--erp-surface);
-  color: var(--erp-ink);
-  font-size: 13px;
-  outline: none;
-}
-
-/* ── Responsive shell (Phase 1) ───────────────────────────── */
-.app-main { padding-left: var(--sidebar-w); }
-
-.app-hamburger { display: none; }
-
-@media (max-width: 1024px) {
-  .app-main { padding-left: 0; }
-
-  .app-sidebar {
-    transform: translateX(-100%);
-    transition: transform 220ms ease;
-    z-index: 90;
-  }
-  .app-sidebar.is-open { transform: translateX(0); }
-
-  .app-hamburger {
-    display: inline-flex; align-items: center; justify-content: center;
-    position: fixed; top: 12px; left: 12px; z-index: 80;
-    width: 40px; height: 40px;
-    background: var(--erp-surface); border: 1px solid var(--erp-border);
-    border-radius: var(--erp-radius); cursor: pointer;
-    font-size: 18px; line-height: 1; color: var(--erp-ink);
+    --radius: 0.5rem;
   }
 
-  /* table scrolls inside its own box instead of pushing the page */
-  .erp-table {
-    display: block;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-}
+  .dark {
+    --background: 0 0% 3.9%;  /* #09090b */
+    --foreground: 0 0% 98%;   /* #fafafa */
 
-@media (max-width: 768px) {
-  .erp-page-body { padding: 16px 14px 32px; }
-}
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
 
-/* A4 documents stay outside the visible application and are only used by
-   PDF export or the browser print flow. */
-.document-export-template {
-  position: fixed;
-  left: -10000px;
-  top: 0;
-  pointer-events: none;
-}
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
 
-@media print {
-  /* Hide everything that shouldn't print */
-  .no-print,
-  .no-print * {
-    display: none !important;
-  }
-  .app-sidebar,
-  .app-hamburger,
-  .tweaks-panel {
-    display: none !important;
-  }
-  .app-main {
-    padding-left: 0 !important;
-    margin: 0 !important;
-  }
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
 
-  /* Page setup */
-  @page {
-    size: A4;
-    margin: 16mm 12mm;
-  }
-  body, html {
-    background: #fff !important;
-    color: #000 !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
+    --secondary: 0 0% 14.9%;  /* #27272a */
+    --secondary-foreground: 0 0% 98%;
 
-  .document-export-template {
-    position: static !important;
-    left: auto !important;
-    top: auto !important;
-    pointer-events: auto !important;
-  }
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
 
-  /* Invoice page grid — single column, no side panels */
-  .invoice-page-grid {
-    display: block !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
 
-  /* Invoice card — clean white with border */
-  .invoice-card {
-    border: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    width: 100% !important;
-  }
-  .invoice-card > div {
-    border: none !important;
-    box-shadow: none !important;
-    background: #fff !important;
-  }
+    --destructive: 0 0% 98%;
+    --destructive-foreground: 0 0% 9%;
 
-  /* Show company details on print */
-  .print-company-detail {
-    display: block !important;
-  }
-
-  /* Remove empty space — kill min-height and excess padding/gaps */
-  .erp-page,
-  .app-main,
-  .app-main > * {
-    min-height: 0 !important;
-    height: auto !important;
-  }
-  /* Outer wrapper div of invoice page uses inline minHeight:'100vh' */
-  .app-main > div[style] {
-    min-height: 0 !important;
-    height: auto !important;
-    padding-bottom: 0 !important;
-  }
-
-  /* Ensure table prints cleanly */
-  table {
-    page-break-inside: auto;
-  }
-  tr {
-    page-break-inside: avoid;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
   }
 }
 
 @layer base {
-  .theme {
-    --font-heading: var(--font-sans);
-    --font-sans: var(--font-sans);
-  }
-  :root {
-    --background: #ffffff;
-    --foreground: #171717;
-    --card: #ffffff;
-    --card-foreground: #171717;
-    --popover: #ffffff;
-    --popover-foreground: #171717;
-    --primary: #1f1f1f;
-    --primary-foreground: #fafafa;
-    --secondary: #f5f5f5;
-    --secondary-foreground: #1f1f1f;
-    --muted: #f5f5f5;
-    --muted-foreground: #737373;
-    --accent: #f5f5f5;
-    --accent-foreground: #1f1f1f;
-    --destructive: #e11d48;
-    --border: #e5e5e5;
-    --input: #e5e5e5;
-    --ring: #a3a3a3;
-    --chart-1: #d4d4d4;
-    --chart-2: #737373;
-    --chart-3: #525252;
-    --chart-4: #404040;
-    --chart-5: #262626;
-    --radius: 0.625rem;
-    --sidebar: #fafafa;
-    --sidebar-foreground: #171717;
-    --sidebar-primary: #1f1f1f;
-    --sidebar-primary-foreground: #fafafa;
-    --sidebar-accent: #f5f5f5;
-    --sidebar-accent-foreground: #1f1f1f;
-    --sidebar-border: #e5e5e5;
-    --sidebar-ring: #a3a3a3;
-  }
-  .dark {
-    --background: #171717;
-    --foreground: #fafafa;
-    --card: #1f1f1f;
-    --card-foreground: #fafafa;
-    --popover: #1f1f1f;
-    --popover-foreground: #fafafa;
-    --primary: #e5e5e5;
-    --primary-foreground: #1f1f1f;
-    --secondary: #262626;
-    --secondary-foreground: #fafafa;
-    --muted: #262626;
-    --muted-foreground: #a3a3a3;
-    --accent: #262626;
-    --accent-foreground: #fafafa;
-    --destructive: #f87171;
-    --border: rgba(255, 255, 255, 0.1);
-    --input: rgba(255, 255, 255, 0.15);
-    --ring: #737373;
-    --chart-1: #d4d4d4;
-    --chart-2: #737373;
-    --chart-3: #525252;
-    --chart-4: #404040;
-    --chart-5: #262626;
-    --sidebar: #1f1f1f;
-    --sidebar-foreground: #fafafa;
-    --sidebar-primary: #4f46e5;
-    --sidebar-primary-foreground: #fafafa;
-    --sidebar-accent: #262626;
-    --sidebar-accent-foreground: #fafafa;
-    --sidebar-border: rgba(255, 255, 255, 0.1);
-    --sidebar-ring: #737373;
-  }
   * {
     @apply border-border;
-    outline-color: rgba(163, 163, 163, 0.5);
   }
   body {
-    @apply bg-background text-foreground;
-  }
-  html {
-    @apply font-sans;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-/* Redefine Tailwind/shadcn variables using standard hex/rgb colors to avoid html2canvas crashing on oklch() color parsing */
-.invoice-card {
-  --background: #ffffff;
-  --foreground: #171717;
-  --card: #ffffff;
-  --card-foreground: #171717;
-  --popover: #ffffff;
-  --popover-foreground: #171717;
-  --primary: #171717;
-  --primary-foreground: #ffffff;
-  --secondary: #f4f2ec;
-  --secondary-foreground: #171717;
-  --muted: #f4f2ec;
-  --muted-foreground: #8a8881;
-  --accent: #f4f2ec;
-  --accent-foreground: #171717;
-  --destructive: #b91c1c;
-  --border: #e8e4da;
-  --input: #e8e4da;
-  --ring: #8a8881;
+@layer base { body { background: #f7f7f7; } button, input, select { min-height: 36px; } :focus-visible { outline: 2px solid #171717; outline-offset: 3px; } }
+
+@layer base { body { font-family: Arial, Tahoma, sans-serif; } }
+
+/* Modern sleek scrollbar styles */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d4d4d8 transparent;
+}
+
+/* Hide Next.js dev overlay indicator in development so it doesn't obstruct UI */
+#next-logo,
+[data-nextjs-dev-indicator],
+[data-nextjs-toast] {
+  display: none !important;
 }
