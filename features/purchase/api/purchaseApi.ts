@@ -1,5 +1,5 @@
 import { list, writeRecord } from "@/lib/api";
-import type { PurchaseRecord } from "@/features/erp/types/records";
+import type { PurchaseRecord } from "@/types/records";
 import type {
   PurchaseOrder,
   PurchaseQueryParams,

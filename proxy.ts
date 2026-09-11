@@ -2,15 +2,15 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 /**
- * Edge middleware (erp-web-architecture.md §16): gate protected routes before
- * rendering. This is a fast first-line redirect based on token presence only —
+ * Edge proxy (erp-web-architecture.md §16, migrated to Next.js 16 proxy convention):
+ * Gate protected routes before rendering. This is a fast first-line redirect based on token presence only —
  * the JWT is still validated by the backend on every API call, and
  * SessionGuard (app/(home)/layout.tsx) remains the in-app second layer that
  * verifies the session with GET /auth/me.
  *
- * Token storage is currently localStorage, which middleware cannot read (it
+ * Token storage is currently localStorage, which proxy cannot read (it
  * runs on the Edge, outside the browser). A chawy_v2_auth cookie is therefore
- * written alongside the token on login and cleared on logout; middleware
+ * written alongside the token on login and cleared on logout; proxy
  * checks that cookie. The cookie holds no secret material — it mirrors the
  * presence of the session so unauthenticated navigation is redirected before
  * hydration.
@@ -42,7 +42,7 @@ const PROTECTED_PREFIXES = [
 /** Routes a signed-in user should not sit on. */
 const AUTH_ROUTES = ["/login", "/forgot-password", "/reset-password"];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   const hasSessionCookie = Boolean(request.cookies.get(AUTH_COOKIE)?.value);
@@ -67,7 +67,7 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Exclude static assets and API routes from middleware processing.
+  // Exclude static assets and API routes from proxy processing.
   matcher: [
     "/((?!api|_next/static|_next/image|favicon.ico|images|.*\\.(?:png|jpg|jpeg|svg|gif|webp|ico)$).*)",
   ],

@@ -50,9 +50,12 @@ describe("QuickLookup race protection", () => {
 
     // The stale "slow" response arrives late — it must be discarded and
     // the "fast" results must remain rendered.
-    resolveSlow(makeOptions("slow"));
-    await new Promise((r) => setTimeout(r, 50));
-    expect(screen.queryByText("Result for slow")).toBeNull();
-    expect(screen.getByText("Result for fast")).toBeInTheDocument();
+    await React.act(async () => {
+      resolveSlow(makeOptions("slow"));
+    });
+    await waitFor(() => {
+      expect(screen.queryByText("Result for slow")).toBeNull();
+      expect(screen.getByText("Result for fast")).toBeInTheDocument();
+    });
   });
 });

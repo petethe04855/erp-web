@@ -33,6 +33,8 @@ export function SKUForm(props: Props) {
     { sku: "", quantity: 1, price: 0 },
   ]);
 
+  const [isLoadingComponents, setIsLoadingComponents] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const resetForm = () => {
@@ -49,6 +51,7 @@ export function SKUForm(props: Props) {
     setPreviewUrl("");
     setUploadError("");
     setIsUploading(false);
+    setIsLoadingComponents(false);
     setLines([{ sku: "", quantity: 1, price: 0 }]);
   };
 
@@ -59,6 +62,40 @@ export function SKUForm(props: Props) {
       fileInputRef.current.value = "";
     }
   }, [props.open]);
+
+  // When editing a bundle SKU, fetch components from API if not already present
+  useEffect(() => {
+    let active = true;
+    if (props.open && props.initialData && props.initialData.isBundle && props.initialData.sku) {
+      const initialSku = props.initialData.sku;
+      if (!props.initialData.bundleItems || props.initialData.bundleItems.length === 0) {
+        setIsLoadingComponents(true);
+        skuApi
+          .getBundleComponents(initialSku)
+          .then((comps) => {
+            if (!active) return;
+            if (comps && comps.length > 0) {
+              setLines(
+                comps.map((c) => ({
+                  sku: c.componentSku,
+                  quantity: c.qty,
+                  price: 0,
+                })),
+              );
+            }
+          })
+          .catch((err) => {
+            console.error("Failed to load bundle components:", err);
+          })
+          .finally(() => {
+            if (active) setIsLoadingComponents(false);
+          });
+      }
+    }
+    return () => {
+      active = false;
+    };
+  }, [props.open, props.initialData?.id, props.initialData?.sku, props.initialData?.isBundle]);
 
   // Sync form fields with `open`/`initialData`: adjust state during render
   // (React docs pattern) instead of setState-in-effect.
@@ -308,7 +345,16 @@ export function SKUForm(props: Props) {
         />
         เป็นชุดสินค้า Bundle
       </label>
-      {bundle && <ItemLines value={lines} onChange={setLines} prices={false} />}
+      {bundle && (
+        isLoadingComponents ? (
+          <div className="flex items-center justify-center p-6 border border-dashed rounded-xl bg-neutral-50/50 dark:bg-neutral-800/30">
+            <Loader2 className="h-5 w-5 animate-spin text-neutral-400 mr-2" />
+            <span className="text-xs text-neutral-500">กำลังโหลดรายการส่วนประกอบ...</span>
+          </div>
+        ) : (
+          <ItemLines value={lines} onChange={setLines} prices={false} />
+        )
+      )}
       <p className="text-xs text-neutral-500">
         การรับสต็อกให้ทำผ่านหน้ารับสินค้า
       </p>

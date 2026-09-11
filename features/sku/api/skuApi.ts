@@ -1,5 +1,5 @@
 import { list, read, writeRecord, deleteRecord } from "@/lib/api";
-import type { ProductRecord } from "@/features/erp/types/records";
+import type { ProductRecord } from "@/types/records";
 import type { SKU, SKUQueryParams, CreateSKUDTO } from "../types/sku";
 export const toSKU = (p: ProductRecord): SKU => ({
   id: p.id,
@@ -60,6 +60,15 @@ export const skuApi = {
     });
     return { ...result, data: toSKU(result.data) };
   },
+  getBundleComponents: async (sku: string) => {
+    return read<Array<{
+      id: number;
+      bundleSku: string;
+      componentSku: string;
+      qty: number;
+      note?: string;
+    }>>(`/bundle-components/${encodeURIComponent(sku)}`);
+  },
   updateSKU: async (sku: string | number, dto: import("../types/sku").UpdateSKUDTO) => {
     const result = await writeRecord<ProductRecord>(
       typeof sku === "number"
@@ -74,6 +83,13 @@ export const skuApi = {
         isBundle: dto.isBundle,
         image: dto.image,
         status: dto.status,
+        components: dto.bundleItems?.map((c) => ({
+          componentSku: c.componentSku,
+          qty: c.quantity,
+          unit: "piece",
+          componentType: "material",
+          yieldFactor: 1,
+        })),
       },
       "put",
     );

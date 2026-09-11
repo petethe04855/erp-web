@@ -1,5 +1,5 @@
 import { list, writeRecord } from "@/lib/api";
-import type { ProductRecord, QuotationRecord } from "@/features/erp/types/records";
+import type { QuotationRecord } from "@/types/records";
 import type {
   Quotation,
   QuotationQueryParams,

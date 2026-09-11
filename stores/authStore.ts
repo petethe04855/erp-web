@@ -10,8 +10,11 @@ const AUTH_COOKIE = "chawy_v2_auth";
 
 function setAuthCookie() {
   if (typeof document === "undefined") return;
-  // Same-site session mirror; the value is irrelevant, only presence matters.
-  document.cookie = `${AUTH_COOKIE}=1; path=/; samesite=lax`;
+  // Same-site session mirror with 7 days expiry and secure flag when on HTTPS.
+  const isSecure = typeof window !== "undefined" && window.location.protocol === "https:";
+  const secureFlag = isSecure ? "; secure" : "";
+  const maxAge = 7 * 24 * 60 * 60; // 7 days in seconds
+  document.cookie = `${AUTH_COOKIE}=1; path=/; max-age=${maxAge}; samesite=lax${secureFlag}`;
 }
 
 /** Re-write the session-presence cookie after a verified /auth/me round trip. */
@@ -21,7 +24,9 @@ export function ensureAuthCookie() {
 
 function clearAuthCookie() {
   if (typeof document === "undefined") return;
-  document.cookie = `${AUTH_COOKIE}=; path=/; max-age=0; samesite=lax`;
+  const isSecure = typeof window !== "undefined" && window.location.protocol === "https:";
+  const secureFlag = isSecure ? "; secure" : "";
+  document.cookie = `${AUTH_COOKIE}=; path=/; max-age=0; samesite=lax${secureFlag}`;
 }
 
 export interface User {

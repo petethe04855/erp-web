@@ -1,5 +1,5 @@
 import { list, writeRecord } from "@/lib/api";
-import type { OrderRecord } from "@/features/erp/types/records";
+import type { OrderRecord } from "@/types/records";
 import type { Order, OrderQueryParams, CreateOrderDTO } from "../types/order";
 const map = (o: OrderRecord): Order => ({
   id: o.id,

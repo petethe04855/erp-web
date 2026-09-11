@@ -56,4 +56,8 @@ export interface UpdateSKUDTO {
   isBundle?: boolean;
   image?: string;
   status?: string;
+  bundleItems?: Array<{
+    componentSku: string;
+    quantity: number;
+  }>;
 }

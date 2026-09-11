@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { RecordDetails } from "@/features/erp/components/RecordDetails";
-import { Trash2, Loader2, AlertTriangle, Package, ImageIcon, Edit } from "lucide-react";
+import { Trash2, Loader2, AlertTriangle, Package, ImageIcon, Edit, X } from "lucide-react";
 import { getImageUrl } from "@/lib/utils";
 import type { SKU } from "../types/sku";
 import type { ApiPaginationMeta } from "@/types/api";
@@ -70,6 +70,15 @@ export function SKUTable({
   const [loadingSkuId, setLoadingSkuId] = useState<string | number | null>(null);
   const [deletingSku, setDeletingSku] = useState<SKU | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [bundleViewingSku, setBundleViewingSku] = useState<SKU | null>(null);
+  const [bundleComponents, setBundleComponents] = useState<Array<{
+    id: number;
+    bundleSku: string;
+    componentSku: string;
+    qty: number;
+    note?: string;
+  }> | null>(null);
+  const [isLoadingBundle, setIsLoadingBundle] = useState(false);
 
   if (isLoading) return <Loading message="กำลังโหลดข้อมูล SKU…" />;
   if (isError)
@@ -98,6 +107,21 @@ export function SKUTable({
     }
   };
 
+  const handleOpenBundleComponents = async (item: SKU) => {
+    setBundleViewingSku(item);
+    setIsLoadingBundle(true);
+    try {
+      const { skuApi } = await import("../api/skuApi");
+      const res = await skuApi.getBundleComponents(item.sku);
+      setBundleComponents(res || []);
+    } catch (err) {
+      console.error(err);
+      setBundleComponents([]);
+    } finally {
+      setIsLoadingBundle(false);
+    }
+  };
+
   const handleDeleteConfirm = async () => {
     if (!deletingSku || !onDelete) return;
     try {
@@ -105,7 +129,8 @@ export function SKUTable({
       await onDelete(deletingSku.sku || deletingSku.id);
       setDeletingSku(null);
     } catch (err: unknown) {
-      alert("ลบข้อมูล SKU ไม่สำเร็จ: " + (err instanceof Error ? err.message : String(err)));
+      const errMsg = err instanceof Error ? err.message : String(err);
+      alert(errMsg);
     } finally {
       setIsDeleting(false);
     }
@@ -201,7 +226,14 @@ export function SKUTable({
                     {/* Stock */}
                     <td className="px-5 py-3.5 whitespace-nowrap text-left text-neutral-700 dark:text-neutral-300">
                       {item.isBundle ? (
-                        <span className="text-xs text-indigo-600 font-medium">ดูส่วนประกอบ</span>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenBundleComponents(item)}
+                          className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium hover:underline cursor-pointer"
+                        >
+                          <Package className="h-3.5 w-3.5" />
+                          ดูส่วนประกอบ
+                        </button>
                       ) : item.stockQuantity !== undefined ? (
                         <div className="flex flex-col gap-1 text-xs">
                           <div className="flex items-center gap-1.5">
@@ -365,6 +397,91 @@ export function SKUTable({
                 ) : (
                   "ยืนยันลบข้อมูล"
                 )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Bundle Components Modal */}
+      {bundleViewingSku && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 space-y-4">
+            <div className="flex items-center justify-between border-b pb-3 dark:border-neutral-800">
+              <div className="flex items-center gap-2">
+                <div className="rounded-lg bg-indigo-50 p-2 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">
+                  <Package className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
+                    ส่วนประกอบสินค้า Bundle
+                  </h3>
+                  <p className="text-xs text-neutral-500 font-mono">
+                    {bundleViewingSku.sku}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-neutral-400 hover:text-neutral-600"
+                onClick={() => setBundleViewingSku(null)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="text-xs text-neutral-600 dark:text-neutral-300">
+              <span className="font-medium text-neutral-900 dark:text-neutral-100">
+                {bundleViewingSku.name}
+              </span>
+            </div>
+
+            <div className="max-h-60 overflow-y-auto space-y-2">
+              {isLoadingBundle ? (
+                <div className="flex items-center justify-center p-6 text-xs text-neutral-500">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  กำลังโหลดข้อมูลส่วนประกอบ...
+                </div>
+              ) : !bundleComponents || bundleComponents.length === 0 ? (
+                <p className="text-center py-6 text-xs text-neutral-400 italic">
+                  ไม่มีรายการส่วนประกอบสำหรับสินค้านี้
+                </p>
+              ) : (
+                <div className="divide-y divide-neutral-100 rounded-lg border border-neutral-100 dark:divide-neutral-800 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50">
+                  {bundleComponents.map((comp, idx) => (
+                    <div
+                      key={comp.id || idx}
+                      className="flex items-center justify-between p-3 text-xs"
+                    >
+                      <div className="space-y-0.5">
+                        <span className="font-mono font-semibold text-neutral-900 dark:text-neutral-100">
+                          {comp.componentSku}
+                        </span>
+                        {comp.note && (
+                          <p className="text-[11px] text-neutral-400">
+                            {comp.note}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <Badge variant="secondary" className="font-mono font-medium">
+                          {comp.qty} ชิ้น
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setBundleViewingSku(null)}
+              >
+                ปิดหน้าต่าง
               </Button>
             </div>
           </div>

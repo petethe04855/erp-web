@@ -17,10 +17,17 @@ const Dialog: React.FC<DialogProps> = ({ open, onOpenChange, children }) => {
   const contentRef = React.useRef<HTMLDivElement>(null);
   const previouslyFocusedRef = React.useRef<HTMLElement | null>(null);
 
+  // Keep a stable ref to onOpenChange so the main effect doesn't re-fire
+  // when the parent passes a new closure (e.g. FormDialog's inline wrapper).
+  const onOpenChangeRef = React.useRef(onOpenChange);
+  React.useEffect(() => {
+    onOpenChangeRef.current = onOpenChange;
+  });
+
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && open) {
-        onOpenChange(false);
+        onOpenChangeRef.current(false);
       }
     };
     if (open) {
@@ -48,7 +55,7 @@ const Dialog: React.FC<DialogProps> = ({ open, onOpenChange, children }) => {
       document.body.style.overflow = "unset";
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [open, onOpenChange]);
+  }, [open]);
 
   // Restore focus to the trigger when the dialog closes/unmounts.
   React.useEffect(() => {
