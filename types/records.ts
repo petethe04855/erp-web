@@ -51,6 +51,7 @@ export interface CustomerRecord {
   phone: string;
   taxId: string;
   address: string;
+  logo?: string;
 }
 
 export interface QuotationRecord {

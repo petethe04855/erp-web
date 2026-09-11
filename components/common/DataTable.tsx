@@ -9,6 +9,7 @@ export interface Column<T> {
   key: keyof T;
   label: string;
   money?: boolean;
+  render?: (row: T) => React.ReactNode;
 }
 
 export function DataTable<T extends { id: string | number }>({
@@ -96,16 +97,20 @@ export function DataTable<T extends { id: string | number }>({
                         : "text-left text-neutral-700 dark:text-neutral-300")
                     }
                   >
-                    {row[c.key] === null ||
-                    row[c.key] === undefined ||
-                    row[c.key] === ""
-                      ? "—"
-                      : c.money
-                        ? new Intl.NumberFormat("th-TH", {
-                            style: "currency",
-                            currency: "THB",
-                          }).format(Number(row[c.key]))
-                        : String(row[c.key])}
+                    {c.render ? (
+                      c.render(row)
+                    ) : row[c.key] === null ||
+                      row[c.key] === undefined ||
+                      row[c.key] === "" ? (
+                      "—"
+                    ) : c.money ? (
+                      new Intl.NumberFormat("th-TH", {
+                        style: "currency",
+                        currency: "THB",
+                      }).format(Number(row[c.key]))
+                    ) : (
+                      String(row[c.key])
+                    )}
                   </td>
                 ))}
                 {actions && (

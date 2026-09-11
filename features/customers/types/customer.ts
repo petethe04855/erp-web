@@ -6,6 +6,7 @@ export interface Customer {
   email: string;
   phone: string;
   taxId: string;
+  logo?: string;
 }
 
 export interface CustomerQueryParams {
@@ -22,6 +23,7 @@ export interface CreateCustomerDTO {
   phone: string;
   taxId: string;
   address?: string;
+  logo?: string;
   channel?: string;
 }
 
@@ -32,6 +34,7 @@ export interface UpdateCustomerDTO {
   phone?: string;
   taxId?: string;
   address?: string;
+  logo?: string;
   channel?: string;
   status?: string;
 }

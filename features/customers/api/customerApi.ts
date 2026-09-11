@@ -23,6 +23,21 @@ export const customerApi = {
     list<CustomerRecord, Customer>("/workspace/customers", params, map),
   getCustomerById: (id: string | number) =>
     read<CustomerResponse>(`/customers/${id}`),
+  uploadImage: async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append("image", file);
+    const res = await (await import("@/lib/axios")).default.post<{
+      success: boolean;
+      data: { url: string };
+      message?: string;
+    }>("/upload/image", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    if (!res.data?.success || !res.data?.data?.url) {
+      throw new Error(res.data?.message || "อัปโหลดรูปภาพไม่สำเร็จ");
+    }
+    return res.data.data.url;
+  },
   createCustomer: async (dto: CreateCustomerDTO) => {
     const res = await writeRecord<CustomerResponse>("/customers", {
       name: dto.name,
@@ -31,6 +46,7 @@ export const customerApi = {
       phone: dto.phone,
       taxId: dto.taxId,
       address: dto.address,
+      logo: dto.logo,
       channel: dto.channel,
     });
     return { ...res, data: map(res.data as CustomerRecord) };

@@ -293,13 +293,12 @@ export function SKUForm(props: Props) {
       </div>
 
       <label className="block text-xs font-medium">
-        SKU
+        SKU {isEditing && <span className="text-neutral-400 font-normal">(แก้ไขรหัสได้)</span>}
         <Input
           className="mt-2"
           type="text"
           value={sku}
-          onChange={(e) => setSku(e.target.value)}
-          disabled={isEditing}
+          onChange={(e) => setSku(e.target.value.toUpperCase())}
           required
         />
       </label>

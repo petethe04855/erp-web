@@ -65,19 +65,21 @@ const fieldLabels: Record<string, string> = {
   channel: "ช่องทาง",
   orderRef: "อ้างอิงคำสั่งซื้อ",
   image: "รูปภาพสินค้า",
+  logo: "รูปภาพบริษัท / โลโก้",
+  customerLogo: "โลโก้ลูกค้า",
 };
 
 function formatValue(key: string, val: unknown): React.ReactNode {
   if (val === null || val === undefined || val === "")
     return <span className="text-muted-foreground">—</span>;
-  if (key === "image" && typeof val === "string") {
+  if ((key === "image" || key === "logo" || key === "customerLogo") && typeof val === "string") {
     return (
       <div className="my-1">
-        <div className="h-24 w-24 rounded-lg overflow-hidden border border-border bg-muted/40 flex items-center justify-center">
+        <div className="h-24 w-24 rounded-lg overflow-hidden border border-border bg-muted/40 flex items-center justify-center p-1">
           <img
             src={getImageUrl(val)}
-            alt="Product"
-            className="h-full w-full object-cover"
+            alt={key === "image" ? "Product" : "Company Logo"}
+            className="h-full w-full object-contain"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
             }}
@@ -833,14 +835,29 @@ export function RecordDetails({
               </header>
 
               {/* Customer Info */}
-              <div style={{ marginTop: "24px", borderBottom: "1px solid #d1d5db", paddingBottom: "16px", fontSize: "11px" }}>
-                <div style={{ fontWeight: "bold", color: "#374151", marginBottom: "4px" }}>ลูกค้า</div>
-                <div style={{ fontSize: "14px", fontWeight: "bold", color: "#111827" }}>
-                  {String(query.data.customer || query.data.customerName || "–")}
+              <div style={{ marginTop: "24px", borderBottom: "1px solid #d1d5db", paddingBottom: "16px", fontSize: "11px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <div style={{ fontWeight: "bold", color: "#374151", marginBottom: "4px" }}>ลูกค้า</div>
+                  <div style={{ fontSize: "14px", fontWeight: "bold", color: "#111827" }}>
+                    {String(query.data.customer || query.data.customerName || "–")}
+                  </div>
+                  <div style={{ marginTop: "4px", color: "#4b5563" }}>
+                    {query.data.customerAddress ? String(query.data.customerAddress) : "สำนักงานใหญ่ / สถานที่จัดส่งตามที่ระบุ"}
+                  </div>
                 </div>
-                <div style={{ marginTop: "4px", color: "#4b5563" }}>
-                  {query.data.customerAddress ? String(query.data.customerAddress) : "สำนักงานใหญ่ / สถานที่จัดส่งตามที่ระบุ"}
-                </div>
+                {Boolean(query.data.customerLogo || query.data.logo) ? (
+                  <div style={{ marginLeft: "16px", flexShrink: 0 }}>
+                    <img
+                      src={getImageUrl(String(query.data.customerLogo || query.data.logo))}
+                      alt="Customer Logo"
+                      crossOrigin="anonymous"
+                      style={{ height: "48px", maxWidth: "120px", objectFit: "contain", borderRadius: "4px", border: "1px solid #e5e7eb", padding: "2px" }}
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = "none";
+                      }}
+                    />
+                  </div>
+                ) : null}
               </div>
 
               {/* Line Items Table */}

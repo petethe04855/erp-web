@@ -75,6 +75,7 @@ export const skuApi = {
         ? `/products/id/${sku}`
         : `/products/${encodeURIComponent(sku)}`,
       {
+        sku: dto.sku,
         name: dto.name,
         type: dto.category,
         retailPrice: dto.price,

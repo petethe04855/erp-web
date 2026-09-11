@@ -28,6 +28,8 @@ import {
   ChevronRight,
   Store,
   Truck,
+  BookOpen,
+  PieChart,
 } from "lucide-react";
 
 interface NavItem {
@@ -96,9 +98,17 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
+    title: "การเงินและบัญชี",
+    items: [
+      { label: "สมุดรายวัน (Journal)", href: "/finance/journal", icon: BookOpen, roles: ["owner", "accountant"] },
+      { label: "ค่าใช้จ่าย (Expenses)", href: "/finance/expenses", icon: Receipt, roles: ["owner", "accountant"] },
+      { label: "รายงานการเงิน (Reports)", href: "/finance/reports", icon: PieChart, roles: ["owner", "accountant"] },
+    ],
+  },
+  {
     title: "รายงานและระบบ",
     items: [
-      { label: "รายงาน (Reports)", href: "/reports", icon: BarChart3, roles: ["owner", "accountant"] },
+      { label: "รายงานเดิม (Legacy Reports)", href: "/reports", icon: BarChart3, roles: ["owner", "accountant"] },
       { label: "จัดการผู้ใช้งาน (Users)", href: "/users", icon: UserCog, roles: ["owner"] },
       { label: "ตั้งค่าระบบ (Settings)", href: "/settings", icon: Settings, roles: ["owner"] },
     ],
