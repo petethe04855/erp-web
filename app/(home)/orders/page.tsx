@@ -9,6 +9,7 @@ import { Plus } from "lucide-react";
 import { useOrders } from "@/features/orders/hooks/useOrders";
 import { OrderSearch } from "@/features/orders/components/OrderSearch";
 import { OrderTable } from "@/features/orders/components/OrderTable";
+import { OrderStatsRow } from "@/features/orders/components/OrderStatsRow";
 import { OrderForm } from "@/features/orders/components/OrderForm";
 
 export default function OrdersPage() {
@@ -56,15 +57,18 @@ export default function OrdersPage() {
           />
         }
         content={
-          <OrderTable
-            orders={orders}
-            meta={meta}
-            isLoading={isLoading}
-            isError={isError}
-            onPageChange={handlePageChange}
-            onLimitChange={handleLimitChange}
-            onRetry={refetch}
-          />
+          <div className="space-y-4">
+            <OrderStatsRow orders={orders} />
+            <OrderTable
+              orders={orders}
+              meta={meta}
+              isLoading={isLoading}
+              isError={isError}
+              onPageChange={handlePageChange}
+              onLimitChange={handleLimitChange}
+              onRetry={refetch}
+            />
+          </div>
         }
       />
 

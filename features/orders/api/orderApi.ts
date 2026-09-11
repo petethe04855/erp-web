@@ -1,6 +1,6 @@
-import { list, writeRecord } from "@/lib/api";
+import { list, read, writeRecord } from "@/lib/api";
 import type { OrderRecord } from "@/types/records";
-import type { Order, OrderQueryParams, CreateOrderDTO } from "../types/order";
+import type { Order, OrderDetail, OrderQueryParams, CreateOrderDTO } from "../types/order";
 const map = (o: OrderRecord): Order => ({
   id: o.id,
   orderNumber: o.code,
@@ -25,6 +25,15 @@ export const orderApi = {
       },
       map,
     ),
+  getOrderByID: (id: string | number) =>
+    read<OrderDetail>("/sales-orders/" + encodeURIComponent(id)),
+  updateStatus: (id: string | number, status: string, note?: string) =>
+    writeRecord("/sales-orders/" + encodeURIComponent(id) + "/status", {
+      status,
+      note: note || `Updated status to ${status}`,
+    }, "put"),
+  createInvoiceFromSO: (soRef: string | number) =>
+    writeRecord<{ id: number; code?: string }>("/invoices/from-so/" + encodeURIComponent(soRef), {}),
   createOrder: async (dto: CreateOrderDTO) => {
     const res = await writeRecord<OrderRecord>("/sales-orders", {
       customer: dto.customerName,

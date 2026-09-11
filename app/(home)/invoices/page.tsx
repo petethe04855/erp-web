@@ -9,6 +9,8 @@ import { Plus } from "lucide-react";
 import { useInvoices } from "@/features/invoices/hooks/useInvoices";
 import { InvoiceSearch } from "@/features/invoices/components/InvoiceSearch";
 import { InvoiceTable } from "@/features/invoices/components/InvoiceTable";
+import { InvoiceStatsRow } from "@/features/invoices/components/InvoiceStatsRow";
+import { OutstandingCustomersPanel } from "@/features/invoices/components/OutstandingCustomersPanel";
 import { InvoiceForm } from "@/features/invoices/components/InvoiceForm";
 
 export default function InvoicesPage() {
@@ -52,15 +54,19 @@ export default function InvoicesPage() {
           />
         }
         content={
-          <InvoiceTable
-            invoices={invoices}
-            meta={meta}
-            isLoading={isLoading}
-            isError={isError}
-            onPageChange={handlePageChange}
-            onLimitChange={handleLimitChange}
-            onRetry={refetch}
-          />
+          <div className="space-y-4">
+            <InvoiceStatsRow invoices={invoices} />
+            <OutstandingCustomersPanel invoices={invoices} />
+            <InvoiceTable
+              invoices={invoices}
+              meta={meta}
+              isLoading={isLoading}
+              isError={isError}
+              onPageChange={handlePageChange}
+              onLimitChange={handleLimitChange}
+              onRetry={refetch}
+            />
+          </div>
         }
       />
 

@@ -9,6 +9,7 @@ import { Plus } from "lucide-react";
 import { useQuotation } from "@/features/quotation/hooks/useQuotation";
 import { QuotationSearch } from "@/features/quotation/components/QuotationSearch";
 import { QuotationTable } from "@/features/quotation/components/QuotationTable";
+import { QuotationStatsRow } from "@/features/quotation/components/QuotationStatsRow";
 import { QuotationForm } from "@/features/quotation/components/QuotationForm";
 
 export default function QuotationPage() {
@@ -52,15 +53,18 @@ export default function QuotationPage() {
           />
         }
         content={
-          <QuotationTable
-            quotations={quotations}
-            meta={meta}
-            isLoading={isLoading}
-            isError={isError}
-            onPageChange={handlePageChange}
-            onLimitChange={handleLimitChange}
-            onRetry={refetch}
-          />
+          <div className="space-y-4">
+            <QuotationStatsRow quotations={quotations} />
+            <QuotationTable
+              quotations={quotations}
+              meta={meta}
+              isLoading={isLoading}
+              isError={isError}
+              onPageChange={handlePageChange}
+              onLimitChange={handleLimitChange}
+              onRetry={refetch}
+            />
+          </div>
         }
       />
 

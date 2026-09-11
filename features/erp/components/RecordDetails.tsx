@@ -300,6 +300,15 @@ export function RecordDetails({
                       // Approved หรือสถานะอื่น ไม่ต้องแสดงปุ่มเปลี่ยนสถานะเพิ่มเติม
                       availableStatuses = [];
                     }
+                  } else if (resource === "sales-orders") {
+                    const currentStatus = String(query.data?.status || "PENDING").toUpperCase();
+                    if (currentStatus === "PENDING") {
+                      availableStatuses = ["Confirmed", "Cancelled"];
+                    } else if (currentStatus === "CONFIRMED") {
+                      availableStatuses = ["Completed", "Cancelled"];
+                    } else {
+                      availableStatuses = [];
+                    }
                   }
                   return availableStatuses
                     .filter((s) => s.toUpperCase() !== String(query.data?.status || "").toUpperCase() && (s.toUpperCase() !== "COMPLETED" || String(query.data?.status || "").toUpperCase() !== "SHIPPED"))
@@ -320,6 +329,11 @@ export function RecordDetails({
                       </Button>
                     ));
                 })()
+              )}
+              {mutation.isError && (
+                <p className="text-sm text-destructive font-medium mt-2" role="alert">
+                  {mutation.error instanceof Error ? mutation.error.message : "เกิดข้อผิดพลาดในการอัปเดต"}
+                </p>
               )}
               {resource === "quotations" && (
                 <Button

@@ -36,6 +36,7 @@ export function InvoiceSearch(props: InvoiceSearchProps) {
           onChange={(e) => props.onStatusChange(e.target.value)}
         >
           <option value="all">ทั้งหมด</option>
+          <option value="overdue">Overdue (เกินกำหนดชำระ)</option>
           <option value="Unpaid">Unpaid</option>
           <option value="Partial">Partial</option>
           <option value="Paid">Paid</option>

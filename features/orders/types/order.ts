@@ -7,6 +7,47 @@ export interface OrderItem {
   lineTotal: number;
 }
 
+export interface OrderDetailLine {
+  id?: number;
+  sku: string;
+  name: string;
+  unit?: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+  cogs?: number;
+  allocations?: Array<{
+    lot?: string;
+    qty?: number;
+    expiry?: string;
+  }>;
+}
+
+export interface OrderDetail {
+  id: number;
+  code: string;
+  customer: string;
+  customerAddress?: string;
+  customerLogo?: string;
+  channel?: string;
+  date: string;
+  amount: number;
+  status: string;
+  note?: string;
+  qtRef?: string;
+  sourceRef?: string;
+  invRef?: string;
+  invoiceId?: number;
+  includeVat?: boolean;
+  lines: OrderDetailLine[];
+  itemsCount: number;
+  auditTrail?: Array<{
+    action: string;
+    actor: string;
+    timestamp: string;
+  }>;
+}
+
 export interface Order {
   id: number;
   orderNumber: string;

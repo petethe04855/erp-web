@@ -40,6 +40,8 @@ export interface InvoiceRecord {
   vatAmount: number;
   amount: number;
   paid: number;
+  balance?: number;
+  isOverdue?: boolean;
   status: string;
 }
 
@@ -62,6 +64,7 @@ export interface QuotationRecord {
   validUntil: string;
   leadSource?: string;
   amount: number;
+  isExpired?: boolean;
   status: string;
 }
 

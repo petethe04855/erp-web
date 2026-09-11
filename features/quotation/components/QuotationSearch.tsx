@@ -36,6 +36,7 @@ export function QuotationSearch(props: QuotationSearchProps) {
           onChange={(e) => props.onStatusChange(e.target.value)}
         >
           <option value="all">ทั้งหมด</option>
+          <option value="expired">Expired (หมดอายุ)</option>
           <option value="Draft">Draft</option>
           <option value="Sent">Sent</option>
           <option value="Approved">Approved</option>

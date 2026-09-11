@@ -1,7 +1,8 @@
-import { list, writeRecord } from "@/lib/api";
+import { list, read, writeRecord } from "@/lib/api";
 import type { QuotationRecord } from "@/types/records";
 import type {
   Quotation,
+  QuotationDetail,
   QuotationQueryParams,
   CreateQuotationDTO,
 } from "../types/quotation";
@@ -13,11 +14,21 @@ const map = (q: QuotationRecord): Quotation => ({
   validUntil: q.validUntil,
   leadSource: q.leadSource,
   totalAmount: q.amount,
+  isExpired: q.isExpired,
   status: q.status,
 });
 export const quotationApi = {
   getQuotations: (params?: QuotationQueryParams) =>
     list<QuotationRecord, Quotation>("/workspace/quotations", params, map),
+  getQuotationByID: (id: string | number) =>
+    read<QuotationDetail>("/quotations/" + encodeURIComponent(id)),
+  updateStatus: (id: string | number, status: string) =>
+    writeRecord("/quotations/" + encodeURIComponent(id) + "/status", { status }, "put"),
+  convertQuotation: (id: string | number) =>
+    writeRecord<{ quotationId: number; orderId: number; orderNo: string }>(
+      "/quotations/" + encodeURIComponent(id) + "/convert",
+      {}
+    ),
   createQuotation: async (dto: CreateQuotationDTO) => {
     const date = new Date();
     // One batched resolve call instead of one GET per line (N+1).
