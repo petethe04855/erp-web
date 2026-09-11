@@ -19,6 +19,7 @@ export interface SKU {
   reservedStock?: number;
   bundleItems?: BundleItem[];
   status: string;
+  image?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -39,8 +40,20 @@ export interface CreateSKUDTO {
   price: number;
   cost: number;
   isBundle: boolean;
+  image?: string;
   bundleItems?: Array<{
     componentSku: string;
     quantity: number;
   }>;
+}
+
+export interface UpdateSKUDTO {
+  sku?: string;
+  name: string;
+  category?: string;
+  price: number;
+  cost: number;
+  isBundle?: boolean;
+  image?: string;
+  status?: string;
 }

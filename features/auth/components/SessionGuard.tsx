@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/authStore";
+import { ensureAuthCookie } from "@/stores/authStore";
 import { authApi } from "../api/authApi";
 import { ErrorState } from "@/components/common/ErrorState";
 export function SessionGuard({ children }: { children: React.ReactNode }) {
@@ -18,7 +19,10 @@ export function SessionGuard({ children }: { children: React.ReactNode }) {
     if (!localStorage.getItem("chawy_v2_token")) logout();
   }, [logout]);
   useEffect(() => {
-    if (session.data)
+    if (session.data) {
+      // Session verified against the backend: restore the middleware cookie
+      // if the browser lost it while the token is still valid.
+      ensureAuthCookie();
       setAuth({
         ...session.data,
         name:
@@ -26,6 +30,7 @@ export function SessionGuard({ children }: { children: React.ReactNode }) {
             .filter(Boolean)
             .join(" ") || session.data.email,
       });
+    }
   }, [session.data, setAuth]);
   useEffect(() => {
     if (checked && !isAuthenticated) {

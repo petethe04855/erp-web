@@ -1,7 +1,6 @@
 "use client";
 import { DataTable } from "@/components/common/DataTable";
 import { Button } from "@/components/ui/button";
-import { RecordDetails } from "@/features/erp/components/RecordDetails";
 import type { InventoryStock } from "../types/inventory";
 import type { ApiPaginationMeta } from "@/types/api";
 interface InventoryTableProps {

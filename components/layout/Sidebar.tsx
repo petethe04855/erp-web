@@ -57,23 +57,23 @@ const NAV_SECTIONS: NavSection[] = [
         label: "รับสินค้า (Goods Receive)",
         href: "/goods-receive",
         icon: ArrowDownToLine,
-        roles: ["owner", "admin", "warehouse"],
+        roles: ["owner", "warehouse"],
       },
       {
         label: "เบิกสินค้า (Goods Issue)",
         href: "/goods-issue",
         icon: ArrowUpFromLine,
-        roles: ["owner", "admin", "warehouse"],
+        roles: ["owner", "warehouse"],
       },
     ],
   },
   {
     title: "การขายและลูกค้า",
     items: [
-      { label: "คำสั่งซื้อ (Orders)", href: "/orders", icon: ShoppingCart, roles: ["owner", "admin", "sales", "accountant"] },
-      { label: "ใบแจ้งหนี้ (Invoices)", href: "/invoices", icon: Receipt, roles: ["owner", "admin", "accountant", "sales"] },
-      { label: "ใบเสนอราคา (Quotation)", href: "/quotation", icon: FileText, roles: ["owner", "admin", "sales"] },
-      { label: "ลูกค้า (Customers)", href: "/customers", icon: Users, roles: ["owner", "admin", "sales"] },
+      { label: "คำสั่งซื้อ (Orders)", href: "/orders", icon: ShoppingCart, roles: ["owner", "sales", "accountant"] },
+      { label: "ใบแจ้งหนี้ (Invoices)", href: "/invoices", icon: Receipt, roles: ["owner", "accountant", "sales"] },
+      { label: "ใบเสนอราคา (Quotation)", href: "/quotation", icon: FileText, roles: ["owner", "sales"] },
+      { label: "ลูกค้า (Customers)", href: "/customers", icon: Users, roles: ["owner", "sales"] },
     ],
   },
   {
@@ -83,24 +83,24 @@ const NAV_SECTIONS: NavSection[] = [
         label: "สั่งซื้อ (Purchase Order)",
         href: "/purchase-order",
         icon: Truck,
-        roles: ["owner", "admin", "warehouse", "accountant"],
+        roles: ["owner", "warehouse", "accountant"],
       },
     ],
   },
   {
     title: "TikTok Shop",
     items: [
-      { label: "TikTok Orders", href: "/tiktok-orders", icon: Store, roles: ["owner", "admin", "sales", "warehouse"] },
-      { label: "Fee Calculator", href: "/tiktok-calculator", icon: Calculator, roles: ["owner", "admin", "sales", "accountant"] },
-      { label: "TikTok Setup", href: "/tiktok-setup", icon: Settings, roles: ["owner", "admin"] },
+      { label: "TikTok Orders", href: "/tiktok-orders", icon: Store, roles: ["owner", "sales", "warehouse"] },
+      { label: "Fee Calculator", href: "/tiktok-calculator", icon: Calculator, roles: ["owner", "sales", "accountant"] },
+      { label: "TikTok Setup", href: "/tiktok-setup", icon: Settings, roles: ["owner"] },
     ],
   },
   {
     title: "รายงานและระบบ",
     items: [
-      { label: "รายงาน (Reports)", href: "/reports", icon: BarChart3, roles: ["owner", "admin", "accountant"] },
-      { label: "จัดการผู้ใช้งาน (Users)", href: "/users", icon: UserCog, roles: ["owner", "admin"] },
-      { label: "ตั้งค่าระบบ (Settings)", href: "/settings", icon: Settings, roles: ["owner", "admin"] },
+      { label: "รายงาน (Reports)", href: "/reports", icon: BarChart3, roles: ["owner", "accountant"] },
+      { label: "จัดการผู้ใช้งาน (Users)", href: "/users", icon: UserCog, roles: ["owner"] },
+      { label: "ตั้งค่าระบบ (Settings)", href: "/settings", icon: Settings, roles: ["owner"] },
     ],
   },
 ];
@@ -241,7 +241,7 @@ export function Sidebar() {
                 {user?.name || "ผู้ใช้งานระบบ"}
               </div>
               <div className="truncate text-[10px] text-neutral-400 leading-tight mt-0.5">
-                {user?.email || "admin@example.com"}
+                {user?.email || ""}
               </div>
             </div>
           )}

@@ -37,6 +37,23 @@ export function useCreateSKUMutation() {
   });
 }
 
+export function useUpdateSKUMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      sku,
+      data,
+    }: {
+      sku: string | number;
+      data: import("../types/sku").UpdateSKUDTO;
+    }) => skuApi.updateSKU(sku, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+    },
+  });
+}
+
 export function useUpdateSKUStatusMutation() {
   const queryClient = useQueryClient();
 

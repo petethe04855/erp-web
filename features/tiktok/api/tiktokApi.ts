@@ -1,53 +1,83 @@
-import apiClient from "@/lib/axios";
+import { read, readWithMeta, writeRecord } from "@/lib/api";
 import type {
   TikTokConnection,
   TikTokOrder,
+  TikTokOrderItem,
   TikTokOrderQueryParams,
   TikTokSyncResult,
   SKUMapping,
   SyncLog,
 } from "../types/tiktok";
 
-export const tiktokApi = {
-  getConnection: async (): Promise<TikTokConnection> => {
-    const res = await apiClient.get<{ success: boolean; data: TikTokConnection }>(
-      "/integrations/tiktok/connection",
-    );
-    return res.data.data;
-  },
+interface RawTikTokOrder {
+  id: string | number;
+  status?: string;
+  product?: string;
+  sku?: string;
+  qty?: number;
+  amount?: number;
+  stockDeducted?: boolean;
+  date?: string;
+  items?: Array<{
+    id?: number;
+    lineItemId?: string;
+    sku?: string;
+    productName?: string;
+    qty?: number;
+    quantity?: number;
+    unitPrice?: number;
+    amount?: number;
+  }>;
+  tiktokOrderId?: string;
+  orderStatus?: string;
+}
 
-  startConnect: async (): Promise<{ authorizationUrl: string }> => {
-    const res = await apiClient.post<{ success: boolean; data: { authorizationUrl: string } }>(
+interface RawMapping {
+  id: number;
+  tiktokSku?: string;
+  tiktok_sku?: string;
+  erpSku?: string;
+  local_sku?: string;
+  ratio?: number;
+  createdAt?: string;
+  created_at?: string;
+}
+
+export const tiktokApi = {
+  getConnection: () => read<TikTokConnection>("/integrations/tiktok/connection"),
+
+  startConnect: async () => {
+    const res = await writeRecord<{ authorizationUrl: string }>(
       "/integrations/tiktok/connect",
+      {},
     );
-    return res.data.data;
+    return res.data;
   },
 
   syncOrders: async (days: number = 30): Promise<TikTokSyncResult> => {
-    const res = await apiClient.post<{ success: boolean; data: TikTokSyncResult }>(
+    const res = await writeRecord<TikTokSyncResult>(
       `/integrations/tiktok/orders/sync?days=${days}`,
+      {},
     );
-    return res.data.data;
+    return res.data;
   },
 
   getOrders: async (
     params?: TikTokOrderQueryParams,
   ): Promise<{ orders: TikTokOrder[]; total: number }> => {
-    const res = await apiClient.get<{
-      success: boolean;
-      data: any[];
-      meta?: { total: number };
-    }>("/integrations/tiktok/orders", { params });
+    const raw = await readWithMeta<
+      RawTikTokOrder[]
+    >("/integrations/tiktok/orders", params);
 
-    const rawOrders = res.data.data || [];
-    const orders: TikTokOrder[] = rawOrders.map((raw: any) => {
+    const rawOrders = raw.data || [];
+    const orders: TikTokOrder[] = rawOrders.map((raw) => {
       // If raw is already formatted in Frontend style
       if (raw.tiktokOrderId && raw.orderStatus) {
         return raw as TikTokOrder;
       }
 
       // Backend domain entity structure adapter
-      const items: any[] = (raw.items || []).map((it: any) => ({
+      const items: TikTokOrderItem[] = (raw.items || []).map((it) => ({
         id: it.id || it.lineItemId || "",
         orderId: raw.id || "",
         tiktokItemId: it.lineItemId || "",
@@ -77,7 +107,7 @@ export const tiktokApi = {
 
       return {
         id: raw.id,
-        tiktokOrderId: raw.id,
+        tiktokOrderId: String(raw.id),
         orderStatus: raw.status || "UNKNOWN",
         buyerUid: "",
         recipientName: "ลูกค้า TikTok",
@@ -101,16 +131,16 @@ export const tiktokApi = {
 
     return {
       orders,
-      total: res.data.meta?.total ?? orders.length,
+      total: raw.meta?.total ?? orders.length,
     };
   },
 
   getMappings: async (): Promise<SKUMapping[]> => {
-    const res = await apiClient.get<{ success: boolean; data: any[] }>(
+    const raw = await read<{ data: RawMapping[] }>(
       "/integrations/tiktok/mappings",
     );
-    const rawList = res.data.data || [];
-    return rawList.map((m: any) => ({
+    const rawList = raw.data || [];
+    return rawList.map((m) => ({
       id: m.id,
       tiktokSku: m.tiktokSku || m.tiktok_sku || "",
       erpSku: m.erpSku || m.local_sku || "",
@@ -127,11 +157,11 @@ export const tiktokApi = {
       local_sku: mapping.erpSku,
       ratio: mapping.ratio || 1,
     };
-    const res = await apiClient.post<{ success: boolean; data: any }>(
+    const res = await writeRecord<Partial<RawMapping>>(
       "/integrations/tiktok/mappings",
       payload,
     );
-    const saved = res.data.data || {};
+    const saved = res.data || {};
     return {
       id: saved.id || 0,
       tiktokSku: saved.tiktokSku || mapping.tiktokSku || "",
@@ -141,9 +171,7 @@ export const tiktokApi = {
   },
 
   getSyncLogs: async (): Promise<SyncLog[]> => {
-    const res = await apiClient.get<{ success: boolean; data: SyncLog[] }>(
-      "/integrations/tiktok/logs",
-    );
-    return res.data.data || [];
+    const raw = await read<{ data: SyncLog[] }>("/integrations/tiktok/logs");
+    return raw.data || [];
   },
 };

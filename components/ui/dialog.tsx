@@ -10,7 +10,13 @@ interface DialogProps {
   children: React.ReactNode;
 }
 
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 const Dialog: React.FC<DialogProps> = ({ open, onOpenChange, children }) => {
+  const contentRef = React.useRef<HTMLDivElement>(null);
+  const previouslyFocusedRef = React.useRef<HTMLElement | null>(null);
+
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && open) {
@@ -18,8 +24,23 @@ const Dialog: React.FC<DialogProps> = ({ open, onOpenChange, children }) => {
       }
     };
     if (open) {
+      previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
       document.body.style.overflow = "hidden";
       window.addEventListener("keydown", handleKeyDown);
+
+      // Initial focus: first focusable element, else the wrapper itself.
+      const focusInitial = () => {
+        const wrapper = contentRef.current;
+        if (!wrapper) return;
+        const first = wrapper.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+        (first ?? wrapper).focus({ preventScroll: true });
+      };
+      // Wait a frame so mounted children (forms, inputs) are present.
+      const raf = requestAnimationFrame(focusInitial);
+
+      return () => {
+        cancelAnimationFrame(raf);
+      };
     } else {
       document.body.style.overflow = "unset";
     }
@@ -28,6 +49,42 @@ const Dialog: React.FC<DialogProps> = ({ open, onOpenChange, children }) => {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [open, onOpenChange]);
+
+  // Restore focus to the trigger when the dialog closes/unmounts.
+  React.useEffect(() => {
+    if (open) return;
+    const prev = previouslyFocusedRef.current;
+    if (prev && document.contains(prev)) {
+      prev.focus({ preventScroll: true });
+    }
+    previouslyFocusedRef.current = null;
+  }, [open]);
+
+  // Tab cycle trap
+  const handleTabKey = (e: React.KeyboardEvent) => {
+    if (e.key !== "Tab") return;
+    const wrapper = contentRef.current;
+    if (!wrapper) return;
+    const focusables = Array.from(
+      wrapper.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+    );
+    if (focusables.length === 0) {
+      e.preventDefault();
+      return;
+    }
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const active = document.activeElement as HTMLElement | null;
+    if (e.shiftKey) {
+      if (active === first || !wrapper.contains(active)) {
+        e.preventDefault();
+        last.focus({ preventScroll: true });
+      }
+    } else if (active === last || !wrapper.contains(active)) {
+      e.preventDefault();
+      first.focus({ preventScroll: true });
+    }
+  };
 
   if (!open) return null;
 
@@ -39,7 +96,15 @@ const Dialog: React.FC<DialogProps> = ({ open, onOpenChange, children }) => {
         onClick={() => onOpenChange(false)}
       />
       {/* Content wrapper */}
-      <div className="relative z-50 w-full max-w-3xl p-4 flex justify-center">{children}</div>
+      <div
+        ref={contentRef}
+        role="presentation"
+        tabIndex={-1}
+        onKeyDown={handleTabKey}
+        className="relative z-50 w-full max-w-3xl p-4 flex justify-center outline-none"
+      >
+        {children}
+      </div>
     </div>
   );
 };

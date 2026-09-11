@@ -22,11 +22,11 @@ export const purchaseApi = {
       map,
     ),
   createPurchaseOrder: async (dto: CreatePurchaseDTO) => {
-    const eta = new Date();
-    eta.setDate(eta.getDate() + dto.expectedDeliveryDays);
+    // ETA date resolution is the backend's job (purchasing workflow owns
+    // delivery scheduling); frontend sends only the requested lead days.
     const res = await writeRecord<PurchaseRecord>("/purchase-orders", {
       supplier: dto.supplierName,
-      etaDate: eta.toLocaleDateString("en-CA"),
+      expectedDeliveryDays: dto.expectedDeliveryDays,
       items: dto.items.map((i) => ({
         sku: i.sku,
         quantity: i.quantity,

@@ -42,13 +42,19 @@ export const warehouseApi = {
   getGoodsReceives: (params?: GoodsReceiveQueryParams) =>
     list<ReceiptRecord, GoodsReceiveRecord>(
       "/workspace/goods-receives",
-      params,
+      {
+        ...params,
+        search: params?.search,
+      },
       receipt,
     ),
   getGoodsIssues: (params?: GoodsIssueQueryParams) =>
     list<IssueRecord, GoodsIssueRecord>(
       "/workspace/goods-issues",
-      params,
+      {
+        ...params,
+        search: params?.search,
+      },
       issue,
     ),
   createGoodsReceive: async (dto: CreateGoodsReceiveDTO) => {

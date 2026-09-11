@@ -13,3 +13,39 @@ export function formatCurrency(amount: number | string): string {
     maximumFractionDigits: 2,
   }).format(val);
 }
+
+export function getImageUrl(path?: string | null): string {
+  if (!path) return "";
+  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("blob:") || path.startsWith("data:")) {
+    return path;
+  }
+  const configured = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+  const origin = configured.replace(/\/api(?:\/v1)?\/?$/, "").replace(/\/$/, "");
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  return `${origin}${cleanPath}`;
+}
+
+/**
+ * Validates and sanitizes internal redirect URLs to prevent open redirect vulnerabilities (WEB-TS-01).
+ * Rejects protocol-relative URLs (e.g., `//evil.com`), backslashes, control characters, or external origins.
+ */
+export function sanitizeRedirectPath(path: string | null | undefined, defaultPath: string = "/dashboard"): string {
+  if (!path || typeof path !== "string") {
+    return defaultPath;
+  }
+  const trimmed = path.trim();
+  // Must start with exactly one '/' and not contain backslashes or protocol-relative '//'
+  if (!trimmed.startsWith("/") || trimmed.startsWith("//") || trimmed.includes("\\")) {
+    return defaultPath;
+  }
+  try {
+    // Parse using dummy base to ensure origin matches and pathname is legitimate
+    const parsed = new URL(trimmed, "http://localhost");
+    if (parsed.origin !== "http://localhost") {
+      return defaultPath;
+    }
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return defaultPath;
+  }
+}

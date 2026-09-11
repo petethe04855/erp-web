@@ -14,6 +14,7 @@ export interface ProductRecord {
   isBundle: boolean;
   isActive: boolean;
   available: number;
+  image?: string;
 }
 export interface OrderRecord {
   id: number;

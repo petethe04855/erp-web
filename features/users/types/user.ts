@@ -1,4 +1,6 @@
-export type UserRole = "owner" | "admin" | "sales" | "warehouse" | "accountant";
+// Must mirror backend isValidRole() (erp-api-v2 internal/usecase/auth):
+// there is no "admin" role in this system.
+export type UserRole = "owner" | "sales" | "warehouse" | "accountant";
 
 export interface AppUser {
   id: number | string;
@@ -46,12 +48,6 @@ export const ROLE_CONFIG: Record<
     desc: "เข้าถึงได้ทุกโมดูลและจัดการระบบทั้งหมด",
     color: "amber",
     badgeClass: "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800",
-  },
-  admin: {
-    label: "ผู้ดูแลระบบ (Admin)",
-    desc: "จัดการผู้ใช้และดูแลการตั้งค่าระบบ",
-    color: "purple",
-    badgeClass: "bg-purple-50 text-purple-800 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800",
   },
   accountant: {
     label: "ฝ่ายบัญชี (Accountant)",

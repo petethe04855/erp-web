@@ -10,6 +10,7 @@ import { useSKU } from "@/features/sku/hooks/useSKU";
 import { SKUSearch } from "@/features/sku/components/SKUSearch";
 import { SKUTable } from "@/features/sku/components/SKUTable";
 import { SKUForm } from "@/features/sku/components/SKUForm";
+import { SKU, CreateSKUDTO, UpdateSKUDTO } from "@/features/sku/types/sku";
 
 /**
  * SKU Management Page
@@ -20,6 +21,7 @@ import { SKUForm } from "@/features/sku/components/SKUForm";
  */
 export default function SKUPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingSKU, setEditingSKU] = useState<SKU | null>(null);
 
   const {
     skus,
@@ -35,10 +37,30 @@ export default function SKUPage() {
     resetFilters,
     refetch,
     createSKU,
+    updateSKU,
     toggleSKUStatus,
     deleteSKU,
     isCreating,
+    isUpdating,
   } = useSKU();
+
+  const handleOpenCreate = () => {
+    setEditingSKU(null);
+    setIsFormOpen(true);
+  };
+
+  const handleEdit = (skuItem: SKU) => {
+    setEditingSKU(skuItem);
+    setIsFormOpen(true);
+  };
+
+  const handleSubmitForm = async (data: CreateSKUDTO | UpdateSKUDTO) => {
+    if (editingSKU) {
+      await updateSKU(editingSKU.sku || editingSKU.id, data as UpdateSKUDTO);
+    } else {
+      await createSKU(data as CreateSKUDTO);
+    }
+  };
 
   return (
     <PageContainer>
@@ -47,7 +69,7 @@ export default function SKUPage() {
         title="SKU Management"
         description="ข้อมูลจริงจาก Chawy ERP"
         actions={
-          <Button size="sm" onClick={() => setIsFormOpen(true)}>
+          <Button size="sm" onClick={handleOpenCreate}>
             <Plus className="mr-1.5 h-3.5 w-3.5" />
             New SKU
           </Button>
@@ -74,6 +96,7 @@ export default function SKUPage() {
             onRetry={refetch}
             onToggleStatus={toggleSKUStatus}
             onDelete={deleteSKU}
+            onEdit={handleEdit}
           />
         }
       />
@@ -82,8 +105,9 @@ export default function SKUPage() {
       <SKUForm
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
-        onSubmit={createSKU}
-        isSubmitting={isCreating}
+        initialData={editingSKU}
+        onSubmit={handleSubmitForm}
+        isSubmitting={isCreating || isUpdating}
       />
     </PageContainer>
   );

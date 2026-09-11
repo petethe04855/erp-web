@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -47,7 +47,15 @@ export function UserFormModal({
   const [isActive, setIsActive] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
+  // Sync form state with `initialUser`/`open`: adjust state during render
+  // (React docs pattern) instead of setState-in-effect. A key on the modal
+  // would also work but this keeps form identity stable.
+  const [formKey, setFormKey] = useState<string>(
+    `${open}-${initialUser?.id ?? "new"}`,
+  );
+  const nextKey = `${open}-${initialUser?.id ?? "new"}`;
+  if (formKey !== nextKey) {
+    setFormKey(nextKey);
     if (initialUser) {
       setEmail(initialUser.email || "");
       setPassword("");
@@ -55,7 +63,6 @@ export function UserFormModal({
       setLastname(initialUser.lastname || "");
       setRole(initialUser.role || "sales");
       setIsActive(initialUser.isActive ?? true);
-      setError("");
     } else {
       setEmail("");
       setPassword("");
@@ -63,9 +70,9 @@ export function UserFormModal({
       setLastname("");
       setRole("sales");
       setIsActive(true);
-      setError("");
     }
-  }, [initialUser, open]);
+    setError("");
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

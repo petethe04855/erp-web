@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { RecordDetails } from "@/features/erp/components/RecordDetails";
-import { Trash2, Loader2, AlertTriangle } from "lucide-react";
+import { Trash2, Loader2, AlertTriangle, Package, ImageIcon, Edit } from "lucide-react";
+import { getImageUrl } from "@/lib/utils";
 import type { SKU } from "../types/sku";
 import type { ApiPaginationMeta } from "@/types/api";
 
@@ -22,7 +23,36 @@ interface SKUTableProps {
   onRetry: () => void;
   onToggleStatus?: (sku: string | number, currentStatus: string) => Promise<unknown>;
   onDelete?: (sku: string | number) => Promise<unknown>;
+  onEdit?: (sku: SKU) => void;
   onSelectSKU?: (sku: SKU) => void;
+}
+
+interface SKUThumbnailProps {
+  image?: string | null;
+  name: string;
+}
+
+function SKUThumbnail({ image, name }: SKUThumbnailProps) {
+  const [hasError, setHasError] = useState(false);
+
+  if (!image || hasError) {
+    return (
+      <div className="h-10 w-10 rounded-lg border border-dashed border-neutral-200 bg-neutral-50/50 dark:border-neutral-800 dark:bg-neutral-900 flex items-center justify-center text-neutral-300 dark:text-neutral-600">
+        <ImageIcon className="h-4 w-4" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-10 w-10 rounded-lg overflow-hidden border border-neutral-200 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 flex items-center justify-center">
+      <img
+        src={getImageUrl(image)}
+        alt={name}
+        className="h-full w-full object-cover"
+        onError={() => setHasError(true)}
+      />
+    </div>
+  );
 }
 
 export function SKUTable({
@@ -35,6 +65,7 @@ export function SKUTable({
   onRetry,
   onToggleStatus,
   onDelete,
+  onEdit,
 }: SKUTableProps) {
   const [loadingSkuId, setLoadingSkuId] = useState<string | number | null>(null);
   const [deletingSku, setDeletingSku] = useState<SKU | null>(null);
@@ -96,6 +127,9 @@ export function SKUTable({
           <table className="w-full text-sm">
             <thead className="bg-neutral-50/80 border-b border-neutral-200/80 dark:bg-neutral-900/50 dark:border-neutral-800">
               <tr>
+                <th className="px-5 py-3 text-xs font-semibold text-neutral-600 dark:text-neutral-400 whitespace-nowrap text-left w-14">
+                  รูปภาพ
+                </th>
                 <th className="px-5 py-3 text-xs font-semibold text-neutral-600 dark:text-neutral-400 whitespace-nowrap text-left">
                   SKU
                 </th>
@@ -129,6 +163,11 @@ export function SKUTable({
                     key={item.id}
                     className="hover:bg-neutral-50/70 dark:hover:bg-neutral-800/50 transition-colors"
                   >
+                    {/* Image Thumbnail */}
+                    <td className="px-5 py-3 whitespace-nowrap text-left">
+                      <SKUThumbnail image={item.image} name={item.name || item.sku} />
+                    </td>
+
                     {/* SKU */}
                     <td className="px-5 py-3.5 whitespace-nowrap text-left font-mono font-medium text-neutral-900 dark:text-neutral-100">
                       {item.sku}
@@ -212,6 +251,17 @@ export function SKUTable({
                     <td className="px-5 py-3.5 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1.5">
                         <RecordDetails resource="products" id={item.sku} />
+                        {onEdit && (
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 text-neutral-600 hover:text-primary hover:bg-neutral-50 border-neutral-200"
+                            onClick={() => onEdit(item)}
+                            title="แก้ไขข้อมูลสินค้า / รูปภาพ"
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                         {onDelete && (
                           <Button
                             variant="outline"

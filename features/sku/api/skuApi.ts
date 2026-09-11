@@ -13,6 +13,7 @@ export const toSKU = (p: ProductRecord): SKU => ({
   availableStock: p.isBundle ? undefined : (p.available ?? p.stock),
   reservedStock: p.isBundle ? undefined : p.reservedQty,
   status: p.isActive ? "active" : "inactive",
+  image: p.image,
 });
 export const skuApi = {
   getSKUs: (params?: SKUQueryParams) =>
@@ -32,12 +33,13 @@ export const skuApi = {
       },
       toSKU,
     ),
-  getSKUById: async (sku: string | number) => ({
-    success: true,
-    data: toSKU(
-      await read<ProductRecord>("/products/" + encodeURIComponent(sku)),
-    ),
-  }),
+  getSKUById: async (sku: string | number) => {
+    const p =
+      typeof sku === "number"
+        ? await read<ProductRecord>(`/products/id/${sku}`)
+        : await read<ProductRecord>("/products/" + encodeURIComponent(sku));
+    return { success: true, data: toSKU(p) };
+  },
   createSKU: async (dto: CreateSKUDTO) => {
     const result = await writeRecord<ProductRecord>("/products", {
       sku: dto.sku,
@@ -47,6 +49,7 @@ export const skuApi = {
       wholesalePrice: dto.price,
       cost: dto.cost,
       isBundle: dto.isBundle,
+      image: dto.image,
       components: dto.bundleItems?.map((c) => ({
         componentSku: c.componentSku,
         qty: c.quantity,
@@ -57,14 +60,54 @@ export const skuApi = {
     });
     return { ...result, data: toSKU(result.data) };
   },
+  updateSKU: async (sku: string | number, dto: import("../types/sku").UpdateSKUDTO) => {
+    const result = await writeRecord<ProductRecord>(
+      typeof sku === "number"
+        ? `/products/id/${sku}`
+        : `/products/${encodeURIComponent(sku)}`,
+      {
+        name: dto.name,
+        type: dto.category,
+        retailPrice: dto.price,
+        wholesalePrice: dto.price,
+        cost: dto.cost,
+        isBundle: dto.isBundle,
+        image: dto.image,
+        status: dto.status,
+      },
+      "put",
+    );
+    return { ...result, data: toSKU(result.data) };
+  },
+  uploadImage: async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append("image", file);
+    const res = await (await import("@/lib/axios")).default.post<{
+      success: boolean;
+      data: { url: string };
+      message?: string;
+    }>("/upload/image", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    if (!res.data?.success || !res.data?.data?.url) {
+      throw new Error(res.data?.message || "อัปโหลดรูปภาพไม่สำเร็จ");
+    }
+    return res.data.data.url;
+  },
   updateStatus: async (sku: string | number, status: string) => {
     return writeRecord(
-      `/products/${encodeURIComponent(sku)}/status`,
+      typeof sku === "number"
+        ? `/products/id/${sku}/status`
+        : `/products/${encodeURIComponent(sku)}/status`,
       { status },
       "put",
     );
   },
   deleteSKU: async (sku: string | number) => {
-    return deleteRecord(`/products/${encodeURIComponent(sku)}`);
+    return deleteRecord(
+      typeof sku === "number"
+        ? `/products/id/${sku}`
+        : `/products/${encodeURIComponent(sku)}`,
+    );
   },
 };

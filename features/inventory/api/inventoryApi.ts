@@ -16,9 +16,13 @@ export const inventoryApi = {
         type: "Finished Product",
       },
       (p) => {
-        // Base capacity/target stock baseline (default 50 or onHand if higher)
-        const baseCapacity = Math.max(50, p.stock, p.available);
-        const percent = baseCapacity > 0 ? Math.min(100, Math.max(0, Math.round((p.available / baseCapacity) * 100))) : 0;
+        // Backend provides the real reorder point (`reorder`).
+        // Percent = available stock vs reorder point, clamped to 0-100.
+        const reorder = Math.max(0, p.reorder);
+        const percent =
+          reorder > 0
+            ? Math.min(100, Math.max(0, Math.round((p.available / reorder) * 100)))
+            : 0;
         return {
           id: p.id,
           sku: p.sku,

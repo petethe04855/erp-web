@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { FormDialog } from "@/components/form/FormDialog";
 import { Input } from "@/components/ui/input";
 import { SKUSelect } from "@/features/sku/components/SKUSelect";
@@ -27,11 +27,15 @@ export function GoodsReceiveForm(props: Props) {
     setExpiry("");
   };
 
-  useEffect(() => {
-    if (!props.open) {
-      resetForm();
-    }
-  }, [props.open]);
+  // Reset when the dialog closes: adjust state during render (React docs
+  // pattern) instead of setState-in-effect.
+  const [prevOpen, setPrevOpen] = useState(props.open);
+  if (prevOpen && !props.open) {
+    setPrevOpen(false);
+    resetForm();
+  } else if (!prevOpen && props.open) {
+    setPrevOpen(true);
+  }
 
   return (
     <FormDialog

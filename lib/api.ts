@@ -6,6 +6,24 @@ export async function read<T>(path: string, params?: object): Promise<T> {
     throw new Error("API returned an unsuccessful response");
   return response.data.data;
 }
+
+/**
+ * Like read() but returns the whole envelope including optional meta — for
+ * endpoints that return a plain array plus a total without full pagination
+ * (e.g. GET /integrations/tiktok/orders).
+ */
+export async function readWithMeta<T>(
+  path: string,
+  params?: object,
+): Promise<{ data: T; meta?: { total: number } }> {
+  const response = await api.get<ApiResponse<T> & { meta?: { total: number } }>(
+    path,
+    { params },
+  );
+  if (response.data.success !== true)
+    throw new Error("API returned an unsuccessful response");
+  return { data: response.data.data, meta: response.data.meta };
+}
 export async function writeRecord<T>(
   path: string,
   body: unknown,

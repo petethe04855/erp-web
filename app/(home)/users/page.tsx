@@ -15,8 +15,8 @@ import type { AppUser } from "@/features/users/types/user";
 
 export default function UsersPage() {
   const currentUser = useAuthStore((s) => s.user);
-  const isAuthorized =
-    currentUser?.role === "owner" || currentUser?.role === "admin";
+  // Only "owner" exists as a privileged role in the backend RBAC.
+  const isAuthorized = currentUser?.role === "owner";
 
   const {
     users,
@@ -65,7 +65,7 @@ export default function UsersPage() {
             ไม่มีสิทธิ์เข้าถึงหน้านี้ (Access Restricted)
           </h2>
           <p className="mt-1.5 max-w-md text-xs text-neutral-500 dark:text-neutral-400">
-            หน้านี้สงวนสิทธิ์การเข้าถึงเฉพาะผู้ดูแลระบบ (Admin) หรือเจ้าของกิจการ (Owner)
+            หน้านี้สงวนสิทธิ์การเข้าถึงเฉพาะเจ้าของกิจการ (Owner)
             เท่านั้น กรุณาติดต่อผู้ดูแลระบบหากต้องการเปลี่ยนแปลงสิทธิ์การใช้งาน
           </p>
         </div>

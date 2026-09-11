@@ -10,7 +10,8 @@ export interface QuickLookupOption {
   subtitle?: string;
   badge?: string;
   extra?: string;
-  data?: any;
+  /** Optional domain payload carried by the caller; typed loosely on purpose. */
+  data?: Record<string, unknown>;
 }
 
 export interface QuickLookupProps {
@@ -40,13 +41,27 @@ export function QuickLookup({
   const [isLoading, setIsLoading] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Monotonic token guarding against out-of-order responses: only the most
+  // recent search may write results/loading state.
+  const searchTokenRef = useRef(0);
 
-  // Sync query when external selectedDisplay changes
-  useEffect(() => {
+  // Sync query when external selectedDisplay changes: adjust state during
+  // render (React docs pattern) instead of setState-in-effect.
+  const [prevDisplay, setPrevDisplay] = useState(selectedDisplay);
+  if (selectedDisplay !== prevDisplay) {
+    setPrevDisplay(selectedDisplay);
     if (selectedDisplay !== undefined) {
       setQuery(selectedDisplay);
     }
-  }, [selectedDisplay]);
+  }
+
+  // Reset highlight whenever the option list changes
+  const optionsSignature = options.map((o) => String(o.id)).join("|");
+  const [prevOptionsSignature, setPrevOptionsSignature] = useState(optionsSignature);
+  if (prevOptionsSignature !== optionsSignature) {
+    setPrevOptionsSignature(optionsSignature);
+    setHighlightIndex(-1);
+  }
 
   // Click outside listener
   useEffect(() => {
@@ -67,15 +82,20 @@ export function QuickLookup({
     if (!isOpen) return;
 
     const timer = setTimeout(async () => {
+      const token = ++searchTokenRef.current;
       setIsLoading(true);
       try {
         const results = await onSearch(query);
+        if (token !== searchTokenRef.current) return; // stale response
         setOptions(results);
       } catch (err) {
         console.error("QuickLookup search error:", err);
+        if (token !== searchTokenRef.current) return; // stale response
         setOptions([]);
       } finally {
-        setIsLoading(false);
+        if (token === searchTokenRef.current) {
+          setIsLoading(false);
+        }
       }
     }, 300);
 

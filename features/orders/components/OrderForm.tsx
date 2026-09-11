@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { FormDialog } from "@/components/form/FormDialog";
 import { RecordLookup } from "@/features/erp/components/RecordLookup";
 import { ItemLines, type ItemLine } from "@/features/erp/components/ItemLines";
+import { useVatRate } from "@/features/settings/hooks/useVatRate";
 import type { CreateOrderDTO } from "../types/order";
 
 import { Select } from "@/components/ui/select";
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function OrderForm(props: Props) {
+  const { vatRate, isLoading: vatLoading, isError: vatError } = useVatRate();
   const [customer, setCustomer] = useState("");
   const [channel, setChannel] = useState("Manual");
   const [includeVat, setIncludeVat] = useState(true);
@@ -23,20 +25,26 @@ export function OrderForm(props: Props) {
     { sku: "", quantity: 1, price: 0 },
   ]);
 
-  useEffect(() => {
-    if (!props.open) {
-      setCustomer("");
-      setChannel("Manual");
-      setIncludeVat(true);
-      setLines([{ sku: "", quantity: 1, price: 0 }]);
-    }
-  }, [props.open]);
+  // Reset draft state when the dialog closes: compare with previous value
+  // during render (React docs "adjusting state on prop change" pattern)
+  // instead of setState-in-effect.
+  const [prevOpen, setPrevOpen] = useState(props.open);
+  if (prevOpen && !props.open) {
+    setPrevOpen(false);
+    setCustomer("");
+    setChannel("Manual");
+    setIncludeVat(true);
+    setLines([{ sku: "", quantity: 1, price: 0 }]);
+  } else if (!prevOpen && props.open) {
+    setPrevOpen(true);
+  }
 
   const rawSubtotal = lines.reduce(
     (sum, l) => sum + (Number(l.quantity) || 0) * (Number(l.price) || 0),
     0,
   );
-  const vatAmount = includeVat ? rawSubtotal * 0.07 : 0;
+  // Preview-only: the backend remains the owner of the final VAT calculation.
+  const vatAmount = includeVat ? rawSubtotal * (vatRate / 100) : 0;
   const totalAmount = rawSubtotal + vatAmount;
 
   const handleSubmit = async () => {
@@ -120,7 +128,10 @@ export function OrderForm(props: Props) {
             onChange={(e) => setIncludeVat(e.target.checked)}
             className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
           />
-          <span>คิดภาษีมูลค่าเพิ่ม (Include VAT 7%)</span>
+          <span>
+            คิดภาษีมูลค่าเพิ่ม (Include VAT{" "}
+            {vatLoading ? "…" : vatError ? `${vatRate}% (ประมาณการ - ยังยืนยันไม่ได้)` : `${vatRate}%`})
+          </span>
         </label>
 
         <div className="space-y-1.5 pt-2 border-t border-border/60 text-muted-foreground">
@@ -135,7 +146,7 @@ export function OrderForm(props: Props) {
             </span>
           </div>
           <div className="flex justify-between">
-            <span>ภาษีมูลค่าเพิ่ม 7% (VAT):</span>
+            <span>ภาษีมูลค่าเพิ่ม {vatRate}% (VAT):</span>
             <span className="font-mono text-foreground">
               {includeVat
                 ? `฿${vatAmount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`

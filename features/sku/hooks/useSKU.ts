@@ -4,10 +4,11 @@ import { useFilters } from "@/hooks/useFilters";
 import {
   useSKUListQuery,
   useCreateSKUMutation,
+  useUpdateSKUMutation,
   useUpdateSKUStatusMutation,
   useDeleteSKUMutation,
 } from "../queries/skuQueries";
-import { SKUQueryParams, CreateSKUDTO } from "../types/sku";
+import { SKUQueryParams, CreateSKUDTO, UpdateSKUDTO } from "../types/sku";
 
 export function useSKU() {
   const { filters, setFilters, query } = useFilters<SKUQueryParams>({
@@ -20,6 +21,7 @@ export function useSKU() {
 
   const { data, isLoading, isError, refetch } = useSKUListQuery(query);
   const createMutation = useCreateSKUMutation();
+  const updateMutation = useUpdateSKUMutation();
   const updateStatusMutation = useUpdateSKUStatusMutation();
   const deleteMutation = useDeleteSKUMutation();
 
@@ -57,6 +59,10 @@ export function useSKU() {
     return createMutation.mutateAsync(dto);
   };
 
+  const updateSKU = async (sku: string | number, dto: UpdateSKUDTO) => {
+    return updateMutation.mutateAsync({ sku, data: dto });
+  };
+
   const toggleSKUStatus = async (sku: string | number, currentStatus: string) => {
     const nextStatus = currentStatus === "active" ? "inactive" : "active";
     return updateStatusMutation.mutateAsync({ sku, status: nextStatus });
@@ -80,9 +86,11 @@ export function useSKU() {
     resetFilters,
     refetch,
     createSKU,
+    updateSKU,
     toggleSKUStatus,
     deleteSKU,
     isCreating: createMutation.isPending,
+    isUpdating: updateMutation.isPending,
     isUpdatingStatus: updateStatusMutation.isPending,
     isDeleting: deleteMutation.isPending,
   };

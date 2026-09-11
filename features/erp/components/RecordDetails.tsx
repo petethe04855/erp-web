@@ -6,7 +6,23 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useRecord } from "../hooks/useRecord";
 import type { Resource } from "../api/recordApi";
 import { useAuthStore } from "@/stores/authStore";
+import { useVatRate, splitVatInclusive } from "@/features/settings/hooks/useVatRate";
 import { money, thaiDate, bahtText } from "@/features/orders/types/order";
+import { getImageUrl } from "@/lib/utils";
+
+interface RecordLine {
+  sku?: string;
+  name?: string;
+  quantity?: number;
+  qty?: number;
+  unitPrice?: number;
+  price?: number;
+  subtotal?: number;
+}
+
+function pdfErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
 
 const actions: Partial<Record<Resource, string[]>> = {
   "sales-orders": ["Completed", "Cancelled"],
@@ -48,11 +64,28 @@ const fieldLabels: Record<string, string> = {
   amount: "ยอดรวม",
   channel: "ช่องทาง",
   orderRef: "อ้างอิงคำสั่งซื้อ",
+  image: "รูปภาพสินค้า",
 };
 
 function formatValue(key: string, val: unknown): React.ReactNode {
   if (val === null || val === undefined || val === "")
     return <span className="text-muted-foreground">—</span>;
+  if (key === "image" && typeof val === "string") {
+    return (
+      <div className="my-1">
+        <div className="h-24 w-24 rounded-lg overflow-hidden border border-border bg-muted/40 flex items-center justify-center">
+          <img
+            src={getImageUrl(val)}
+            alt="Product"
+            className="h-full w-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = "none";
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
   if (typeof val === "boolean") {
     return val ? (
       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
@@ -192,6 +225,7 @@ export function RecordDetails({
   const [amount, setAmount] = useState("");
   const { query, mutation } = useRecord(resource, id, open);
   const role = useAuthStore((s) => s.user?.role);
+  const { vatRate } = useVatRate();
   return (
     <>
       <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
@@ -241,8 +275,8 @@ export function RecordDetails({
                           })
                           .from(element)
                           .save();
-                      } catch (err: any) {
-                        alert("Export PDF ไม่สำเร็จ: " + (err?.message || String(err)));
+                      } catch (err) {
+                        alert("Export PDF ไม่สำเร็จ: " + pdfErrorMessage(err));
                       }
                     }}
                   >
@@ -306,8 +340,8 @@ export function RecordDetails({
                         })
                         .from(element)
                         .save();
-                    } catch (err: any) {
-                      alert("Export PDF ไม่สำเร็จ: " + (err?.message || String(err)));
+                    } catch (err) {
+                      alert("Export PDF ไม่สำเร็จ: " + pdfErrorMessage(err));
                     }
                   }}
                 >
@@ -346,16 +380,15 @@ export function RecordDetails({
                           })
                           .from(element)
                           .save();
-                      } catch (err: any) {
-                        alert("Export PDF ไม่สำเร็จ: " + (err?.message || String(err)));
+                      } catch (err) {
+                        alert("Export PDF ไม่สำเร็จ: " + pdfErrorMessage(err));
                       }
                     }}
                   >
                     📄 Export PDF (ใบแจ้งหนี้)
                   </Button>
-                  {(role === "owner" ||
-                    role === "admin" ||
-                    role === "accountant") && query.data?.status !== "PAID" && (
+                  {(role === "owner" || role === "accountant") &&
+                    query.data?.status !== "PAID" && (
                     <form
                       className="flex gap-2"
                       onSubmit={(e) => {
@@ -474,8 +507,8 @@ export function RecordDetails({
                   </tr>
                 </thead>
                 <tbody>
-                  {Array.isArray(query.data.lines) && (query.data.lines as any[]).length > 0 ? (
-                    (query.data.lines as any[]).map((line, idx) => (
+                  {Array.isArray(query.data.lines) && (query.data.lines as RecordLine[]).length > 0 ? (
+                    (query.data.lines as RecordLine[]).map((line, idx) => (
                       <tr key={idx} style={{ borderBottom: "1px solid #e5e7eb" }}>
                         <td style={{ padding: "10px 8px", textAlign: "center", color: "#6b7280" }}>{idx + 1}</td>
                         <td style={{ padding: "10px 8px", textAlign: "left" }}>
@@ -484,7 +517,7 @@ export function RecordDetails({
                         </td>
                         <td style={{ padding: "10px 8px", textAlign: "right" }}>{line.quantity || line.qty}</td>
                         <td style={{ padding: "10px 8px", textAlign: "right" }}>{money(Number(line.unitPrice || line.price || 0))}</td>
-                        <td style={{ padding: "10px 8px", textAlign: "right", fontWeight: 600 }}>{money(Number(line.subtotal || (line.quantity * line.unitPrice) || 0))}</td>
+                        <td style={{ padding: "10px 8px", textAlign: "right", fontWeight: 600 }}>{money(Number(line.subtotal || (Number(line.quantity || line.qty) * Number(line.unitPrice || line.price)) || 0))}</td>
                       </tr>
                     ))
                   ) : (
@@ -507,9 +540,10 @@ export function RecordDetails({
               {(() => {
                 const total = Number(query.data.amount || 0);
                 const hasVat = query.data.includeVat !== false && !String(query.data.note || "").includes("VAT_INC:false");
-                const vatRate = hasVat ? 7 : 0;
-                const beforeVat = hasVat ? total / 1.07 : total;
-                const vat = hasVat ? total - beforeVat : 0;
+                const rate = hasVat ? vatRate : 0;
+                const { beforeVat, vat } = hasVat
+                  ? splitVatInclusive(total, vatRate)
+                  : { beforeVat: total, vat: 0 };
 
                 return (
                   <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "40px", fontSize: "12px" }}>
@@ -653,8 +687,8 @@ export function RecordDetails({
                   </tr>
                 </thead>
                 <tbody>
-                  {Array.isArray(query.data.lines) && (query.data.lines as any[]).length > 0 ? (
-                    (query.data.lines as any[]).map((line, idx) => (
+                  {Array.isArray(query.data.lines) && (query.data.lines as RecordLine[]).length > 0 ? (
+                    (query.data.lines as RecordLine[]).map((line, idx) => (
                       <tr key={idx} style={{ borderBottom: "1px solid #e5e7eb" }}>
                         <td style={{ padding: "10px 8px", textAlign: "center", color: "#6b7280" }}>{idx + 1}</td>
                         <td style={{ padding: "10px 8px", textAlign: "left" }}>
@@ -663,7 +697,7 @@ export function RecordDetails({
                         </td>
                         <td style={{ padding: "10px 8px", textAlign: "right" }}>{line.qty || line.quantity}</td>
                         <td style={{ padding: "10px 8px", textAlign: "right" }}>{money(Number(line.price || line.unitPrice || 0))}</td>
-                        <td style={{ padding: "10px 8px", textAlign: "right", fontWeight: 600 }}>{money(Number(line.subtotal || ((line.qty || line.quantity) * (line.price || line.unitPrice)) || 0))}</td>
+                        <td style={{ padding: "10px 8px", textAlign: "right", fontWeight: 600 }}>{money(Number(line.subtotal || (Number(line.qty || line.quantity) * Number(line.price || line.unitPrice)) || 0))}</td>
                       </tr>
                     ))
                   ) : (
@@ -685,9 +719,7 @@ export function RecordDetails({
             <div style={{ marginTop: "40px" }}>
               {(() => {
                 const total = Number(query.data.amount || query.data.totalAmount || 0);
-                const vatRate = 7;
-                const beforeVat = total / 1.07;
-                const vat = total - beforeVat;
+                const { beforeVat, vat } = splitVatInclusive(total, vatRate);
 
                 return (
                   <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "40px", fontSize: "12px" }}>
@@ -823,8 +855,8 @@ export function RecordDetails({
                   </tr>
                 </thead>
                 <tbody>
-                  {Array.isArray(query.data.lines) && (query.data.lines as any[]).length > 0 ? (
-                    (query.data.lines as any[]).map((line, idx) => (
+                  {Array.isArray(query.data.lines) && (query.data.lines as RecordLine[]).length > 0 ? (
+                    (query.data.lines as RecordLine[]).map((line, idx) => (
                       <tr key={idx} style={{ borderBottom: "1px solid #e5e7eb" }}>
                         <td style={{ padding: "10px 8px", textAlign: "center", color: "#6b7280" }}>{idx + 1}</td>
                         <td style={{ padding: "10px 8px", textAlign: "left" }}>
@@ -833,7 +865,7 @@ export function RecordDetails({
                         </td>
                         <td style={{ padding: "10px 8px", textAlign: "right" }}>{line.qty || line.quantity}</td>
                         <td style={{ padding: "10px 8px", textAlign: "right" }}>{money(Number(line.price || line.unitPrice || 0))}</td>
-                        <td style={{ padding: "10px 8px", textAlign: "right", fontWeight: 600 }}>{money(Number(line.subtotal || ((line.qty || line.quantity) * (line.price || line.unitPrice)) || 0))}</td>
+                        <td style={{ padding: "10px 8px", textAlign: "right", fontWeight: 600 }}>{money(Number(line.subtotal || (Number(line.qty || line.quantity) * Number(line.price || line.unitPrice)) || 0))}</td>
                       </tr>
                     ))
                   ) : (
@@ -855,9 +887,7 @@ export function RecordDetails({
             <div style={{ marginTop: "40px" }}>
               {(() => {
                 const total = Number(query.data.amount || query.data.totalAmount || 0);
-                const vatRate = 7;
-                const beforeVat = total / 1.07;
-                const vat = total - beforeVat;
+                const { beforeVat, vat } = splitVatInclusive(total, vatRate);
 
                 return (
                   <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "40px", fontSize: "12px" }}>

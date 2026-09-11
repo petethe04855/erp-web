@@ -13,13 +13,13 @@ export function Settings() {
   const { query, mutation } = useSettings();
   const [draft, setDraft] = useState<Company | null>(null);
   const role = useAuthStore((s) => s.user?.role);
-  const canEdit = role === "owner" || role === "admin";
+  const canEdit = role === "owner";
   const company = draft || query.data?.company;
   return (
     <PageContainer>
       <PageHeader
         title="ตั้งค่าบริษัท"
-        description="ข้อมูลบริษัทชุดเดียวกับระบบ ERP เดิม · แก้ไขได้เฉพาะ Owner และ Admin"
+        description="ข้อมูลบริษัทชุดเดียวกับระบบ ERP เดิม · แก้ไขได้เฉพาะ Owner"
       />
       {query.isPending ? (
         <Loading />

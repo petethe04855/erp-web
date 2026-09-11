@@ -34,9 +34,9 @@ export const recordApi = {
   convert: (id: string | number) =>
     writeRecord("/quotations/" + encodeURIComponent(id) + "/convert", {}),
   pay: (id: string | number, amount: number) =>
+    // Account/method selection belongs to the backend payment workflow;
+    // frontend only submits the collected amount.
     writeRecord("/invoices/" + encodeURIComponent(id) + "/payment", {
       amount,
-      accountCode: "1110",
-      method: "Bank Transfer",
     }),
 };
