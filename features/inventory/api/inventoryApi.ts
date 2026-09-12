@@ -13,7 +13,7 @@ export const inventoryApi = {
         search: params?.search,
         page: params?.page,
         limit: params?.limit,
-        type: "Finished Product",
+        isBundle: false,
       },
       (p) => {
         // Backend provides the real reorder point (`reorder`).

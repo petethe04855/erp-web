@@ -12,6 +12,15 @@ export const toSKU = (p: ProductRecord): SKU => ({
   stockQuantity: p.isBundle ? undefined : p.stock,
   availableStock: p.isBundle ? undefined : (p.available ?? p.stock),
   reservedStock: p.isBundle ? undefined : p.reservedQty,
+  bundleAvailable: p.bundleAvailable,
+  accessories: p.accessories?.map((a) => ({
+    id: a.id,
+    sku: a.sku,
+    accessorySku: a.accessorySku,
+    quantity: a.quantity,
+    note: a.note,
+    name: a.name,
+  })),
   status: p.isActive ? "active" : "inactive",
   image: p.image,
 });
@@ -22,6 +31,7 @@ export const skuApi = {
       {
         ...params,
         type: params?.category,
+        isBundle: params?.isBundle,
         isActive:
           params?.status === "active"
             ? true
@@ -57,6 +67,11 @@ export const skuApi = {
         componentType: "material",
         yieldFactor: 1,
       })),
+      accessories: dto.accessories?.map((a) => ({
+        accessorySku: a.accessorySku,
+        quantity: a.quantity,
+        note: a.note,
+      })),
     });
     return { ...result, data: toSKU(result.data) };
   },
@@ -68,6 +83,16 @@ export const skuApi = {
       qty: number;
       note?: string;
     }>>(`/bundle-components/${encodeURIComponent(sku)}`);
+  },
+  getSKUAccessories: async (sku: string) => {
+    return read<Array<{
+      id: number;
+      sku: string;
+      accessorySku: string;
+      quantity: number;
+      note?: string;
+      name?: string;
+    }>>(`/sku-accessories/${encodeURIComponent(sku)}`);
   },
   updateSKU: async (sku: string | number, dto: import("../types/sku").UpdateSKUDTO) => {
     const result = await writeRecord<ProductRecord>(
@@ -90,6 +115,11 @@ export const skuApi = {
           unit: "piece",
           componentType: "material",
           yieldFactor: 1,
+        })),
+        accessories: dto.accessories?.map((a) => ({
+          accessorySku: a.accessorySku,
+          quantity: a.quantity,
+          note: a.note,
         })),
       },
       "put",

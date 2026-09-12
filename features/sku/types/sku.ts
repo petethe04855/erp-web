@@ -6,6 +6,15 @@ export interface BundleItem {
   quantity: number;
 }
 
+export interface SKUAccessory {
+  id?: number;
+  sku?: string;
+  accessorySku: string;
+  quantity: number;
+  note?: string;
+  name?: string;
+}
+
 export interface SKU {
   id: number;
   sku: string;
@@ -17,7 +26,9 @@ export interface SKU {
   stockQuantity?: number;
   availableStock?: number;
   reservedStock?: number;
+  bundleAvailable?: number;
   bundleItems?: BundleItem[];
+  accessories?: SKUAccessory[];
   status: string;
   image?: string;
   createdAt?: string;
@@ -45,6 +56,11 @@ export interface CreateSKUDTO {
     componentSku: string;
     quantity: number;
   }>;
+  accessories?: Array<{
+    accessorySku: string;
+    quantity: number;
+    note?: string;
+  }>;
 }
 
 export interface UpdateSKUDTO {
@@ -59,5 +75,10 @@ export interface UpdateSKUDTO {
   bundleItems?: Array<{
     componentSku: string;
     quantity: number;
+  }>;
+  accessories?: Array<{
+    accessorySku: string;
+    quantity: number;
+    note?: string;
   }>;
 }

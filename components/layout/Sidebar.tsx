@@ -30,6 +30,7 @@ import {
   Truck,
   BookOpen,
   PieChart,
+  Video,
 } from "lucide-react";
 
 interface NavItem {
@@ -93,6 +94,7 @@ const NAV_SECTIONS: NavSection[] = [
     title: "TikTok Shop",
     items: [
       { label: "TikTok Orders", href: "/tiktok-orders", icon: Store, roles: ["owner", "sales", "warehouse"] },
+      { label: "Live & Content", href: "/tiktok-live", icon: Video, roles: ["owner", "sales", "warehouse"] },
       { label: "Fee Calculator", href: "/tiktok-calculator", icon: Calculator, roles: ["owner", "sales", "accountant"] },
       { label: "TikTok Setup", href: "/tiktok-setup", icon: Settings, roles: ["owner"] },
     ],

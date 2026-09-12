@@ -226,14 +226,22 @@ export function SKUTable({
                     {/* Stock */}
                     <td className="px-5 py-3.5 whitespace-nowrap text-left text-neutral-700 dark:text-neutral-300">
                       {item.isBundle ? (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenBundleComponents(item)}
-                          className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium hover:underline cursor-pointer"
-                        >
-                          <Package className="h-3.5 w-3.5" />
-                          ดูส่วนประกอบ
-                        </button>
+                        <div className="flex flex-col gap-1 text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                              พร้อมขาย: {item.bundleAvailable ?? 0} ชุด
+                            </span>
+                            <span className="text-neutral-400 text-[10px]">(คำนวณจากสูตร)</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenBundleComponents(item)}
+                            className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium hover:underline cursor-pointer"
+                          >
+                            <Package className="h-3.5 w-3.5" />
+                            ดูส่วนประกอบ
+                          </button>
+                        </div>
                       ) : item.stockQuantity !== undefined ? (
                         <div className="flex flex-col gap-1 text-xs">
                           <div className="flex items-center gap-1.5">
@@ -249,6 +257,19 @@ export function SKUTable({
                               <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 border border-amber-200">
                                 ติดจอง: {item.reservedStock} ชิ้น
                               </span>
+                            </div>
+                          )}
+                          {item.accessories && item.accessories.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-0.5">
+                              {item.accessories.map((acc, idx) => (
+                                <span
+                                  key={idx}
+                                  className="inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
+                                  title={acc.name || acc.accessorySku}
+                                >
+                                  📦 ตัดเพิ่ม: {acc.accessorySku} ×{acc.quantity}
+                                </span>
+                              ))}
                             </div>
                           )}
                         </div>

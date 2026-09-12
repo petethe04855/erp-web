@@ -32,6 +32,8 @@ export function SKUForm(props: Props) {
   const [lines, setLines] = useState<ItemLine[]>([
     { sku: "", quantity: 1, price: 0 },
   ]);
+  const [accessoryLines, setAccessoryLines] = useState<ItemLine[]>([]);
+  const [isLoadingAccessories, setIsLoadingAccessories] = useState(false);
 
   const [isLoadingComponents, setIsLoadingComponents] = useState(false);
 
@@ -52,7 +54,9 @@ export function SKUForm(props: Props) {
     setUploadError("");
     setIsUploading(false);
     setIsLoadingComponents(false);
+    setIsLoadingAccessories(false);
     setLines([{ sku: "", quantity: 1, price: 0 }]);
+    setAccessoryLines([]);
   };
 
   // Clear the native file input when the form resets (DOM sync in effect is
@@ -97,6 +101,41 @@ export function SKUForm(props: Props) {
     };
   }, [props.open, props.initialData?.id, props.initialData?.sku, props.initialData?.isBundle]);
 
+  // When editing a non-bundle SKU, fetch accessories from API if not already present
+  useEffect(() => {
+    let active = true;
+    if (props.open && props.initialData && !props.initialData.isBundle && props.initialData.sku) {
+      const initialSku = props.initialData.sku;
+      if (!props.initialData.accessories || props.initialData.accessories.length === 0) {
+        setIsLoadingAccessories(true);
+        skuApi
+          .getSKUAccessories(initialSku)
+          .then((accs) => {
+            if (!active) return;
+            if (accs && accs.length > 0) {
+              setAccessoryLines(
+                accs.map((a) => ({
+                  sku: a.accessorySku,
+                  quantity: a.quantity,
+                  price: 0,
+                  name: a.name,
+                })),
+              );
+            }
+          })
+          .catch((err) => {
+            console.error("Failed to load accessories:", err);
+          })
+          .finally(() => {
+            if (active) setIsLoadingAccessories(false);
+          });
+      }
+    }
+    return () => {
+      active = false;
+    };
+  }, [props.open, props.initialData?.id, props.initialData?.sku, props.initialData?.isBundle]);
+
   // Sync form fields with `open`/`initialData`: adjust state during render
   // (React docs pattern) instead of setState-in-effect.
   const formSignature = `${props.open}-${props.initialData?.id ?? "new"}-${props.initialData?.sku ?? ""}`;
@@ -124,6 +163,18 @@ export function SKUForm(props: Props) {
         );
       } else {
         setLines([{ sku: "", quantity: 1, price: 0 }]);
+      }
+      if (d.accessories && d.accessories.length > 0) {
+        setAccessoryLines(
+          d.accessories.map((a) => ({
+            sku: a.accessorySku,
+            quantity: a.quantity,
+            price: 0,
+            name: a.name,
+          })),
+        );
+      } else {
+        setAccessoryLines([]);
       }
     } else {
       resetForm();
@@ -211,6 +262,15 @@ export function SKUForm(props: Props) {
           bundleItems: bundle
             ? lines.map((l) => ({ componentSku: l.sku, quantity: l.quantity }))
             : undefined,
+          accessories: !bundle
+            ? accessoryLines
+                .filter((l) => Boolean(l.sku && l.sku.trim()))
+                .map((l) => ({
+                  accessorySku: l.sku.trim().toUpperCase(),
+                  quantity: Number(l.quantity) || 1,
+                  note: l.name,
+                }))
+            : undefined,
         });
         resetForm();
       }}
@@ -248,45 +308,39 @@ export function SKUForm(props: Props) {
               onClick={() => !isUploading && fileInputRef.current?.click()}
               className={`flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-4 cursor-pointer transition-colors ${
                 isUploading
-                  ? "bg-neutral-50 border-neutral-300 cursor-not-allowed dark:bg-neutral-800/50"
-                  : "border-neutral-300 hover:border-neutral-400 hover:bg-neutral-50/50 dark:border-neutral-700 dark:hover:bg-neutral-800/30"
+                  ? "border-neutral-300 bg-neutral-100 cursor-not-allowed dark:border-neutral-700 dark:bg-neutral-800"
+                  : "border-neutral-300 hover:border-neutral-400 bg-neutral-50/50 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800/50 dark:hover:bg-neutral-800"
               }`}
             >
               {isUploading ? (
-                <div className="flex flex-col items-center gap-2 py-1">
-                  <Loader2 className="h-6 w-6 animate-spin text-neutral-500" />
-                  <span className="text-xs text-neutral-500 font-medium">
-                    กำลังอัปโหลดรูปภาพ…
-                  </span>
-                </div>
+                <Loader2 className="h-7 w-7 text-neutral-400 animate-spin mb-1.5" />
               ) : (
-                <div className="flex flex-col items-center gap-1.5 py-1 text-center">
-                  <div className="rounded-full bg-neutral-100 p-2 text-neutral-500 dark:bg-neutral-800">
-                    <Upload className="h-5 w-5" />
-                  </div>
-                  <div className="text-xs text-neutral-600 dark:text-neutral-300">
-                    <span className="font-semibold text-primary">คลิกเพื่อเลือกไฟล์รูปภาพ</span>
-                  </div>
-                  <p className="text-[11px] text-neutral-400">
-                    PNG หรือ JPG ไม่เกิน 5MB
-                  </p>
+                <div className="h-8 w-8 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-500 mb-1.5 dark:bg-neutral-700 dark:text-neutral-300">
+                  <ImageIcon className="h-4 w-4" />
                 </div>
               )}
+              <div className="text-xs text-neutral-600 dark:text-neutral-300 text-center">
+                <span className="font-semibold text-primary">คลิกเพื่ออัปโหลด</span> หรือลากไฟล์มาวาง
+              </div>
+              <p className="text-[10px] text-neutral-400 mt-0.5">
+                PNG, JPG ขนาดสูงสุด 5MB
+              </p>
             </div>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/png, image/jpeg, image/jpg"
-              className="hidden"
-              onChange={handleImageFileChange}
-              disabled={isUploading}
-            />
           </div>
         )}
 
+        {/* Hidden File Input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png, image/jpeg, image/jpg"
+          className="hidden"
+          disabled={isUploading}
+          onChange={handleImageFileChange}
+        />
+
         {uploadError && (
-          <p className="text-xs text-rose-500 font-medium mt-1">
+          <p className="text-xs text-rose-500 mt-1">
             ⚠️ {uploadError}
           </p>
         )}
@@ -344,7 +398,7 @@ export function SKUForm(props: Props) {
         />
         เป็นชุดสินค้า Bundle
       </label>
-      {bundle && (
+      {bundle ? (
         isLoadingComponents ? (
           <div className="flex items-center justify-center p-6 border border-dashed rounded-xl bg-neutral-50/50 dark:bg-neutral-800/30">
             <Loader2 className="h-5 w-5 animate-spin text-neutral-400 mr-2" />
@@ -353,6 +407,94 @@ export function SKUForm(props: Props) {
         ) : (
           <ItemLines value={lines} onChange={setLines} prices={false} />
         )
+      ) : (
+        <div className="space-y-2 border border-slate-200 rounded-xl p-3 bg-slate-50/40 dark:border-neutral-800 dark:bg-neutral-900/30">
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                📦 บรรจุภัณฑ์ / อุปกรณ์เสริมที่ตัดสต็อกตอนขาย (Accessories)
+              </span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                เช่น กล่องลัง, ซองกันกระแทก ระบบจะตัดสต็อกอุปกรณ์เหล่านี้อัตโนมัติเมื่อจัดส่งสินค้านี้
+              </span>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="text-xs h-7 px-2"
+              onClick={() =>
+                setAccessoryLines((prev) => [
+                  ...prev,
+                  { sku: "", quantity: 1, price: 0 },
+                ])
+              }
+            >
+              + เพิ่มอุปกรณ์เสริม
+            </Button>
+          </div>
+
+          {isLoadingAccessories ? (
+            <div className="flex items-center justify-center p-4">
+              <Loader2 className="h-4 w-4 animate-spin text-neutral-400 mr-2" />
+              <span className="text-xs text-neutral-500">กำลังโหลดรายการอุปกรณ์เสริม...</span>
+            </div>
+          ) : accessoryLines.length === 0 ? (
+            <p className="text-xs text-neutral-400 italic py-1">
+              ไม่มีอุปกรณ์เสริมที่ผูกไว้ (คลิก &quot;+ เพิ่มอุปกรณ์เสริม&quot; หากต้องการตัดสต็อกกล่องหรือซองพร้อมสินค้านี้)
+            </p>
+          ) : (
+            <div className="space-y-2 pt-1">
+              {accessoryLines.map((acc, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <Input
+                      placeholder="รหัส SKU อุปกรณ์เสริม (เช่น BOX-01)"
+                      value={acc.sku}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase();
+                        setAccessoryLines((prev) =>
+                          prev.map((item, i) =>
+                            i === idx ? { ...item, sku: val } : item,
+                          ),
+                        );
+                      }}
+                      className="h-8 text-xs font-mono"
+                    />
+                  </div>
+                  <div className="w-24">
+                    <Input
+                      type="number"
+                      placeholder="จำนวน"
+                      min="1"
+                      value={acc.quantity}
+                      onChange={(e) => {
+                        const val = Math.max(1, parseInt(e.target.value, 10) || 1);
+                        setAccessoryLines((prev) =>
+                          prev.map((item, i) =>
+                            i === idx ? { ...item, quantity: val } : item,
+                          ),
+                        );
+                      }}
+                      className="h-8 text-xs text-right"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
+                    onClick={() =>
+                      setAccessoryLines((prev) => prev.filter((_, i) => i !== idx))
+                    }
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
       <p className="text-xs text-neutral-500">
         การรับสต็อกให้ทำผ่านหน้ารับสินค้า

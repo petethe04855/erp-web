@@ -13,11 +13,21 @@ export interface Company {
   logoUrl: string;
   defaultReorderPoint?: number;
 }
+export interface LivePayrollSettings {
+  hourlyRate: number;
+  clipBonus: number;
+  staffRates: Record<string, number>;
+}
+
 export interface Settings {
   company: Company;
+  livePayroll?: LivePayrollSettings;
 }
+
 export const settingsApi = {
   get: () => read<Settings>("/settings"),
   save: (company: Company) =>
     writeRecord<Settings>("/settings", { company }, "put"),
+  saveLivePayroll: (livePayroll: LivePayrollSettings) =>
+    writeRecord<Settings>("/settings", { livePayroll }, "put"),
 };

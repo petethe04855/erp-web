@@ -14,6 +14,15 @@ export interface ProductRecord {
   isBundle: boolean;
   isActive: boolean;
   available: number;
+  bundleAvailable?: number;
+  accessories?: Array<{
+    id: number;
+    sku: string;
+    accessorySku: string;
+    quantity: number;
+    note?: string;
+    name?: string;
+  }>;
   image?: string;
 }
 
