@@ -16,24 +16,25 @@ export const inventoryApi = {
         isBundle: false,
       },
       (p) => {
-        // Backend provides the real reorder point (`reorder`).
-        // Percent = available stock vs reorder point, clamped to 0-100.
-        const reorder = Math.max(0, p.reorder);
-        const percent =
-          reorder > 0
-            ? Math.min(100, Math.max(0, Math.round((p.available / reorder) * 100)))
-            : 0;
+        let stockStatus: "out" | "low" | "healthy" = "healthy";
+        if (p.available <= 0) {
+          stockStatus = "out";
+        } else if (p.available <= (p.reorder ?? 10)) {
+          stockStatus = "low";
+        }
+
         return {
           id: p.id,
           sku: p.sku,
           productName: p.name,
+          image: p.image,
+          category: p.type,
           warehouse: "รวมทุกคลัง",
           onHand: p.stock,
           reserved: p.reservedQty,
           available: p.available,
-          safetyStock: p.reorder,
-          safetyStockPercent: `${percent}%`,
-          isBundle: p.isBundle,
+          isActive: p.isActive,
+          stockStatus,
         };
       },
     ),

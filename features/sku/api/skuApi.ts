@@ -12,6 +12,10 @@ export const toSKU = (p: ProductRecord): SKU => ({
   stockQuantity: p.isBundle ? undefined : p.stock,
   availableStock: p.isBundle ? undefined : (p.available ?? p.stock),
   reservedStock: p.isBundle ? undefined : p.reservedQty,
+  onHand: p.stock,
+  reserved: p.reservedQty,
+  available: p.available ?? p.stock,
+  reorder: p.reorder ?? 0,
   bundleAvailable: p.bundleAvailable,
   accessories: p.accessories?.map((a) => ({
     id: a.id,

@@ -46,7 +46,6 @@ export function SKUSearch(props: SKUSearchProps) {
           <option value="all">ทั้งหมด</option>
           <option value="Finished Product">Finished Product (สินค้าสำเร็จรูป)</option>
           <option value="Raw Material">Raw Material (วัตถุดิบ)</option>
-          <option value="Bundle">Bundle (ชุดสินค้า/แพ็กเกจ)</option>
         </Select>
       </label>
 

@@ -1,80 +1,122 @@
 "use client";
 
-import { PageHeader } from "@/components/layout/PageHeader";
 import React, { useState } from "react";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { TwoColumnLayout } from "@/components/layout/TwoColumnLayout";
 import { useInventory } from "@/features/inventory/hooks/useInventory";
 import { InventorySearch } from "@/features/inventory/components/InventorySearch";
 import { InventoryTable } from "@/features/inventory/components/InventoryTable";
-import { StockAdjustmentModal } from "@/features/inventory/components/StockAdjustmentModal";
-import { InventoryStock } from "@/features/inventory/types/inventory";
+import { FormulaFormModal } from "@/features/inventory/components/FormulaFormModal";
+import { InventoryDetailModal } from "@/features/inventory/components/InventoryDetailModal";
+import type { InventoryFormula } from "@/features/inventory/types/formula";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 export default function InventoryPage() {
-  const [selectedStock, setSelectedStock] = useState<InventoryStock | null>(
-    null,
-  );
-  const [isAdjustOpen, setIsAdjustOpen] = useState(false);
+  const [selectedFormula, setSelectedFormula] = useState<InventoryFormula | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [editingFormula, setEditingFormula] = useState<InventoryFormula | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   const {
-    stocks,
+    formulas,
     meta,
     isLoading,
     isError,
-    filters,
+    search,
+    status,
+    togglingCode,
+    deletingCode,
     handleSearch,
-    handleWarehouseChange,
     handleStatusChange,
     handlePageChange,
     handleLimitChange,
     resetFilters,
     refetch,
-    adjustStock,
-    isAdjusting,
+    handleToggleStatus,
+    handleDelete,
   } = useInventory();
 
-  const handleOpenAdjust = (stock: InventoryStock) => {
-    setSelectedStock(stock);
-    setIsAdjustOpen(true);
+  const handleOpenCreate = () => {
+    setEditingFormula(null);
+    setIsFormOpen(true);
+  };
+
+  const handleOpenEdit = (formula: InventoryFormula) => {
+    setEditingFormula(formula);
+    setIsFormOpen(true);
+  };
+
+  const handleOpenView = (formula: InventoryFormula) => {
+    setSelectedFormula(formula);
+    setIsDetailOpen(true);
   };
 
   return (
     <PageContainer>
       <PageHeader
-        title="Inventory & Stock Balances"
-        description="ข้อมูลจริงจาก Chawy ERP"
-        actions={null}
+        title="Inventory Management"
+        description="จัดการชุดสินค้าและสต็อกที่ประกอบจาก SKU วัตถุดิบ"
+        actions={
+          <Button
+            size="sm"
+            className="gap-1.5 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white"
+            onClick={handleOpenCreate}
+          >
+            <Plus className="h-4 w-4" />
+            New Inventory
+          </Button>
+        }
       />
+
       <TwoColumnLayout
         sidebar={
           <InventorySearch
-            filters={filters}
+            search={search}
+            status={status}
             onSearch={handleSearch}
-            onWarehouseChange={handleWarehouseChange}
             onStatusChange={handleStatusChange}
             onReset={resetFilters}
           />
         }
         content={
           <InventoryTable
-            stocks={stocks}
+            formulas={formulas}
             meta={meta}
             isLoading={isLoading}
             isError={isError}
+            togglingCode={togglingCode}
+            deletingCode={deletingCode}
             onPageChange={handlePageChange}
             onLimitChange={handleLimitChange}
             onRetry={refetch}
-            onAdjust={handleOpenAdjust}
+            onView={handleOpenView}
+            onEdit={handleOpenEdit}
+            onToggleStatus={handleToggleStatus}
+            onDelete={handleDelete}
+            onCreateNew={handleOpenCreate}
           />
         }
       />
 
-      <StockAdjustmentModal
-        open={isAdjustOpen}
-        onOpenChange={setIsAdjustOpen}
-        selectedStock={selectedStock}
-        onSubmit={adjustStock}
-        isSubmitting={isAdjusting}
+      {/* Detail Modal */}
+      <InventoryDetailModal
+        open={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+        formula={selectedFormula}
+        onEdit={handleOpenEdit}
+        onToggleStatus={handleToggleStatus}
+        onDelete={handleDelete}
+        isToggling={Boolean(togglingCode && selectedFormula?.code === togglingCode)}
+      />
+
+      {/* Create / Edit Form Modal */}
+      <FormulaFormModal
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        initialData={editingFormula}
+        onSaved={refetch}
       />
     </PageContainer>
   );

@@ -59,15 +59,13 @@ export function OrderSearch(props: OrderSearchProps) {
       </label>
 
       <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
-        สถานะการจัดส่ง
+        สถานะออเดอร์
         <Select
           className="mt-1.5 text-xs"
           value={props.filters.fulfillmentStatus || "all"}
           onChange={(e) => props.onFulfillmentChange(e.target.value)}
         >
           <option value="all">ทั้งหมด</option>
-          <option value="Pending">Pending (รอดำเนินการ)</option>
-          <option value="Shipped">Shipped (จัดส่งแล้ว)</option>
           <option value="Completed">Completed (สำเร็จ)</option>
           <option value="Cancelled">Cancelled (ยกเลิก)</option>
         </Select>

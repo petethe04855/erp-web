@@ -26,6 +26,10 @@ export interface SKU {
   stockQuantity?: number;
   availableStock?: number;
   reservedStock?: number;
+  onHand?: number;
+  reserved?: number;
+  available?: number;
+  reorder?: number;
   bundleAvailable?: number;
   bundleItems?: BundleItem[];
   accessories?: SKUAccessory[];

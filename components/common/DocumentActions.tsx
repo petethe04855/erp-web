@@ -253,43 +253,17 @@ export function DocumentActions({
           </span>
         )}
 
-        {isPendingStatus && (
+        {(isPendingStatus || isConfirmed) && (
           <>
             <Button
               size="sm"
-              disabled={isPending || !canManageSales}
-              onClick={() => handleOrderStatus("CONFIRMED")}
-              className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white"
-              title={!canManageSales ? "คุณไม่มีสิทธิ์ดำเนินการ" : "ยืนยันคำสั่งซื้อ"}
-            >
-              <Check className="h-3.5 w-3.5" />
-              ยืนยันออเดอร์ (Confirm)
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={isPending || !canManageSales}
-              onClick={() => handleOrderStatus("CANCELLED")}
-              className="gap-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
-              title={!canManageSales ? "คุณไม่มีสิทธิ์ดำเนินการ" : "ยกเลิกคำสั่งซื้อ"}
-            >
-              <Ban className="h-3.5 w-3.5" />
-              ยกเลิก (Cancel)
-            </Button>
-          </>
-        )}
-
-        {isConfirmed && (
-          <>
-            <Button
-              size="sm"
-              disabled={isPending || !canManageWarehouse}
+              disabled={isPending || (!canManageSales && !canManageWarehouse)}
               onClick={() => handleOrderStatus("SHIPPED")}
               className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-              title={!canManageWarehouse ? "คุณไม่มีสิทธิ์ดำเนินการคลังสินค้า" : "จัดส่งสินค้าและตัดสต็อก"}
+              title={!canManageSales && !canManageWarehouse ? "คุณไม่มีสิทธิ์ดำเนินการ" : "สำเร็จออเดอร์และตัดสต็อก"}
             >
               {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Truck className="h-3.5 w-3.5" />}
-              จัดส่ง / ตัดสต็อก (Ship)
+              สำเร็จ / ตัดสต็อก (Complete)
             </Button>
             <Button
               size="sm"

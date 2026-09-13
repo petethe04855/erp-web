@@ -2,13 +2,14 @@ export interface InventoryStock {
   id: number;
   sku: string;
   productName: string;
+  image?: string;
+  category?: string;
   warehouse: string;
   onHand: number;
   reserved: number;
   available: number;
-  safetyStock: number;
-  safetyStockPercent?: string;
-  isBundle?: boolean;
+  isActive?: boolean;
+  stockStatus: "out" | "low" | "healthy";
 }
 
 export interface InventoryQueryParams {

@@ -1,72 +1,165 @@
 "use client";
 
-import { useFilters } from "@/hooks/useFilters";
-import {
-  useInventoryStocksQuery,
-  useAdjustStockMutation,
-} from "../queries/inventoryQueries";
-import { InventoryQueryParams, StockAdjustmentDTO } from "../types/inventory";
+import { useState, useCallback, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { formulaApi } from "../api/formulaApi";
+import type { InventoryFormula } from "../types/formula";
 
 export function useInventory() {
-  const { filters, setFilters, query } = useFilters<InventoryQueryParams>({
-    search: "",
-    warehouse: "all",
-    status: "all",
-    page: 1,
-    limit: 10,
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [togglingCode, setTogglingCode] = useState<string | null>(null);
+  const [deletingCode, setDeletingCode] = useState<string | null>(null);
+
+  const {
+    data: allFormulas = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ["inventory-formulas"],
+    queryFn: () => formulaApi.getFormulas(),
   });
 
-  const { data, isLoading, isError, refetch } = useInventoryStocksQuery(query);
-  const adjustMutation = useAdjustStockMutation();
+  // Client-side filtering & pagination (matching standard UI pattern)
+  const filteredFormulas = useMemo(() => {
+    return allFormulas.filter((item) => {
+      const matchSearch =
+        !search ||
+        item.code.toLowerCase().includes(search.toLowerCase()) ||
+        item.name.toLowerCase().includes(search.toLowerCase()) ||
+        (item.description &&
+          item.description.toLowerCase().includes(search.toLowerCase()));
 
-  const handleSearch = (search: string) => {
-    setFilters((prev) => ({ ...prev, search, page: 1 }));
+      const matchStatus =
+        status === "all"
+          ? true
+          : status === "active"
+            ? item.isActive
+            : !item.isActive;
+
+      return matchSearch && matchStatus;
+    });
+  }, [allFormulas, search, status]);
+
+  const paginatedFormulas = useMemo(() => {
+    const startIndex = (page - 1) * limit;
+    return filteredFormulas.slice(startIndex, startIndex + limit);
+  }, [filteredFormulas, page, limit]);
+
+  const meta = useMemo(
+    () => ({
+      page,
+      limit,
+      total: filteredFormulas.length,
+      totalPages: Math.max(1, Math.ceil(filteredFormulas.length / limit)),
+    }),
+    [filteredFormulas.length, page, limit],
+  );
+
+  const handleSearch = (val: string) => {
+    setSearch(val);
+    setPage(1);
   };
 
-  const handleWarehouseChange = (warehouse: string) => {
-    setFilters((prev) => ({ ...prev, warehouse, page: 1 }));
+  const handleStatusChange = (val: string) => {
+    setStatus(val);
+    setPage(1);
   };
 
-  const handleStatusChange = (status: string) => {
-    setFilters((prev) => ({ ...prev, status, page: 1 }));
+  const handlePageChange = (p: number) => {
+    setPage(p);
   };
 
-  const handlePageChange = (page: number) => {
-    setFilters((prev) => ({ ...prev, page }));
-  };
-
-  const handleLimitChange = (limit: number) => {
-    setFilters((prev) => ({ ...prev, limit, page: 1 }));
+  const handleLimitChange = (l: number) => {
+    setLimit(l);
+    setPage(1);
   };
 
   const resetFilters = () => {
-    setFilters({
-      search: "",
-      warehouse: "all",
-      status: "all",
-      page: 1,
-      limit: 10,
-    });
+    setSearch("");
+    setStatus("all");
+    setPage(1);
+    setLimit(10);
   };
 
-  const adjustStock = async (dto: StockAdjustmentDTO) => {
-    return adjustMutation.mutateAsync(dto);
-  };
+  // Toggle status mutation
+  const toggleStatusMutation = useMutation({
+    mutationFn: async (formula: InventoryFormula) => {
+      setTogglingCode(formula.code);
+      return formulaApi.toggleStatus(formula.code, !formula.isActive);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inventory-formulas"] });
+    },
+    onSettled: () => {
+      setTogglingCode(null);
+    },
+  });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (formula: InventoryFormula) => {
+      setDeletingCode(formula.code);
+      return formulaApi.deleteFormula(formula.code);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inventory-formulas"] });
+    },
+    onSettled: () => {
+      setDeletingCode(null);
+    },
+  });
+
+  const handleToggleStatus = useCallback(
+    async (formula: InventoryFormula) => {
+      try {
+        await toggleStatusMutation.mutateAsync(formula);
+      } catch (err: unknown) {
+        alert(
+          "เปลี่ยนสถานะไม่สำเร็จ: " +
+            (err instanceof Error ? err.message : String(err)),
+        );
+      }
+    },
+    [toggleStatusMutation],
+  );
+
+  const handleDelete = useCallback(
+    async (formula: InventoryFormula) => {
+      if (!confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบชุด Inventory ${formula.code}?`)) {
+        return;
+      }
+      try {
+        await deleteMutation.mutateAsync(formula);
+      } catch (err: unknown) {
+        alert(
+          "ลบไม่สำเร็จ: " + (err instanceof Error ? err.message : String(err)),
+        );
+      }
+    },
+    [deleteMutation],
+  );
 
   return {
-    stocks: data?.data || [],
-    meta: data?.meta || { page: 1, limit: 10, total: 0, totalPages: 1 },
+    formulas: paginatedFormulas,
+    meta,
     isLoading,
     isError,
-    filters,
+    search,
+    status,
+    togglingCode,
+    deletingCode,
     handleSearch,
-    handleWarehouseChange,
     handleStatusChange,
     handlePageChange,
     handleLimitChange,
     resetFilters,
     refetch,
-    adjustStock,
-    isAdjusting: adjustMutation.isPending,
+    handleToggleStatus,
+    handleDelete,
   };
 }

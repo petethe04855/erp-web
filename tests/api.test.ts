@@ -91,9 +91,9 @@ describe("inventoryApi.getStocks", () => {
     );
 
     const res = await inventoryApi.getStocks({ page: 1 });
-    // 80 available vs reorder point 40 => 100% (was Math.max(50,...) = 200% clamped)
-    expect(res.data[0].safetyStockPercent).toBe("100%");
-    expect(res.data[0].safetyStock).toBe(40);
+    expect(res.data[0].onHand).toBe(100);
+    expect(res.data[0].available).toBe(80);
+    expect(res.data[0].stockStatus).toBe("healthy");
   });
 });
 
