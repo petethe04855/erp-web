@@ -80,6 +80,45 @@
 
 @layer base { body { font-family: Arial, Tahoma, sans-serif; } }
 
+/* ---- Print: output only the document (invoice/quotation), centered on the page ----
+   The print document section carries id `invoice-print-*` / `quotation-print-*`.
+   Everything else in the app shell is hidden; the document is laid out at the top-left
+   of the paper at exact mm size so the browser does not rescale or clip it. */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    height: auto !important;
+  }
+
+  /* Hide everything, then re-show only the path to the print document. */
+  body * {
+    visibility: hidden;
+  }
+
+  section[id^="invoice-print-"],
+  section[id^="quotation-print-"],
+  section[id^="invoice-print-"] *,
+  section[id^="quotation-print-"] * {
+    visibility: visible;
+  }
+
+  section[id^="invoice-print-"],
+  section[id^="quotation-print-"] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    margin: 0;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+}
+
 /* Modern sleek scrollbar styles */
 ::-webkit-scrollbar {
   width: 6px;

@@ -2,6 +2,7 @@ import React from "react";
 import type { QuotationDetail } from "../../types/quotation";
 import type { Company } from "@/features/settings/api/settingsApi";
 import { bahtText, money, thaiDate } from "@/lib/printUtils";
+import { getImageUrl } from "@/lib/utils";
 
 export interface QuotationPrintTemplateProps {
   quotation: QuotationDetail;
@@ -41,12 +42,12 @@ export function QuotationPrintTemplate({
             <div className="flex max-w-[450px] items-start gap-3">
               {company?.logoUrl ? (
                 <img
-                  src={company.logoUrl}
+                  src={getImageUrl(company.logoUrl)}
                   alt={companyName}
                   crossOrigin="anonymous"
                   width={64}
                   height={64}
-                  className="object-contain"
+                  className="object-contain max-h-16 max-w-16"
                 />
               ) : (
                 <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center text-xs font-bold text-gray-500">
@@ -96,14 +97,21 @@ export function QuotationPrintTemplate({
             </div>
           </div>
 
-          <table className="mt-6 w-full border-collapse text-[11px]">
+          <table className="mt-6 w-full table-fixed border-collapse text-[11px]">
+            <colgroup>
+              <col className="w-12" />
+              <col />
+              <col className="w-16" />
+              <col className="w-28" />
+              <col className="w-28" />
+            </colgroup>
             <thead className="border-y-2 border-gray-500 bg-gray-100">
-              <tr className="h-10 align-middle">
-                <th className="p-2 text-center w-12">#</th>
-                <th className="p-2 text-left">รายละเอียด</th>
-                <th className="p-2 text-right w-16">จำนวน</th>
-                <th className="p-2 text-right w-28">ราคาต่อหน่วย</th>
-                <th className="p-2 text-right w-28">มูลค่า</th>
+              <tr className="h-10">
+                <th className="px-2 py-2.5 align-middle text-center font-bold text-gray-900">#</th>
+                <th className="px-2 py-2.5 align-middle text-center font-bold text-gray-900">รายละเอียด</th>
+                <th className="px-2 py-2.5 align-middle text-center font-bold text-gray-900">จำนวน</th>
+                <th className="px-2 py-2.5 align-middle text-center font-bold text-gray-900">ราคาต่อหน่วย</th>
+                <th className="px-2 py-2.5 align-middle text-center font-bold text-gray-900">มูลค่า</th>
               </tr>
             </thead>
             <tbody>

@@ -28,6 +28,7 @@ import { DocumentActions } from "@/components/common/DocumentActions";
 import { InvoicePrintTemplate } from "./print/InvoicePrintTemplate";
 import { exportDocumentPdf } from "@/lib/exportDocumentPdf";
 import { useQuery } from "@tanstack/react-query";
+import { API_BASE_URL } from "@/lib/axios";
 import { settingsApi } from "@/features/settings/api/settingsApi";
 
 interface InvoiceDetailProps {
@@ -50,6 +51,26 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
     if (!invoice) return;
     try {
       setIsExporting(true);
+      // Download directly from backend Go API
+      const token = typeof window !== "undefined" ? localStorage.getItem("chawy_v2_token") : null;
+      const response = await fetch(`${API_BASE_URL}/invoices/${invoice.id}/pdf`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `Invoice-${invoice.invoiceNo || invoice.code}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        return;
+      }
+
+      // Fallback to client-side DOM export if API returns error
       const el = document.getElementById(`invoice-print-${invoice.id}`);
       if (!el) {
         setShowPrintModal(true);
