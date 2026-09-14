@@ -10,6 +10,7 @@ export interface ProductRecord {
   cost: number;
   stock: number;
   reservedQty: number;
+  usedQty?: number;
   reorder: number;
   isBundle: boolean;
   isActive: boolean;

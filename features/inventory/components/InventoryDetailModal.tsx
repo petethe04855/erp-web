@@ -11,7 +11,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Edit2, Trash2, Boxes } from "lucide-react";
+import { Edit2, Trash2, Boxes, Image as ImageIcon } from "lucide-react";
+import { getImageUrl } from "@/lib/utils";
 import type { InventoryFormula } from "../types/formula";
 
 interface InventoryDetailModalProps {
@@ -43,30 +44,45 @@ export function InventoryDetailModal({
       >
         <DialogHeader>
           <div className="flex items-start justify-between border-b pb-3 dark:border-neutral-800">
-            <div>
-              <div className="flex items-center gap-2">
-                <DialogTitle className="font-mono text-base font-bold text-neutral-900 dark:text-neutral-100">
-                  {formula.code}
-                </DialogTitle>
-                <Badge
-                  variant={formula.isActive ? "default" : "secondary"}
-                  className={`text-[10px] px-2 py-0.5 ${
-                    formula.isActive
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400"
-                      : "bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400"
-                  }`}
-                >
-                  {formula.isActive ? "เปิดใช้งาน" : "ปิดใช้งาน"}
-                </Badge>
+            <div className="flex items-start gap-3">
+              {/* Formula Image if available */}
+              <div className="h-16 w-16 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 overflow-hidden flex items-center justify-center flex-shrink-0">
+                {formula.image ? (
+                  <img
+                    src={getImageUrl(formula.image)}
+                    alt={formula.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <ImageIcon className="h-6 w-6 text-neutral-400 dark:text-neutral-500" />
+                )}
               </div>
-              <p className="text-sm text-neutral-700 dark:text-neutral-300 font-medium mt-1">
-                {formula.name}
-              </p>
-              {formula.description && (
-                <DialogDescription className="text-xs text-neutral-400 mt-0.5">
-                  {formula.description}
-                </DialogDescription>
-              )}
+
+              <div>
+                <div className="flex items-center gap-2">
+                  <DialogTitle className="font-mono text-base font-bold text-neutral-900 dark:text-neutral-100">
+                    {formula.code}
+                  </DialogTitle>
+                  <Badge
+                    variant={formula.isActive ? "default" : "secondary"}
+                    className={`text-[10px] px-2 py-0.5 ${
+                      formula.isActive
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400"
+                        : "bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400"
+                    }`}
+                  >
+                    {formula.isActive ? "เปิดใช้งาน" : "ปิดใช้งาน"}
+                  </Badge>
+                </div>
+                <p className="text-sm text-neutral-700 dark:text-neutral-300 font-medium mt-1">
+                  {formula.name}
+                </p>
+                {formula.description && (
+                  <DialogDescription className="text-xs text-neutral-400 mt-0.5">
+                    {formula.description}
+                  </DialogDescription>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center gap-1.5 mr-6">

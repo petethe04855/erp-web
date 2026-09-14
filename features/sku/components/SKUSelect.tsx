@@ -2,9 +2,11 @@
 
 import React, { useMemo } from "react";
 import { useSKUListQuery } from "@/features/sku/queries/skuQueries";
+import { useStockBySKU } from "@/features/inventory/queries/useStockBySKU";
+import { useInventoryFormulasQuery } from "@/features/inventory/queries/inventoryQueries";
 import type { SKU } from "@/features/sku/types/sku";
 import { Select } from "@/components/ui/select";
-import { Package, Layers, AlertCircle, Loader2 } from "lucide-react";
+import { Package, Layers, AlertCircle, Loader2, Boxes } from "lucide-react";
 
 export interface SKUSelectProps {
   value: string;
@@ -14,6 +16,8 @@ export interface SKUSelectProps {
   className?: string;
   showDetails?: boolean;
   excludeBundle?: boolean;
+  includeFormulas?: boolean;
+  inventoryOnly?: boolean;
 }
 
 export function SKUSelect({
@@ -24,40 +28,139 @@ export function SKUSelect({
   className,
   showDetails = true,
   excludeBundle = false,
+  includeFormulas = false,
+  inventoryOnly = false,
 }: SKUSelectProps) {
-  const { data, isLoading, isError } = useSKUListQuery({ limit: 100 });
+  // Fetch active SKUs without 100 limit (limit: 500 covers complete product catalogue)
+  const { data, isLoading, isError } = useSKUListQuery({ limit: 500, status: "active" });
+  const { stockMap } = useStockBySKU();
+  const shouldLoadFormulas = includeFormulas || inventoryOnly;
+  const { data: formulas = [], isLoading: formulasLoading } = useInventoryFormulasQuery(
+    undefined,
+    "active"
+  );
+
   const skuList = useMemo(() => {
+    if (inventoryOnly) {
+      return [];
+    }
     const list = data?.data || [];
     if (excludeBundle) {
       return list.filter((item) => !item.isBundle);
     }
     return list;
-  }, [data, excludeBundle]);
+  }, [data, excludeBundle, inventoryOnly]);
 
-  const selectedSku = useMemo(
-    () => skuList.find((item) => item.sku === value),
-    [skuList, value],
+  const formulaList = useMemo(() => {
+    if (!shouldLoadFormulas) return [];
+    return (formulas || []).filter((f) => f.isActive);
+  }, [formulas, shouldLoadFormulas]);
+
+  const selectedSku = useMemo(() => {
+    const foundSku = skuList.find((item) => item.sku === value);
+    if (foundSku) return foundSku;
+
+    if (shouldLoadFormulas) {
+      const foundFormula = formulaList.find((f) => f.code === value);
+      if (foundFormula) {
+        // Convert formula to SKU-compatible presentation structure
+        return {
+          id: foundFormula.id,
+          sku: foundFormula.code,
+          name: foundFormula.name,
+          category: "ชุดสินค้า Inventory",
+          price: 0,
+          cost: 0,
+          isBundle: false,
+          availableStock: foundFormula.availableSets ?? 0,
+          stockQuantity: foundFormula.availableSets ?? 0,
+          available: foundFormula.availableSets ?? 0,
+          status: foundFormula.isActive ? "active" : "inactive",
+          image: foundFormula.image,
+          isFormula: true,
+        } as SKU & { isFormula?: boolean };
+      }
+    }
+    return undefined;
+  }, [skuList, formulaList, value, shouldLoadFormulas]);
+
+  // Derive augmented SKU data with real Inventory stock
+  const getAugmentedSku = (skuItem?: SKU): SKU | undefined => {
+    if (!skuItem) return undefined;
+    if ((skuItem as any).isFormula) return skuItem;
+    if (skuItem.isBundle) return skuItem;
+
+    const code = skuItem.sku?.toUpperCase()?.trim();
+    const inv = code ? stockMap.get(code) : undefined;
+    if (!inv) return skuItem; // fallback to master
+
+    return {
+      ...skuItem,
+      availableStock: inv.available,
+      reservedStock: inv.reserved,
+      stockQuantity: inv.onHand,
+      available: inv.available,
+      reserved: inv.reserved,
+      onHand: inv.onHand,
+    };
+  };
+
+  const augmentedSelectedSku = useMemo(
+    () => getAugmentedSku(selectedSku),
+    [selectedSku, stockMap],
   );
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const nextSku = e.target.value;
-    const found = skuList.find((item) => item.sku === nextSku);
-    onChange(nextSku, found);
+    const foundSku = skuList.find((item) => item.sku === nextSku);
+    if (foundSku) {
+      const augmented = getAugmentedSku(foundSku);
+      onChange(nextSku, augmented);
+      return;
+    }
+
+    if (shouldLoadFormulas) {
+      const foundFormula = formulaList.find((f) => f.code === nextSku);
+      if (foundFormula) {
+        const formulaAsSku: SKU = {
+          id: foundFormula.id,
+          sku: foundFormula.code,
+          name: foundFormula.name,
+          category: "ชุดสินค้า Inventory",
+          price: 0,
+          cost: 0,
+          isBundle: false,
+          availableStock: foundFormula.availableSets ?? 0,
+          stockQuantity: foundFormula.availableSets ?? 0,
+          available: foundFormula.availableSets ?? 0,
+          status: foundFormula.isActive ? "active" : "inactive",
+          image: foundFormula.image,
+        };
+        (formulaAsSku as any).isFormula = true;
+        onChange(nextSku, formulaAsSku);
+        return;
+      }
+    }
+
+    onChange(nextSku, undefined);
   };
+
+  const isCurrentLoading = inventoryOnly ? formulasLoading : isLoading;
+  const isCurrentError = inventoryOnly ? false : isError;
 
   return (
     <div className={className}>
       <label className="block text-xs font-semibold text-neutral-700 mb-1">
-        สินค้า SKU <span className="text-rose-500">*</span>
+        {inventoryOnly ? "สินค้า Inventory" : "สินค้า SKU"} <span className="text-rose-500">*</span>
       </label>
 
       <div className="relative">
-        {isLoading ? (
+        {isCurrentLoading ? (
           <div className="flex h-9 w-full items-center rounded-md border border-neutral-200 bg-neutral-50 px-3 text-xs text-neutral-500">
             <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin text-neutral-400" />
-            กำลังโหลดรายการ SKU...
+            {inventoryOnly ? "กำลังโหลดรายการ Inventory..." : "กำลังโหลดรายการ SKU..."}
           </div>
-        ) : isError ? (
+        ) : isCurrentError ? (
           <div className="flex h-9 w-full items-center rounded-md border border-rose-200 bg-rose-50 px-3 text-xs text-rose-600">
             <AlertCircle className="mr-2 h-3.5 w-3.5" />
             ไม่สามารถโหลดรายการ SKU ได้
@@ -70,81 +173,145 @@ export function SKUSelect({
             required={required}
             className="text-xs bg-white"
           >
-            <option value="">-- กรุณาเลือก SKU สินค้า --</option>
-            {skuList.map((item) => {
-              const priceFormatted = Number(item.price || 0).toLocaleString(
-                undefined,
-                { minimumFractionDigits: 2 },
-              );
-              return (
-                <option key={item.id} value={item.sku}>
-                  {item.sku} · {item.name} — ฿{priceFormatted}
-                  {item.isBundle ? " [ชุด Bundle]" : ""}
-                </option>
-              );
-            })}
+            <option value="">
+              {inventoryOnly
+                ? "-- กรุณาเลือกชุดสินค้า Inventory --"
+                : "-- กรุณาเลือก SKU / ชุดสินค้า --"}
+            </option>
+            {skuList.length > 0 && (
+              <optgroup label="สินค้าเดี่ยว & สินค้าชุด (SKU)">
+                {skuList.map((item) => {
+                  const priceFormatted = Number(item.price || 0).toLocaleString(
+                    undefined,
+                    { minimumFractionDigits: 2 },
+                  );
+
+                  // Look up inventory stock for option label
+                  const code = item.sku?.toUpperCase()?.trim();
+                  const inv = code ? stockMap.get(code) : undefined;
+                  const stockDisplay =
+                    !item.isBundle && inv !== undefined
+                      ? ` (พร้อมส่ง ${inv.available})`
+                      : !item.isBundle && item.availableStock !== undefined
+                        ? ` (พร้อมส่ง ${item.availableStock})`
+                        : "";
+
+                  return (
+                    <option key={item.id} value={item.sku}>
+                      {item.sku} · {item.name} — ฿{priceFormatted}
+                      {stockDisplay}
+                      {item.isBundle ? " [ชุด Bundle]" : ""}
+                    </option>
+                  );
+                })}
+              </optgroup>
+            )}
+
+            {shouldLoadFormulas && formulaList.length > 0 && (
+              inventoryOnly ? (
+                formulaList.map((item) => {
+                  const availSets = item.availableSets ?? 0;
+                  return (
+                    <option key={`formula-${item.id || item.code}`} value={item.code}>
+                      {item.code} · {item.name} (พร้อมส่ง {availSets} ชุด)
+                    </option>
+                  );
+                })
+              ) : (
+                <optgroup label="ชุดสินค้า Inventory (สูตรตัดสต็อกวัตถุดิบ)">
+                  {formulaList.map((item) => {
+                    const availSets = item.availableSets ?? 0;
+                    return (
+                      <option key={`formula-${item.id || item.code}`} value={item.code}>
+                        [ชุด Inventory] {item.code} · {item.name} (พร้อมส่ง {availSets} ชุด)
+                      </option>
+                    );
+                  })}
+                </optgroup>
+              )
+            )}
           </Select>
         )}
       </div>
 
-      {showDetails && selectedSku && (
+      {showDetails && augmentedSelectedSku && (
         <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-neutral-50 border border-neutral-200 px-3 py-2 text-xs text-neutral-600">
           <div className="flex items-center gap-1.5 font-medium text-neutral-900">
-            {selectedSku.isBundle ? (
+            {(augmentedSelectedSku as any).isFormula ? (
+              <Boxes className="h-3.5 w-3.5 text-purple-600" />
+            ) : augmentedSelectedSku.isBundle ? (
               <Layers className="h-3.5 w-3.5 text-indigo-600" />
             ) : (
               <Package className="h-3.5 w-3.5 text-neutral-500" />
             )}
-            <span className="font-semibold">{selectedSku.name}</span>
+            <span className="font-semibold">{augmentedSelectedSku.name}</span>
           </div>
 
           <span className="text-neutral-300">·</span>
 
-          <div>
-            ราคาขาย:{" "}
-            <span className="font-bold text-neutral-900">
-              ฿{Number(selectedSku.price || 0).toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-              })}
-            </span>
-          </div>
+          {!(augmentedSelectedSku as any).isFormula && (
+            <div>
+              ราคาขาย:{" "}
+              <span className="font-bold text-neutral-900">
+                ฿{Number(augmentedSelectedSku.price || 0).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                })}
+              </span>
+            </div>
+          )}
 
-          {selectedSku.isBundle ? (
+          {(augmentedSelectedSku as any).isFormula ? (
+            <span className="rounded-md bg-purple-50 px-2 py-0.5 text-[10px] font-semibold text-purple-700 border border-purple-200">
+              ชุดสินค้า Inventory (เสมือน)
+            </span>
+          ) : augmentedSelectedSku.isBundle ? (
             <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 border border-indigo-200">
               สินค้าชุด (Bundle)
             </span>
-          ) : selectedSku.availableStock !== undefined ? (
+          ) : null}
+
+          {(augmentedSelectedSku as any).isFormula ? (
+            <span
+              className={`rounded-md px-2 py-0.5 text-[10px] font-semibold border ${
+                (augmentedSelectedSku.availableStock ?? 0) > 0
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  : "bg-rose-50 text-rose-700 border-rose-200"
+              }`}
+            >
+              พร้อมประกอบส่ง: {augmentedSelectedSku.availableStock ?? 0} ชุด
+            </span>
+          ) : augmentedSelectedSku.availableStock !== undefined ? (
             <>
               <span
                 className={`rounded-md px-2 py-0.5 text-[10px] font-semibold border ${
-                  selectedSku.availableStock > 0
+                  augmentedSelectedSku.availableStock > 0
                     ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                     : "bg-rose-50 text-rose-700 border-rose-200"
                 }`}
               >
-                พร้อมส่ง: {selectedSku.availableStock} ชิ้น
-                {selectedSku.stockQuantity !== undefined &&
-                  selectedSku.stockQuantity !== selectedSku.availableStock && (
+                พร้อมส่ง: {augmentedSelectedSku.availableStock} ชิ้น
+                {augmentedSelectedSku.stockQuantity !== undefined &&
+                  augmentedSelectedSku.stockQuantity !== augmentedSelectedSku.availableStock && (
                     <span className="text-neutral-400 font-normal ml-1">
-                      (ทั้งหมด {selectedSku.stockQuantity})
+                      (ทั้งหมด {augmentedSelectedSku.stockQuantity})
                     </span>
                   )}
               </span>
-              {selectedSku.reservedStock !== undefined && selectedSku.reservedStock > 0 && (
+              {augmentedSelectedSku.reservedStock !== undefined && augmentedSelectedSku.reservedStock > 0 && (
                 <span className="rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 border border-amber-200">
-                  ติดจอง: {selectedSku.reservedStock} ชิ้น
+                  ติดจอง: {augmentedSelectedSku.reservedStock} ชิ้น
                 </span>
               )}
             </>
-          ) : selectedSku.stockQuantity !== undefined ? (
+          ) : augmentedSelectedSku.stockQuantity !== undefined ? (
             <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200">
-              สต็อก: {selectedSku.stockQuantity} ชิ้น
+              สต็อก: {augmentedSelectedSku.stockQuantity} ชิ้น
             </span>
           ) : null}
 
-          {selectedSku.category && (
+          {augmentedSelectedSku.category && (
             <span className="rounded-md bg-neutral-200/70 px-2 py-0.5 text-[10px] text-neutral-700 font-medium">
-              {selectedSku.category}
+              {augmentedSelectedSku.category}
             </span>
           )}
         </div>
@@ -152,3 +319,5 @@ export function SKUSelect({
     </div>
   );
 }
+
+

@@ -27,3 +27,13 @@ export interface StockAdjustmentDTO {
   quantity: number;
   reason: string;
 }
+
+export interface StockBySKU {
+  skuId: number;
+  skuCode: string;
+  quantity: number;
+  reservedQty: number;
+  availableQty: number;
+  warehouseCount: number;
+}
+

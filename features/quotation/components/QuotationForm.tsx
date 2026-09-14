@@ -90,7 +90,7 @@ export function QuotationForm(props: Props) {
           />
         </label>
       </div>
-      <ItemLines value={lines} onChange={setLines} />
+      <ItemLines value={lines} onChange={setLines} inventoryOnly={true} />
     </FormDialog>
   );
 }

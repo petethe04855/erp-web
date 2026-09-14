@@ -7,8 +7,9 @@ import {
   useUpdateSKUMutation,
   useUpdateSKUStatusMutation,
   useDeleteSKUMutation,
+  useAdjustSKUStockMutation,
 } from "../queries/skuQueries";
-import { SKUQueryParams, CreateSKUDTO, UpdateSKUDTO } from "../types/sku";
+import { SKUQueryParams, CreateSKUDTO, UpdateSKUDTO, StockAdjustmentDTO } from "../types/sku";
 
 export function useSKU() {
   const { filters, setFilters, query } = useFilters<SKUQueryParams>({
@@ -24,6 +25,7 @@ export function useSKU() {
   const updateMutation = useUpdateSKUMutation();
   const updateStatusMutation = useUpdateSKUStatusMutation();
   const deleteMutation = useDeleteSKUMutation();
+  const adjustMutation = useAdjustSKUStockMutation();
 
   const handleSearch = (search: string) => {
     setFilters((prev) => ({ ...prev, search, page: 1 }));
@@ -72,6 +74,10 @@ export function useSKU() {
     return deleteMutation.mutateAsync(sku);
   };
 
+  const adjustStock = async (dto: StockAdjustmentDTO) => {
+    return adjustMutation.mutateAsync(dto);
+  };
+
   return {
     skus: data?.data || [],
     meta: data?.meta || { page: 1, limit: 10, total: 0, totalPages: 1 },
@@ -89,9 +95,11 @@ export function useSKU() {
     updateSKU,
     toggleSKUStatus,
     deleteSKU,
+    adjustStock,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isUpdatingStatus: updateStatusMutation.isPending,
     isDeleting: deleteMutation.isPending,
+    isAdjusting: adjustMutation.isPending,
   };
 }

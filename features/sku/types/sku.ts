@@ -28,6 +28,8 @@ export interface SKU {
   reservedStock?: number;
   onHand?: number;
   reserved?: number;
+  used?: number;
+  usedQty?: number;
   available?: number;
   reorder?: number;
   bundleAvailable?: number;
@@ -56,6 +58,7 @@ export interface CreateSKUDTO {
   cost: number;
   isBundle: boolean;
   image?: string;
+  initialQuantity?: number;
   bundleItems?: Array<{
     componentSku: string;
     quantity: number;
@@ -85,4 +88,12 @@ export interface UpdateSKUDTO {
     quantity: number;
     note?: string;
   }>;
+}
+
+export interface StockAdjustmentDTO {
+  sku: string;
+  warehouse: string;
+  type: string;
+  quantity: number;
+  reason: string;
 }

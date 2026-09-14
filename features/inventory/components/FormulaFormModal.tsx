@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FormDialog } from "@/components/form/FormDialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Loader2 } from "lucide-react";
+import { Plus, Trash2, Loader2, X, Image as ImageIcon } from "lucide-react";
+import { getImageUrl } from "@/lib/utils";
 import { formulaApi } from "../api/formulaApi";
 import { skuApi } from "@/features/sku/api/skuApi";
 import type { SKU } from "@/features/sku/types/sku";
@@ -20,7 +21,6 @@ interface Props {
 interface FormItem {
   componentSku: string;
   qty: number;
-  unit: string;
 }
 
 export function FormulaFormModal({
@@ -33,13 +33,19 @@ export function FormulaFormModal({
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [image, setImage] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   const [items, setItems] = useState<FormItem[]>([
-    { componentSku: "", qty: 1, unit: "piece" },
+    { componentSku: "", qty: 1 },
   ]);
   const [skuList, setSkuList] = useState<SKU[]>([]);
   const [isLoadingSKUs, setIsLoadingSKUs] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load available SKUs from SKU Master
   useEffect(() => {
@@ -65,27 +71,66 @@ export function FormulaFormModal({
         setCode(initialData.code || "");
         setName(initialData.name || "");
         setDescription(initialData.description || "");
+        setImage(initialData.image || "");
+        setPreviewUrl(initialData.image || "");
+        setSelectedFile(null);
         setItems(
           initialData.items && initialData.items.length > 0
             ? initialData.items.map((it) => ({
                 componentSku: it.componentSku,
                 qty: it.qty,
-                unit: it.unit || "piece",
               }))
-            : [{ componentSku: "", qty: 1, unit: "piece" }],
+            : [{ componentSku: "", qty: 1 }],
         );
       } else {
         setCode("");
         setName("");
         setDescription("");
-        setItems([{ componentSku: "", qty: 1, unit: "piece" }]);
+        setImage("");
+        setPreviewUrl("");
+        setSelectedFile(null);
+        setItems([{ componentSku: "", qty: 1 }]);
       }
       setErrorMessage("");
     }
   }, [open, initialData]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setErrorMessage("กรุณาเลือกไฟล์รูปภาพที่ถูกต้อง (PNG, JPG, WebP)");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMessage("ขนาดไฟล์ต้องไม่เกิน 5 MB");
+      return;
+    }
+
+    setSelectedFile(file);
+    if (previewUrl && previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    const localUrl = URL.createObjectURL(file);
+    setPreviewUrl(localUrl);
+    setErrorMessage("");
+  };
+
+  const handleRemoveImage = () => {
+    setImage("");
+    setSelectedFile(null);
+    if (previewUrl && previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handleAddItem = () => {
-    setItems((prev) => [...prev, { componentSku: "", qty: 1, unit: "piece" }]);
+    setItems((prev) => [...prev, { componentSku: "", qty: 1 }]);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -118,7 +163,6 @@ export function FormulaFormModal({
       .map((it) => ({
         componentSku: it.componentSku.trim().toUpperCase(),
         qty: Number(it.qty) || 1,
-        unit: it.unit.trim() || "piece",
       }));
 
     if (cleanItems.length === 0) {
@@ -138,10 +182,28 @@ export function FormulaFormModal({
 
     try {
       setIsSubmitting(true);
+      let finalImageUrl = image;
+
+      if (selectedFile) {
+        setIsUploading(true);
+        try {
+          finalImageUrl = await skuApi.uploadImage(selectedFile);
+        } catch (uploadErr) {
+          setIsUploading(false);
+          throw new Error(
+            uploadErr instanceof Error
+              ? uploadErr.message
+              : "อัปโหลดรูปภาพไม่สำเร็จ",
+          );
+        }
+        setIsUploading(false);
+      }
+
       if (isEditing && initialData) {
         await formulaApi.updateFormula(initialData.code, {
           name: name.trim(),
           description: description.trim(),
+          image: finalImageUrl || "",
           items: cleanItems,
         });
       } else {
@@ -149,6 +211,7 @@ export function FormulaFormModal({
           code: code.trim().toUpperCase(),
           name: name.trim(),
           description: description.trim(),
+          image: finalImageUrl || "",
           items: cleanItems,
         });
       }
@@ -165,6 +228,7 @@ export function FormulaFormModal({
       setErrorMessage(msg || "บันทึกข้อมูล Inventory ไม่สำเร็จ");
     } finally {
       setIsSubmitting(false);
+      setIsUploading(false);
     }
   };
 
@@ -183,6 +247,68 @@ export function FormulaFormModal({
             ⚠️ {errorMessage}
           </div>
         )}
+
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/jpg"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+
+        {/* Image Upload Section */}
+        <div className="space-y-1.5">
+          <span className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
+            รูปภาพชุดสินค้า (PNG, JPG, WebP ไม่เกิน 5 MB)
+          </span>
+
+          {previewUrl ? (
+            <div className="relative inline-block border border-neutral-200 rounded-lg overflow-hidden bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 p-1">
+              <div className="relative h-28 w-28 flex items-center justify-center">
+                <img
+                  src={getImageUrl(previewUrl)}
+                  alt="Formula preview"
+                  className="h-full w-full object-cover rounded-md"
+                />
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="absolute top-1 right-1 bg-rose-600 text-white rounded-full p-1 shadow hover:bg-rose-700 transition-colors"
+                  title="ลบรูปภาพ"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <p className="text-[10px] text-neutral-500 text-center truncate max-w-[112px] mt-1 px-1">
+                {selectedFile ? "รอการบันทึก" : "รูปภาพปัจจุบัน"}
+              </p>
+            </div>
+          ) : (
+            <div
+              onClick={() => !isUploading && fileInputRef.current?.click()}
+              className={`flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-4 cursor-pointer transition-colors ${
+                isUploading
+                  ? "border-neutral-300 bg-neutral-100 cursor-not-allowed dark:border-neutral-700 dark:bg-neutral-800"
+                  : "border-neutral-300 hover:border-neutral-400 bg-neutral-50/50 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800/50 dark:hover:bg-neutral-800"
+              }`}
+            >
+              {isUploading ? (
+                <Loader2 className="h-6 w-6 text-neutral-400 animate-spin mb-1" />
+              ) : (
+                <div className="h-8 w-8 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-500 mb-1.5 dark:bg-neutral-700 dark:text-neutral-300">
+                  <ImageIcon className="h-4 w-4" />
+                </div>
+              )}
+              <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
+                {isUploading ? "กำลังอัปโหลดรูปภาพ..." : "คลิกเพื่อเลือกไฟล์รูปภาพชุดสินค้า"}
+              </span>
+              <span className="text-[11px] text-neutral-400">
+                PNG, JPG หรือ WebP ไม่เกิน 5MB
+              </span>
+            </div>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <label className="block text-xs font-medium">
@@ -289,7 +415,7 @@ export function FormulaFormModal({
                           </select>
                         </div>
                       </div>
-                      <div className="w-24">
+                      <div className="w-28">
                         <Input
                           type="number"
                           min="1"
@@ -302,16 +428,6 @@ export function FormulaFormModal({
                               "qty",
                               Math.max(1, parseInt(e.target.value, 10) || 1),
                             )
-                          }
-                        />
-                      </div>
-                      <div className="w-24">
-                        <Input
-                          placeholder="หน่วย (เช่น ชิ้น)"
-                          className="h-8 text-xs"
-                          value={it.unit}
-                          onChange={(e) =>
-                            handleItemChange(idx, "unit", e.target.value)
                           }
                         />
                       </div>

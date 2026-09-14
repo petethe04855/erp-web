@@ -18,11 +18,15 @@ export function ItemLines({
   onChange,
   prices = true,
   enforceMaxStock = false,
+  includeFormulas = false,
+  inventoryOnly = false,
 }: {
   value: ItemLine[];
   onChange: (lines: ItemLine[]) => void;
   prices?: boolean;
   enforceMaxStock?: boolean;
+  includeFormulas?: boolean;
+  inventoryOnly?: boolean;
 }) {
   const update = (i: number, p: Partial<ItemLine>) =>
     onChange(value.map((line, n) => (n === i ? { ...line, ...p } : line)));
@@ -32,7 +36,7 @@ export function ItemLines({
     0,
   );
   const totalAmount = value.reduce(
-    (acc, l) => acc + (Number(l.quantity || 0) * Number(l.price || 0)),
+    (acc, l) => acc + Number(l.quantity || 0) * Number(l.price || 0),
     0,
   );
 
@@ -64,9 +68,11 @@ export function ItemLines({
                   : "border-neutral-200"
               }`}
             >
-              {/* SKU Dropdown Selection */}
+              {/* SKU / Inventory Dropdown Selection */}
               <SKUSelect
                 value={line.sku}
+                includeFormulas={includeFormulas}
+                inventoryOnly={inventoryOnly}
                 onChange={(sku, skuData) => {
                   const stock =
                     skuData?.availableStock !== undefined
@@ -118,7 +124,9 @@ export function ItemLines({
                     type="number"
                     min={1}
                     max={
-                      enforceMaxStock && hasStockLimit && (line.maxStock ?? 0) > 0
+                      enforceMaxStock &&
+                      hasStockLimit &&
+                      (line.maxStock ?? 0) > 0
                         ? line.maxStock
                         : undefined
                     }
@@ -243,4 +251,3 @@ export function ItemLines({
     </div>
   );
 }
-

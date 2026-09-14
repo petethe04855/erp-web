@@ -12,6 +12,7 @@ export interface InventoryFormula {
   code: string;
   name: string;
   description?: string;
+  image?: string;
   isActive: boolean;
   availableSets?: number;
   items: InventoryFormulaItem[];
@@ -29,6 +30,7 @@ export interface CreateFormulaDTO {
   code: string;
   name: string;
   description?: string;
+  image?: string;
   isActive?: boolean;
   items: CreateFormulaItemDTO[];
 }
@@ -36,6 +38,7 @@ export interface CreateFormulaDTO {
 export interface UpdateFormulaDTO {
   name?: string;
   description?: string;
+  image?: string;
   isActive?: boolean;
   items?: CreateFormulaItemDTO[];
 }

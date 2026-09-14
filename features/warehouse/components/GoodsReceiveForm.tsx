@@ -10,21 +10,32 @@ interface Props {
   onSubmit: (data: CreateGoodsReceiveDTO) => Promise<unknown>;
   isSubmitting?: boolean;
 }
+
+const calculateDefaultExpiry = (receiveDateStr: string) => {
+  const d = new Date(receiveDateStr);
+  if (isNaN(d.getTime())) return "";
+  d.setMonth(d.getMonth() + 18); // 1 ปี 6 เดือน = 18 เดือน
+  return d.toISOString().split("T")[0];
+};
+
 export function GoodsReceiveForm(props: Props) {
+
+  const todayStr = new Date().toLocaleDateString("en-CA");
   const [po, setPo] = useState("");
   const [sku, setSku] = useState("");
   const [qty, setQty] = useState("1");
   const [supplierLot, setSupplierLot] = useState("");
-  const [date, setDate] = useState(new Date().toLocaleDateString("en-CA"));
-  const [expiry, setExpiry] = useState("");
+  const [date, setDate] = useState(todayStr);
+  const [expiry, setExpiry] = useState(calculateDefaultExpiry(todayStr));
 
   const resetForm = () => {
+    const today = new Date().toLocaleDateString("en-CA");
     setPo("");
     setSku("");
     setQty("1");
     setSupplierLot("");
-    setDate(new Date().toLocaleDateString("en-CA"));
-    setExpiry("");
+    setDate(today);
+    setExpiry(calculateDefaultExpiry(today));
   };
 
   // Reset when the dialog closes: adjust state during render (React docs
@@ -91,19 +102,24 @@ export function GoodsReceiveForm(props: Props) {
           className="mt-2"
           type="date"
           value={date}
-          onChange={(e) => setDate(e.target.value)}
+          onChange={(e) => {
+            const newDate = e.target.value;
+            setDate(newDate);
+            if (newDate) {
+              setExpiry(calculateDefaultExpiry(newDate));
+            }
+          }}
           required
         />
       </label>
       <label className="block text-xs font-medium">
-        วันที่หมดอายุ
+        วันที่หมดอายุ (คำนวณอัตโนมัติ 1 ปี 6 เดือน)
         <Input
-          className="mt-2"
+          className="mt-2 bg-neutral-100 dark:bg-neutral-800 cursor-not-allowed opacity-90"
           type="date"
           value={expiry}
-          onChange={(e) => setExpiry(e.target.value)}
+          readOnly
           required
-          min={date}
         />
       </label>
       <label className="block text-xs font-medium">

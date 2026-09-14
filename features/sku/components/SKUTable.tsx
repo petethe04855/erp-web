@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { RecordDetails } from "@/features/erp/components/RecordDetails";
-import { Trash2, Loader2, AlertTriangle, ImageIcon, Edit, X } from "lucide-react";
+import { Trash2, Loader2, AlertTriangle, ImageIcon, Edit, SlidersHorizontal } from "lucide-react";
 import { getImageUrl } from "@/lib/utils";
-import type { SKU } from "../types/sku";
+import type { SKU, StockAdjustmentDTO } from "../types/sku";
 import type { ApiPaginationMeta } from "@/types/api";
 
 interface SKUTableProps {
@@ -21,9 +21,9 @@ interface SKUTableProps {
   onPageChange: (page: number) => void;
   onLimitChange?: (limit: number) => void;
   onRetry: () => void;
-  onToggleStatus?: (sku: string | number, currentStatus: string) => Promise<unknown>;
   onDelete?: (sku: string | number) => Promise<unknown>;
   onEdit?: (sku: SKU) => void;
+  onAdjustStock?: (sku: SKU) => void;
   onSelectSKU?: (sku: SKU) => void;
 }
 
@@ -63,11 +63,10 @@ export function SKUTable({
   onPageChange,
   onLimitChange,
   onRetry,
-  onToggleStatus,
   onDelete,
   onEdit,
+  onAdjustStock,
 }: SKUTableProps) {
-  const [loadingSkuId, setLoadingSkuId] = useState<string | number | null>(null);
   const [deletingSku, setDeletingSku] = useState<SKU | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -85,18 +84,6 @@ export function SKUTable({
     meta.totalPages && meta.totalPages > 0
       ? meta.totalPages
       : Math.max(1, Math.ceil(meta.total / limit));
-
-  const handleToggle = async (skuItem: SKU) => {
-    if (!onToggleStatus) return;
-    try {
-      setLoadingSkuId(skuItem.id);
-      await onToggleStatus(skuItem.sku || skuItem.id, skuItem.status);
-    } catch (err: unknown) {
-      alert("เปลี่ยนสถานะไม่สำเร็จ: " + (err instanceof Error ? err.message : String(err)));
-    } finally {
-      setLoadingSkuId(null);
-    }
-  };
 
   const handleDeleteConfirm = async () => {
     if (!deletingSku || !onDelete) return;
@@ -134,11 +121,11 @@ export function SKUTable({
                 <th className="px-5 py-3 text-xs font-semibold text-neutral-600 dark:text-neutral-400 whitespace-nowrap text-left">
                   ชื่อสินค้า
                 </th>
-                <th className="px-5 py-3 text-xs font-semibold text-neutral-600 dark:text-neutral-400 whitespace-nowrap text-right">
-                  คงเหลือ
+                <th className="px-5 py-3 text-xs font-semibold text-neutral-600 dark:text-neutral-400 whitespace-nowrap text-left w-56">
+                  การใช้สต็อก (ใช้ไป / คงเหลือ)
                 </th>
-                <th className="px-5 py-3 text-xs font-semibold text-neutral-600 dark:text-neutral-400 whitespace-nowrap text-center">
-                  สถานะสินค้า
+                <th className="px-5 py-3 text-xs font-semibold text-neutral-600 dark:text-neutral-400 whitespace-nowrap text-right">
+                  คงเหลือพร้อมขาย
                 </th>
                 <th className="px-5 py-3 text-right text-xs font-semibold text-neutral-500 whitespace-nowrap">
                   จัดการ
@@ -147,9 +134,17 @@ export function SKUTable({
             </thead>
             <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
               {skus.map((item) => {
-                const isActive = item.status === "active";
-                const isPending = loadingSkuId === item.id;
                 const onHandQty = item.onHand ?? item.stockQuantity ?? 0;
+                const reservedQty = item.reserved ?? item.reservedStock ?? 0;
+                const usedQty = item.usedQty ?? item.used ?? 0;
+                const availableQty = item.available ?? Math.max(0, onHandQty - reservedQty);
+
+                // Total stock handled = onHand + usedQty
+                const totalCapacity = onHandQty + usedQty;
+                // Percentage used from total capacity, or from onHand if capacity is 0
+                const usedPct = totalCapacity > 0
+                  ? Math.min(100, Math.round((usedQty / totalCapacity) * 100))
+                  : 0;
 
                 return (
                   <tr
@@ -168,35 +163,54 @@ export function SKUTable({
                       </div>
                     </td>
 
-                    {/* onHand */}
-                    <td className="px-5 py-3.5 whitespace-nowrap text-right tabular-nums text-neutral-700 dark:text-neutral-300 font-medium">
-                      <span className={`font-semibold ${onHandQty <= 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}`}>
-                        {onHandQty.toLocaleString("th-TH")}
-                      </span>
+                    {/* Stock Usage & Progress Bar */}
+                    <td className="px-5 py-3.5 whitespace-nowrap text-left">
+                      <div className="flex flex-col gap-1 w-48">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-neutral-500 font-mono">
+                            ใช้ไป {usedQty.toLocaleString("th-TH")} / คงเหลือ {onHandQty.toLocaleString("th-TH")}
+                          </span>
+                          <span
+                            className={`font-semibold font-mono text-[11px] ${
+                              usedPct >= 90
+                                ? "text-rose-600 dark:text-rose-400"
+                                : usedPct >= 50
+                                ? "text-amber-600 dark:text-amber-400"
+                                : "text-emerald-600 dark:text-emerald-400"
+                            }`}
+                          >
+                            {usedPct}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-neutral-100 dark:bg-neutral-800 rounded-full h-2 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-300 ${
+                              usedPct >= 90
+                                ? "bg-rose-500"
+                                : usedPct >= 50
+                                ? "bg-amber-500"
+                                : "bg-emerald-500"
+                            }`}
+                            style={{ width: `${usedPct}%` }}
+                          />
+                        </div>
+                      </div>
                     </td>
 
-                    {/* Status Switch Toggle */}
-                    <td className="px-5 py-3.5 whitespace-nowrap text-center">
-                      <div className="inline-flex items-center justify-center gap-2">
-                        {isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />
-                        ) : (
-                          <Switch
-                            checked={isActive}
-                            onCheckedChange={() => handleToggle(item)}
-                            title={
-                              isActive
-                                ? "คลิกเพื่อปิดใช้งาน (Inactive)"
-                                : "คลิกเพื่อเปิดใช้งาน (Active)"
-                            }
-                          />
-                        )}
+                    {/* Available Stock */}
+                    <td className="px-5 py-3.5 whitespace-nowrap text-right tabular-nums text-neutral-700 dark:text-neutral-300 font-medium">
+                      <div className="flex flex-col items-end">
                         <span
-                          className={`text-xs font-medium ${
-                            isActive ? "text-emerald-600 dark:text-emerald-400" : "text-neutral-400"
+                          className={`font-semibold ${
+                            availableQty <= 0
+                              ? "text-rose-600 dark:text-rose-400"
+                              : "text-emerald-600 dark:text-emerald-400"
                           }`}
                         >
-                          {isActive ? "Active" : "Inactive"}
+                          {availableQty.toLocaleString("th-TH")}
+                        </span>
+                        <span className="text-[10px] text-neutral-400">
+                          (คงเหลือ {onHandQty.toLocaleString("th-TH")})
                         </span>
                       </div>
                     </td>
@@ -204,7 +218,18 @@ export function SKUTable({
                     {/* Actions */}
                     <td className="px-5 py-3.5 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1.5">
-                        <RecordDetails resource="products" id={item.sku} />
+                        {onAdjustStock && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-2.5 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-indigo-200 dark:border-indigo-800 dark:text-indigo-400 dark:hover:bg-indigo-950/40 gap-1"
+                            onClick={() => onAdjustStock(item)}
+                            title="ปรับยอดสต็อกคงเหลือ"
+                          >
+                            <SlidersHorizontal className="h-3.5 w-3.5" />
+                            <span>ปรับยอด</span>
+                          </Button>
+                        )}
                         {onEdit && (
                           <Button
                             variant="outline"

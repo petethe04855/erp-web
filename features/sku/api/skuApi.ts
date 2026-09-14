@@ -11,9 +11,10 @@ export const toSKU = (p: ProductRecord): SKU => ({
   isBundle: p.isBundle,
   stockQuantity: p.isBundle ? undefined : p.stock,
   availableStock: p.isBundle ? undefined : (p.available ?? p.stock),
-  reservedStock: p.isBundle ? undefined : p.reservedQty,
   onHand: p.stock,
   reserved: p.reservedQty,
+  used: p.usedQty ?? 0,
+  usedQty: p.usedQty ?? 0,
   available: p.available ?? p.stock,
   reorder: p.reorder ?? 0,
   bundleAvailable: p.bundleAvailable,
@@ -64,6 +65,8 @@ export const skuApi = {
       cost: dto.cost,
       isBundle: dto.isBundle,
       image: dto.image,
+      initialQuantity: dto.initialQuantity,
+      stock: dto.initialQuantity,
       components: dto.bundleItems?.map((c) => ({
         componentSku: c.componentSku,
         qty: c.quantity,
@@ -160,5 +163,12 @@ export const skuApi = {
         ? `/products/id/${sku}`
         : `/products/${encodeURIComponent(sku)}`,
     );
+  },
+  adjustStock: async (dto: import("../types/sku").StockAdjustmentDTO) => {
+    await writeRecord("/stock-adjustments", {
+      note: dto.reason,
+      items: [{ sku: dto.sku, actualQty: dto.quantity }],
+    });
+    return { success: true, data: null };
   },
 };

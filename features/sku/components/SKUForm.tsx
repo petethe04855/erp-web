@@ -18,12 +18,14 @@ export function SKUForm(props: Props) {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [cost, setCost] = useState("0");
+  const [initialQuantity, setInitialQuantity] = useState("0");
 
   const resetForm = () => {
     setSku("");
     setName("");
     setPrice("");
     setCost("0");
+    setInitialQuantity("0");
   };
 
   // Sync form fields with `open`/`initialData`: adjust state during render (React pattern)
@@ -37,6 +39,7 @@ export function SKUForm(props: Props) {
       setName(d.name || "");
       setPrice(String(d.price ?? ""));
       setCost(String(d.cost ?? "0"));
+      setInitialQuantity("0");
     } else {
       resetForm();
     }
@@ -53,14 +56,16 @@ export function SKUForm(props: Props) {
       }
       isSubmitting={props.isSubmitting}
       onSubmit={async () => {
-        await props.onSubmit({
+        const payload: CreateSKUDTO = {
           sku,
           name,
           price: Number(price),
           cost: Number(cost),
           category: props.initialData?.category || "Finished Product",
           isBundle: false,
-        });
+          ...(isEditing ? {} : { initialQuantity: Math.max(0, parseInt(initialQuantity, 10) || 0) }),
+        };
+        await props.onSubmit(payload);
         resetForm();
       }}
     >
@@ -84,6 +89,23 @@ export function SKUForm(props: Props) {
           required
         />
       </label>
+      {!isEditing && (
+        <label className="block text-xs font-medium">
+          จำนวนสินค้าเริ่มต้น (สต็อกเปิดระบบ)
+          <Input
+            className="mt-2"
+            type="number"
+            value={initialQuantity}
+            onChange={(e) => setInitialQuantity(e.target.value)}
+            min="0"
+            step="1"
+            required
+          />
+          <span className="text-[11px] text-neutral-400 mt-1 block">
+            กรอกจำนวนสต็อกคงเหลือเริ่มต้นสำหรับ SKU นี้ (สามารถเพิ่มได้เฉพาะตอนสร้างใหม่)
+          </span>
+        </label>
+      )}
       <label className="block text-xs font-medium">
         ราคาขาย (บาท)
         <Input
@@ -109,7 +131,7 @@ export function SKUForm(props: Props) {
         />
       </label>
       <p className="text-xs text-neutral-500">
-        การรับสต็อกให้ทำผ่านหน้ารับสินค้า ส่วนการตัดสต็อกแบบชุด/เซ็ตให้ตั้งค่าที่ &quot;สูตรตัดสต็อก (Inventory Formula)&quot;
+        การรับสต็อกเพิ่มเติมให้ทำผ่านหน้ารับสินค้า ส่วนการตัดสต็อกแบบชุด/เซ็ตให้ตั้งค่าที่ &quot;ชุดสินค้า Inventory&quot;
       </p>
     </FormDialog>
   );

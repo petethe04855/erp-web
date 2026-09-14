@@ -7,8 +7,6 @@ import { ItemLines, type ItemLine } from "@/features/erp/components/ItemLines";
 import { useVatRate } from "@/features/settings/hooks/useVatRate";
 import type { CreateOrderDTO } from "../types/order";
 
-import { Select } from "@/components/ui/select";
-
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -19,7 +17,6 @@ interface Props {
 export function OrderForm(props: Props) {
   const { vatRate, isLoading: vatLoading, isError: vatError } = useVatRate();
   const [customer, setCustomer] = useState("");
-  const [channel, setChannel] = useState("Manual");
   const [includeVat, setIncludeVat] = useState(true);
   const [lines, setLines] = useState<ItemLine[]>([
     { sku: "", quantity: 1, price: 0 },
@@ -32,7 +29,6 @@ export function OrderForm(props: Props) {
   if (prevOpen && !props.open) {
     setPrevOpen(false);
     setCustomer("");
-    setChannel("Manual");
     setIncludeVat(true);
     setLines([{ sku: "", quantity: 1, price: 0 }]);
   } else if (!prevOpen && props.open) {
@@ -74,14 +70,13 @@ export function OrderForm(props: Props) {
 
     await props.onSubmit({
       customerName: customer.trim(),
-      channel: channel || "Manual",
+      channel: "Manual",
       includeVat,
       items: validLines,
     });
 
     // Reset after success
     setCustomer("");
-    setChannel("Manual");
     setIncludeVat(true);
     setLines([{ sku: "", quantity: 1, price: 0 }]);
   };
@@ -90,35 +85,23 @@ export function OrderForm(props: Props) {
     <FormDialog
       {...props}
       title="สร้างใบสั่งขาย (New Sales Order)"
-      description="กรอกข้อมูลลูกค้า เลือกช่องทางการขาย และเลือก SKU สินค้าจากรายการ ระบบจะคำนวณราคาให้อัตโนมัติ"
+      description="กรอกข้อมูลลูกค้า และเลือกสินค้าจากรายการ ระบบจะคำนวณราคาให้อัตโนมัติ"
       onSubmit={handleSubmit}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="sm:col-span-2">
-          <RecordLookup
-            kind="customers"
-            label="ชื่อลูกค้า / บัญชีลูกค้า"
-            value={customer}
-            onChange={setCustomer}
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-foreground">
-            ช่องทางการขาย (Channel)
-            <Select
-              className="mt-1.5 text-xs"
-              value={channel}
-              onChange={(e) => setChannel(e.target.value)}
-            >
-              <option value="Manual">Manual (หน้าร้าน / ทั่วไป)</option>
-              <option value="TikTok">TikTok (TikTok Shop)</option>
-              <option value="Shopee">Shopee</option>
-              <option value="LINE">LINE</option>
-            </Select>
-          </label>
-        </div>
+      <div>
+        <RecordLookup
+          kind="customers"
+          label="ชื่อลูกค้า / บัญชีลูกค้า"
+          value={customer}
+          onChange={setCustomer}
+        />
       </div>
-      <ItemLines value={lines} onChange={setLines} enforceMaxStock={true} />
+      <ItemLines
+        value={lines}
+        onChange={setLines}
+        enforceMaxStock={true}
+        inventoryOnly={true}
+      />
 
       <div className="rounded-lg border bg-muted/20 p-3 space-y-3 mt-4 text-xs">
         <label className="flex items-center gap-2 cursor-pointer select-none font-medium text-foreground">

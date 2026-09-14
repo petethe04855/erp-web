@@ -76,3 +76,14 @@ export function useDeleteSKUMutation() {
     },
   });
 }
+
+export function useAdjustSKUStockMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (dto: import("../types/sku").StockAdjustmentDTO) => skuApi.adjustStock(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+    },
+  });
+}

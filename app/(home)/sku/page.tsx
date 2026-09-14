@@ -10,7 +10,8 @@ import { useSKU } from "@/features/sku/hooks/useSKU";
 import { SKUSearch } from "@/features/sku/components/SKUSearch";
 import { SKUTable } from "@/features/sku/components/SKUTable";
 import { SKUForm } from "@/features/sku/components/SKUForm";
-import { SKU, CreateSKUDTO, UpdateSKUDTO } from "@/features/sku/types/sku";
+import { SKUStockAdjustmentModal } from "@/features/sku/components/SKUStockAdjustmentModal";
+import { SKU, CreateSKUDTO, UpdateSKUDTO, StockAdjustmentDTO } from "@/features/sku/types/sku";
 
 /**
  * SKU Management Page
@@ -22,6 +23,7 @@ import { SKU, CreateSKUDTO, UpdateSKUDTO } from "@/features/sku/types/sku";
 export default function SKUPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingSKU, setEditingSKU] = useState<SKU | null>(null);
+  const [adjustingSKU, setAdjustingSKU] = useState<SKU | null>(null);
 
   const {
     skus,
@@ -40,8 +42,10 @@ export default function SKUPage() {
     updateSKU,
     toggleSKUStatus,
     deleteSKU,
+    adjustStock,
     isCreating,
     isUpdating,
+    isAdjusting,
   } = useSKU();
 
   const handleOpenCreate = () => {
@@ -52,6 +56,15 @@ export default function SKUPage() {
   const handleEdit = (skuItem: SKU) => {
     setEditingSKU(skuItem);
     setIsFormOpen(true);
+  };
+
+  const handleAdjustStock = (skuItem: SKU) => {
+    setAdjustingSKU(skuItem);
+  };
+
+  const handleStockAdjustmentSubmit = async (dto: StockAdjustmentDTO) => {
+    await adjustStock(dto);
+    setAdjustingSKU(null);
   };
 
   const handleSubmitForm = async (data: CreateSKUDTO | UpdateSKUDTO) => {
@@ -94,9 +107,9 @@ export default function SKUPage() {
             onPageChange={handlePageChange}
             onLimitChange={handleLimitChange}
             onRetry={refetch}
-            onToggleStatus={toggleSKUStatus}
             onDelete={deleteSKU}
             onEdit={handleEdit}
+            onAdjustStock={handleAdjustStock}
           />
         }
       />
@@ -109,6 +122,18 @@ export default function SKUPage() {
         onSubmit={handleSubmitForm}
         isSubmitting={isCreating || isUpdating}
       />
+
+      {/* SKU Stock Adjustment Modal */}
+      <SKUStockAdjustmentModal
+        selectedSKU={adjustingSKU}
+        open={Boolean(adjustingSKU)}
+        onOpenChange={(open) => {
+          if (!open) setAdjustingSKU(null);
+        }}
+        onSubmit={handleStockAdjustmentSubmit}
+        isSubmitting={isAdjusting}
+      />
     </PageContainer>
   );
 }
+

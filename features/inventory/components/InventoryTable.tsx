@@ -7,7 +7,8 @@ import { ErrorState } from "@/components/common/ErrorState";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Eye, Edit, Trash2, Boxes, Plus } from "lucide-react";
+import { Eye, Edit, Trash2, Boxes, Plus, Image as ImageIcon } from "lucide-react";
+import { getImageUrl } from "@/lib/utils";
 import type { InventoryFormula } from "../types/formula";
 import type { ApiPaginationMeta } from "@/types/api";
 
@@ -74,6 +75,9 @@ export function InventoryTable({
         <table className="w-full text-sm">
           <thead className="bg-neutral-50/80 border-b border-neutral-200/80 dark:bg-neutral-900/50 dark:border-neutral-800">
             <tr>
+              <th className="px-4 py-3 text-xs font-semibold text-neutral-600 dark:text-neutral-400 whitespace-nowrap text-center w-14">
+                รูปภาพ
+              </th>
               <th className="px-5 py-3 text-xs font-semibold text-neutral-600 dark:text-neutral-400 whitespace-nowrap text-left">
                 รหัส Inventory
               </th>
@@ -114,6 +118,25 @@ export function InventoryTable({
                   key={item.id || item.code}
                   className="hover:bg-neutral-50/70 dark:hover:bg-neutral-800/50 transition-colors"
                 >
+                  {/* Image Thumbnail */}
+                  <td className="px-4 py-3 text-center align-middle">
+                    <div className="h-10 w-10 mx-auto rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 overflow-hidden flex items-center justify-center flex-shrink-0">
+                      {item.image ? (
+                        <img
+                          src={getImageUrl(item.image)}
+                          alt={item.name}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = "none";
+                            e.currentTarget.parentElement?.classList.add("fallback-visible");
+                          }}
+                        />
+                      ) : (
+                        <ImageIcon className="h-4 w-4 text-neutral-400 dark:text-neutral-500" />
+                      )}
+                    </div>
+                  </td>
+
                   {/* Code */}
                   <td className="px-5 py-3.5 whitespace-nowrap text-left font-mono font-bold text-neutral-900 dark:text-neutral-100">
                     {item.code}

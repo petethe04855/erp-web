@@ -45,4 +45,32 @@ export const inventoryApi = {
     });
     return { success: true, data: null };
   },
+  getStockBySKU: async (params?: { search?: string; limit?: number }) => {
+    interface RawStockBySKU {
+      sku_id: number;
+      sku_code: string;
+      quantity: number;
+      reserved_qty: number;
+      available_qty: number;
+      warehouse_count: number;
+    }
+    const res = await list<RawStockBySKU, import("../types/inventory").StockBySKU>(
+      "/inventory/stocks",
+      {
+        view: "by-sku",
+        search: params?.search,
+        limit: params?.limit ?? 0,
+      },
+      (r) => ({
+        skuId: r.sku_id,
+        skuCode: r.sku_code,
+        quantity: r.quantity,
+        reservedQty: r.reserved_qty,
+        availableQty: r.available_qty,
+        warehouseCount: r.warehouse_count,
+      }),
+    );
+    return res.data;
+  },
 };
+
