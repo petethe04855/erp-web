@@ -67,11 +67,23 @@ const fieldLabels: Record<string, string> = {
   image: "รูปภาพสินค้า",
   logo: "รูปภาพบริษัท / โลโก้",
   customerLogo: "โลโก้ลูกค้า",
+  poRef: "อ้างอิงใบสั่งซื้อ (PO Ref)",
+  receiveDate: "วันที่รับสินค้า",
+  supplier: "ผู้จัดจำหน่าย",
+  itemsCount: "จำนวนรายการ",
+  lines: "รายการสินค้า (Line Items)",
+  receivedQty: "จำนวนที่รับเข้า",
+  supplierLot: "ล็อตผู้จัดจำหน่าย",
+  expiryDate: "วันหมดอายุ",
+  qcStatus: "ผลตรวจ QC",
 };
 
 function formatValue(key: string, val: unknown): React.ReactNode {
   if (val === null || val === undefined || val === "")
     return <span className="text-muted-foreground">—</span>;
+  if (Array.isArray(val) || (typeof val === "object" && val !== null)) {
+    return <Value value={val} />;
+  }
   if ((key === "image" || key === "logo" || key === "customerLogo") && typeof val === "string") {
     return (
       <div className="my-1">
@@ -148,7 +160,7 @@ function Value({ value }: { value: unknown }) {
     if (value.length === 0) {
       return (
         <p className="text-muted-foreground italic text-xs">
-          ไม่มีรายการส่วนประกอบ
+          ไม่มีรายการย่อย
         </p>
       );
     }
@@ -181,8 +193,9 @@ function Value({ value }: { value: unknown }) {
 
   if (typeof value === "object" && value !== null) {
     const entries = Object.entries(value);
-    const regularEntries = entries.filter(([k]) => k !== "components");
+    const regularEntries = entries.filter(([k]) => k !== "components" && k !== "lines");
     const componentsEntry = entries.find(([k]) => k === "components");
+    const linesEntry = entries.find(([k]) => k === "lines");
 
     return (
       <div className="space-y-4 text-left">
@@ -201,6 +214,15 @@ function Value({ value }: { value: unknown }) {
             </div>
           ))}
         </div>
+
+        {linesEntry && (
+          <div className="pt-2 text-left">
+            <h4 className="font-semibold text-xs text-foreground mb-2 text-left flex items-center gap-1.5">
+              <span>📋</span> {fieldLabels.lines || "รายการสินค้า"}
+            </h4>
+            <Value value={linesEntry[1]} />
+          </div>
+        )}
 
         {componentsEntry && (
           <div className="pt-2 text-left">

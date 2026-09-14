@@ -74,7 +74,7 @@ export interface CreateExpenseDTO {
   description?: string;
 }
 
-export interface UpdateExpenseDTO extends CreateExpenseDTO {}
+export type UpdateExpenseDTO = CreateExpenseDTO;
 
 export interface JournalQueryParams {
   from?: string;

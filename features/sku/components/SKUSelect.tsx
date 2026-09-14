@@ -6,7 +6,7 @@ import { useStockBySKU } from "@/features/inventory/queries/useStockBySKU";
 import { useInventoryFormulasQuery } from "@/features/inventory/queries/inventoryQueries";
 import type { SKU } from "@/features/sku/types/sku";
 import { Select } from "@/components/ui/select";
-import { Package, Layers, AlertCircle, Loader2, Boxes } from "lucide-react";
+import { Package, AlertCircle, Loader2, Boxes } from "lucide-react";
 
 export interface SKUSelectProps {
   value: string;
@@ -44,12 +44,8 @@ export function SKUSelect({
     if (inventoryOnly) {
       return [];
     }
-    const list = data?.data || [];
-    if (excludeBundle) {
-      return list.filter((item) => !item.isBundle);
-    }
-    return list;
-  }, [data, excludeBundle, inventoryOnly]);
+    return data?.data || [];
+  }, [data, inventoryOnly]);
 
   const formulaList = useMemo(() => {
     if (!shouldLoadFormulas) return [];
@@ -190,9 +186,9 @@ export function SKUSelect({
                   const code = item.sku?.toUpperCase()?.trim();
                   const inv = code ? stockMap.get(code) : undefined;
                   const stockDisplay =
-                    !item.isBundle && inv !== undefined
+                    inv !== undefined
                       ? ` (พร้อมส่ง ${inv.available})`
-                      : !item.isBundle && item.availableStock !== undefined
+                      : item.availableStock !== undefined
                         ? ` (พร้อมส่ง ${item.availableStock})`
                         : "";
 
@@ -200,7 +196,6 @@ export function SKUSelect({
                     <option key={item.id} value={item.sku}>
                       {item.sku} · {item.name} — ฿{priceFormatted}
                       {stockDisplay}
-                      {item.isBundle ? " [ชุด Bundle]" : ""}
                     </option>
                   );
                 })}
@@ -239,8 +234,6 @@ export function SKUSelect({
           <div className="flex items-center gap-1.5 font-medium text-neutral-900">
             {(augmentedSelectedSku as any).isFormula ? (
               <Boxes className="h-3.5 w-3.5 text-purple-600" />
-            ) : augmentedSelectedSku.isBundle ? (
-              <Layers className="h-3.5 w-3.5 text-indigo-600" />
             ) : (
               <Package className="h-3.5 w-3.5 text-neutral-500" />
             )}
@@ -263,10 +256,6 @@ export function SKUSelect({
           {(augmentedSelectedSku as any).isFormula ? (
             <span className="rounded-md bg-purple-50 px-2 py-0.5 text-[10px] font-semibold text-purple-700 border border-purple-200">
               ชุดสินค้า Inventory (เสมือน)
-            </span>
-          ) : augmentedSelectedSku.isBundle ? (
-            <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 border border-indigo-200">
-              สินค้าชุด (Bundle)
             </span>
           ) : null}
 

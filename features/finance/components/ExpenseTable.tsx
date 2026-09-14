@@ -28,7 +28,7 @@ export function ExpenseTable({ expenses, isLoading, onEdit, onDelete }: ExpenseT
       <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-neutral-200 bg-white p-12 text-center">
         <p className="text-sm font-medium text-neutral-900">ยังไม่มีรายการค่าใช้จ่าย</p>
         <p className="text-xs text-neutral-500 mt-1">
-          คลิกปุ่ม "บันทึกค่าใช้จ่าย" เพื่อเพิ่มรายการค่าใช้จ่ายใหม่และลงบัญชีอัตโนมัติ
+          คลิกปุ่ม &quot;บันทึกค่าใช้จ่าย&quot; เพื่อเพิ่มรายการค่าใช้จ่ายใหม่และลงบัญชีอัตโนมัติ
         </p>
       </div>
     );

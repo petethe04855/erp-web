@@ -19,7 +19,6 @@ const calculateDefaultExpiry = (receiveDateStr: string) => {
 };
 
 export function GoodsReceiveForm(props: Props) {
-
   const todayStr = new Date().toLocaleDateString("en-CA");
   const [po, setPo] = useState("");
   const [sku, setSku] = useState("");
