@@ -28,6 +28,9 @@ export const toSKU = (p: ProductRecord): SKU => ({
   })),
   status: p.isActive ? "active" : "inactive",
   image: p.image,
+  createdAt: p.createdAt,
+  lastReceivedAt: p.lastReceivedAt,
+  receiptCount: p.receiptCount ?? 0,
 });
 export const skuApi = {
   getSKUs: (params?: SKUQueryParams) =>
@@ -48,6 +51,25 @@ export const skuApi = {
       },
       toSKU,
     ),
+  getSKUReceipts: async (
+    skuId: number,
+    params?: { page?: number; limit?: number; warehouseId?: number },
+  ) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set("page", String(params.page));
+    if (params?.limit) query.set("limit", String(params.limit));
+    if (params?.warehouseId) query.set("warehouseId", String(params.warehouseId));
+    const qs = query.toString();
+    const endpoint = `/skus/${skuId}/receipts${qs ? `?${qs}` : ""}`;
+    const res = await (await import("@/lib/axios")).default.get<{
+      success: boolean;
+      data: import("../types/sku").SKUReceiptHistory[];
+      meta?: { page: number; limit: number; total: number };
+      message?: string;
+    }>(endpoint);
+    return res.data;
+  },
+
   getSKUById: async (sku: string | number) => {
     const p =
       typeof sku === "number"

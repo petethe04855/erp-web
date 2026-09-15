@@ -25,7 +25,11 @@ export interface ProductRecord {
     name?: string;
   }>;
   image?: string;
+  createdAt?: string;
+  lastReceivedAt?: string | null;
+  receiptCount?: number;
 }
+
 
 export interface OrderRecord {
   id: number;

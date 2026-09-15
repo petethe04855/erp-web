@@ -14,6 +14,28 @@ export function formatCurrency(amount: number | string): string {
   }).format(val);
 }
 
+export function formatThaiDateTime(
+  dateInput?: string | Date | null,
+  options?: { includeTime?: boolean }
+): string {
+  if (!dateInput) return "-";
+  const d = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+  if (isNaN(d.getTime())) return "-";
+
+  const includeTime = options?.includeTime ?? true;
+
+  return new Intl.DateTimeFormat("th-TH", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    ...(includeTime && {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }),
+  }).format(d);
+}
+
 export function getImageUrl(path?: string | null): string {
   if (!path) return "";
   if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("blob:") || path.startsWith("data:")) {

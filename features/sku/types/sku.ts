@@ -38,8 +38,27 @@ export interface SKU {
   status: string;
   image?: string;
   createdAt?: string;
+  lastReceivedAt?: string | null;
+  receiptCount?: number;
   updatedAt?: string;
 }
+
+export interface SKUReceiptHistory {
+  id: number;
+  receivedAt: string;
+  sourceType: "INITIAL_STOCK" | "GOODS_RECEIVE" | "STOCK_ADJUSTMENT_IN" | string;
+  quantity: number;
+  warehouseId: number;
+  warehouseName?: string;
+  lotNumber?: string;
+  supplierLot?: string;
+  expiryDate?: string | null;
+  referenceType: string;
+  referenceId: string;
+  purchaseOrderRef?: string;
+  note?: string;
+}
+
 
 export interface SKUQueryParams {
   search?: string;

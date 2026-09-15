@@ -6,11 +6,27 @@ import { Loading } from "@/components/common/Loading";
 import { ErrorState } from "@/components/common/ErrorState";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { RecordDetails } from "@/features/erp/components/RecordDetails";
-import { Trash2, Loader2, AlertTriangle, ImageIcon, Edit, SlidersHorizontal } from "lucide-react";
-import { getImageUrl } from "@/lib/utils";
-import type { SKU, StockAdjustmentDTO } from "../types/sku";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  Trash2,
+  Loader2,
+  AlertTriangle,
+  Edit,
+  SlidersHorizontal,
+  ChevronRight,
+  ChevronDown,
+  Calendar,
+} from "lucide-react";
+import { formatThaiDateTime } from "@/lib/utils";
+import { SKUReceiptHistoryRow } from "./SKUReceiptHistoryRow";
+import type { SKU } from "../types/sku";
 import type { ApiPaginationMeta } from "@/types/api";
 
 interface SKUTableProps {
@@ -27,34 +43,6 @@ interface SKUTableProps {
   onSelectSKU?: (sku: SKU) => void;
 }
 
-interface SKUThumbnailProps {
-  image?: string | null;
-  name: string;
-}
-
-function SKUThumbnail({ image, name }: SKUThumbnailProps) {
-  const [hasError, setHasError] = useState(false);
-
-  if (!image || hasError) {
-    return (
-      <div className="h-10 w-10 rounded-lg border border-dashed border-neutral-200 bg-neutral-50/50 dark:border-neutral-800 dark:bg-neutral-900 flex items-center justify-center text-neutral-300 dark:text-neutral-600">
-        <ImageIcon className="h-4 w-4" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="h-10 w-10 rounded-lg overflow-hidden border border-neutral-200 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 flex items-center justify-center">
-      <img
-        src={getImageUrl(image)}
-        alt={name}
-        className="h-full w-full object-cover"
-        onError={() => setHasError(true)}
-      />
-    </div>
-  );
-}
-
 export function SKUTable({
   skus,
   meta,
@@ -69,6 +57,19 @@ export function SKUTable({
 }: SKUTableProps) {
   const [deletingSku, setDeletingSku] = useState<SKU | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+
+  const toggleRow = (skuId: number) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(skuId)) {
+        next.delete(skuId);
+      } else {
+        next.add(skuId);
+      }
+      return next;
+    });
+  };
 
   if (isLoading) return <Loading message="กำลังโหลดข้อมูล SKU…" />;
   if (isError)
@@ -101,7 +102,7 @@ export function SKUTable({
 
   return (
     <>
-      <section className="border border-neutral-200 bg-white rounded-xl overflow-hidden shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="border border-neutral-200 bg-white rounded-xl overflow-hidden shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-neutral-100 dark:border-neutral-800">
           <span className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
             รายการ SKU ทั้งหมด
@@ -112,153 +113,234 @@ export function SKUTable({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-neutral-50/80 border-b border-neutral-200/80 dark:bg-neutral-900/50 dark:border-neutral-800">
-              <tr>
-                <th className="px-5 py-3 text-xs font-semibold text-neutral-600 dark:text-neutral-400 whitespace-nowrap text-left">
-                  SKU
-                </th>
-                <th className="px-5 py-3 text-xs font-semibold text-neutral-600 dark:text-neutral-400 whitespace-nowrap text-left">
-                  ชื่อสินค้า
-                </th>
-                <th className="px-5 py-3 text-xs font-semibold text-neutral-600 dark:text-neutral-400 whitespace-nowrap text-left w-56">
+          <Table>
+            <TableHeader className="bg-neutral-50/80 dark:bg-neutral-900/50">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-10 px-3 text-center"></TableHead>
+                <TableHead className="px-4 py-3 whitespace-nowrap">SKU</TableHead>
+                <TableHead className="px-4 py-3 whitespace-nowrap">ชื่อสินค้า</TableHead>
+                <TableHead className="px-4 py-3 whitespace-nowrap">วันที่สร้าง SKU</TableHead>
+                <TableHead className="px-4 py-3 whitespace-nowrap">รับเข้าล่าสุด</TableHead>
+                <TableHead className="px-4 py-3 whitespace-nowrap w-48">
                   การใช้สต็อก (ใช้ไป / คงเหลือ)
-                </th>
-                <th className="px-5 py-3 text-xs font-semibold text-neutral-600 dark:text-neutral-400 whitespace-nowrap text-right">
+                </TableHead>
+                <TableHead className="px-4 py-3 whitespace-nowrap text-right">
                   คงเหลือพร้อมขาย
-                </th>
-                <th className="px-5 py-3 text-right text-xs font-semibold text-neutral-500 whitespace-nowrap">
+                </TableHead>
+                <TableHead className="px-4 py-3 whitespace-nowrap text-right">
                   จัดการ
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {skus.map((item) => {
+                const isExpanded = expandedRows.has(item.id);
                 const onHandQty = item.onHand ?? item.stockQuantity ?? 0;
                 const reservedQty = item.reserved ?? item.reservedStock ?? 0;
                 const usedQty = item.usedQty ?? item.used ?? 0;
                 const availableQty = item.available ?? Math.max(0, onHandQty - reservedQty);
 
-                // Total stock handled = onHand + usedQty
                 const totalCapacity = onHandQty + usedQty;
-                // Percentage used from total capacity, or from onHand if capacity is 0
-                const usedPct = totalCapacity > 0
-                  ? Math.min(100, Math.round((usedQty / totalCapacity) * 100))
-                  : 0;
+                const usedPct =
+                  totalCapacity > 0
+                    ? Math.min(100, Math.round((usedQty / totalCapacity) * 100))
+                    : 0;
 
                 return (
-                  <tr
-                    key={item.id}
-                    className="hover:bg-neutral-50/70 dark:hover:bg-neutral-800/50 transition-colors"
-                  >
-                    {/* SKU */}
-                    <td className="px-5 py-3.5 whitespace-nowrap text-left font-mono font-medium text-neutral-900 dark:text-neutral-100">
-                      {item.sku}
-                    </td>
+                  <React.Fragment key={item.id}>
+                    <TableRow
+                      className={`transition-colors ${
+                        isExpanded
+                          ? "bg-neutral-50/50 dark:bg-neutral-800/40"
+                          : "hover:bg-neutral-50/70 dark:hover:bg-neutral-800/50"
+                      }`}
+                    >
+                      {/* Expand Toggle */}
+                      <TableCell className="w-10 px-2 py-3 text-center">
+                        <button
+                          type="button"
+                          aria-label={isExpanded ? "ย่อประวัติรับเข้า" : "ขยายประวัติรับเข้า"}
+                          aria-expanded={isExpanded}
+                          onClick={() => toggleRow(item.id)}
+                          className="p-1 rounded-md text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 dark:hover:text-neutral-200 transition-colors cursor-pointer"
+                        >
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </button>
+                      </TableCell>
 
-                    {/* Name */}
-                    <td className="px-5 py-3.5 whitespace-nowrap text-left text-neutral-800 dark:text-neutral-200">
-                      <div className="flex flex-col">
-                        <span className="font-medium">{item.name}</span>
-                      </div>
-                    </td>
+                      {/* SKU */}
+                      <TableCell className="px-4 py-3 whitespace-nowrap font-mono font-medium text-neutral-900 dark:text-neutral-100">
+                        <div className="flex items-center gap-1.5">
+                          <span>{item.sku}</span>
+                          {item.isBundle && (
+                            <Badge variant="secondary" className="text-[10px] px-1 py-0 font-normal">
+                              ชุด
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
 
-                    {/* Stock Usage & Progress Bar */}
-                    <td className="px-5 py-3.5 whitespace-nowrap text-left">
-                      <div className="flex flex-col gap-1 w-48">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-neutral-500 font-mono">
-                            ใช้ไป {usedQty.toLocaleString("th-TH")} / คงเหลือ {onHandQty.toLocaleString("th-TH")}
+                      {/* Name */}
+                      <TableCell className="px-4 py-3 whitespace-nowrap text-neutral-800 dark:text-neutral-200">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-sm text-neutral-900 dark:text-neutral-100">
+                            {item.name}
                           </span>
+                          {item.category && (
+                            <span className="text-[11px] text-neutral-400">
+                              {item.category}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      {/* วันที่สร้าง SKU (createdAt) */}
+                      <TableCell className="px-4 py-3 whitespace-nowrap text-xs text-neutral-600 dark:text-neutral-400">
+                        <div className="flex items-center gap-1 font-mono">
+                          <Calendar className="h-3 w-3 text-neutral-400" />
+                          <span>{formatThaiDateTime(item.createdAt)}</span>
+                        </div>
+                      </TableCell>
+
+                      {/* วันที่รับเข้าล่าสุด (lastReceivedAt) */}
+                      <TableCell className="px-4 py-3 whitespace-nowrap text-xs text-neutral-600 dark:text-neutral-400">
+                        {item.lastReceivedAt ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-mono text-neutral-800 dark:text-neutral-200 font-medium">
+                              {formatThaiDateTime(item.lastReceivedAt)}
+                            </span>
+                            {typeof item.receiptCount === "number" && item.receiptCount > 0 && (
+                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                                รับเข้า {item.receiptCount} ครั้ง
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-neutral-400">-</span>
+                        )}
+                      </TableCell>
+
+                      {/* Stock Usage & Progress Bar */}
+                      <TableCell className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex flex-col gap-1 w-44">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-neutral-500 font-mono text-[11px]">
+                              ใช้ไป {usedQty.toLocaleString("th-TH")} / คงเหลือ {onHandQty.toLocaleString("th-TH")}
+                            </span>
+                            <span
+                              className={`font-semibold font-mono text-[11px] ${
+                                usedPct >= 90
+                                  ? "text-rose-600 dark:text-rose-400"
+                                  : usedPct >= 50
+                                  ? "text-amber-600 dark:text-amber-400"
+                                  : "text-emerald-600 dark:text-emerald-400"
+                              }`}
+                            >
+                              {usedPct}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-neutral-100 dark:bg-neutral-800 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-300 ${
+                                usedPct >= 90
+                                  ? "bg-rose-500"
+                                  : usedPct >= 50
+                                  ? "bg-amber-500"
+                                  : "bg-emerald-500"
+                              }`}
+                              style={{ width: `${usedPct}%` }}
+                            />
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      {/* Available Stock */}
+                      <TableCell className="px-4 py-3 whitespace-nowrap text-right tabular-nums">
+                        <div className="flex flex-col items-end">
                           <span
-                            className={`font-semibold font-mono text-[11px] ${
-                              usedPct >= 90
+                            className={`font-semibold text-sm ${
+                              availableQty <= 0
                                 ? "text-rose-600 dark:text-rose-400"
-                                : usedPct >= 50
-                                ? "text-amber-600 dark:text-amber-400"
                                 : "text-emerald-600 dark:text-emerald-400"
                             }`}
                           >
-                            {usedPct}%
+                            {availableQty.toLocaleString("th-TH")}
+                          </span>
+                          <span className="text-[10px] text-neutral-400">
+                            (คงเหลือ {onHandQty.toLocaleString("th-TH")})
                           </span>
                         </div>
-                        <div className="w-full bg-neutral-100 dark:bg-neutral-800 rounded-full h-2 overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all duration-300 ${
-                              usedPct >= 90
-                                ? "bg-rose-500"
-                                : usedPct >= 50
-                                ? "bg-amber-500"
-                                : "bg-emerald-500"
-                            }`}
-                            style={{ width: `${usedPct}%` }}
-                          />
-                        </div>
-                      </div>
-                    </td>
+                      </TableCell>
 
-                    {/* Available Stock */}
-                    <td className="px-5 py-3.5 whitespace-nowrap text-right tabular-nums text-neutral-700 dark:text-neutral-300 font-medium">
-                      <div className="flex flex-col items-end">
-                        <span
-                          className={`font-semibold ${
-                            availableQty <= 0
-                              ? "text-rose-600 dark:text-rose-400"
-                              : "text-emerald-600 dark:text-emerald-400"
-                          }`}
+                      {/* Actions */}
+                      <TableCell className="px-4 py-3 text-right whitespace-nowrap">
+                        <div
+                          className="flex items-center justify-end gap-1.5"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          {availableQty.toLocaleString("th-TH")}
-                        </span>
-                        <span className="text-[10px] text-neutral-400">
-                          (คงเหลือ {onHandQty.toLocaleString("th-TH")})
-                        </span>
-                      </div>
-                    </td>
+                          {onAdjustStock && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-indigo-200 dark:border-indigo-800 dark:text-indigo-400 dark:hover:bg-indigo-950/40 gap-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onAdjustStock(item);
+                              }}
+                              title="ปรับยอดสต็อกคงเหลือ"
+                            >
+                              <SlidersHorizontal className="h-3 w-3" />
+                              <span>ปรับยอด</span>
+                            </Button>
+                          )}
+                          {onEdit && (
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-7 w-7 text-neutral-600 hover:text-primary hover:bg-neutral-50 border-neutral-200 dark:border-neutral-700 dark:text-neutral-300"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit(item);
+                              }}
+                              title="แก้ไขข้อมูลสินค้า / รูปภาพ"
+                            >
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                          )}
+                          {onDelete && (
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-7 w-7 text-neutral-400 hover:text-rose-600 hover:bg-rose-50 border-neutral-200 dark:border-neutral-700"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeletingSku(item);
+                              }}
+                              title="ลบ SKU สินค้า"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
 
-                    {/* Actions */}
-                    <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {onAdjustStock && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 px-2.5 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-indigo-200 dark:border-indigo-800 dark:text-indigo-400 dark:hover:bg-indigo-950/40 gap-1"
-                            onClick={() => onAdjustStock(item)}
-                            title="ปรับยอดสต็อกคงเหลือ"
-                          >
-                            <SlidersHorizontal className="h-3.5 w-3.5" />
-                            <span>ปรับยอด</span>
-                          </Button>
-                        )}
-                        {onEdit && (
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8 text-neutral-600 hover:text-primary hover:bg-neutral-50 border-neutral-200 dark:border-neutral-700 dark:text-neutral-300"
-                            onClick={() => onEdit(item)}
-                            title="แก้ไขข้อมูลสินค้า / รูปภาพ"
-                          >
-                            <Edit className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                        {onDelete && (
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8 text-neutral-400 hover:text-rose-600 hover:bg-rose-50 border-neutral-200 dark:border-neutral-700"
-                            onClick={() => setDeletingSku(item)}
-                            title="ลบ SKU สินค้า"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
+                    {/* Expandable Receipt History Row */}
+                    <SKUReceiptHistoryRow
+                      skuId={item.id}
+                      skuCode={item.sku}
+                      isExpanded={isExpanded}
+                      colSpan={8}
+                    />
+                  </React.Fragment>
                 );
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
 
           {skus.length === 0 && (
             <div className="text-center py-12 text-sm text-neutral-500">

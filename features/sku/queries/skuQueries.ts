@@ -9,12 +9,27 @@ export const SKU_QUERY_KEYS = {
     [...SKU_QUERY_KEYS.lists(), params] as const,
   details: () => [...SKU_QUERY_KEYS.all, "detail"] as const,
   detail: (id: number | string) => [...SKU_QUERY_KEYS.details(), id] as const,
+  receipts: (skuId: number, params?: { page?: number; limit?: number; warehouseId?: number }) =>
+    [...SKU_QUERY_KEYS.all, "receipts", skuId, params] as const,
 };
 
 export function useSKUListQuery(params?: SKUQueryParams) {
   return useQuery({
     queryKey: SKU_QUERY_KEYS.list(params),
     queryFn: () => skuApi.getSKUs(params),
+  });
+}
+
+export function useSKUReceiptsQuery(
+  skuId: number,
+  params?: { page?: number; limit?: number; warehouseId?: number },
+  options?: { enabled?: boolean }
+) {
+  return useQuery({
+    queryKey: SKU_QUERY_KEYS.receipts(skuId, params),
+    queryFn: () => skuApi.getSKUReceipts(skuId, params),
+    enabled: options?.enabled ?? true,
+    staleTime: 60 * 1000,
   });
 }
 
