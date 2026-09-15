@@ -17,10 +17,13 @@ export default function TikTokOrdersPage() {
     search: "",
     status: "ALL",
     stockStatus: "all",
+    page: 1,
+    limit: 50,
   });
 
   const {
     orders,
+    meta,
     isLoading,
     isError,
     refetch,
@@ -64,13 +67,14 @@ export default function TikTokOrdersPage() {
         sidebar={
           <TikTokOrderSearch
             filters={filters}
-            onSearchChange={(search) => setFilters((f) => ({ ...f, search }))}
-            onStatusChange={(status) => setFilters((f) => ({ ...f, status }))}
+            onSearchChange={(search) => setFilters((f) => ({ ...f, search, page: 1 }))}
+            onStatusChange={(status) => setFilters((f) => ({ ...f, status, page: 1 }))}
             onStockStatusChange={(stockStatus) =>
-              setFilters((f) => ({ ...f, stockStatus }))
+              setFilters((f) => ({ ...f, stockStatus, page: 1 }))
             }
+            onLimitChange={(limit) => setFilters((f) => ({ ...f, limit, page: 1 }))}
             onReset={() =>
-              setFilters({ search: "", status: "ALL", stockStatus: "all" })
+              setFilters({ search: "", status: "ALL", stockStatus: "all", page: 1, limit: filters.limit || 50 })
             }
             onSync={(days) => syncOrders(days)}
             isSyncing={isSyncing}
@@ -80,8 +84,11 @@ export default function TikTokOrdersPage() {
         content={
           <TikTokOrderTable
             orders={orders}
+            meta={meta}
             isLoading={isLoading}
             isError={isError}
+            onPageChange={(page) => setFilters((f) => ({ ...f, page }))}
+            onLimitChange={(limit) => setFilters((f) => ({ ...f, limit, page: 1 }))}
             onRetry={refetch}
           />
         }

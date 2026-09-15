@@ -3,14 +3,19 @@
 import React from "react";
 import { Loading } from "@/components/common/Loading";
 import { ErrorState } from "@/components/common/ErrorState";
+import { Pagination } from "@/components/common/Pagination";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle, Clock, AlertTriangle, Package } from "lucide-react";
 import type { TikTokOrder } from "../types/tiktok";
+import type { ApiPaginationMeta } from "@/types/api";
 
 interface TikTokOrderTableProps {
   orders: TikTokOrder[];
+  meta?: ApiPaginationMeta;
   isLoading: boolean;
   isError: boolean;
+  onPageChange?: (page: number) => void;
+  onLimitChange?: (limit: number) => void;
   onRetry: () => void;
 }
 
@@ -26,8 +31,11 @@ const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secon
 
 export function TikTokOrderTable({
   orders,
+  meta,
   isLoading,
   isError,
+  onPageChange,
+  onLimitChange,
   onRetry,
 }: TikTokOrderTableProps) {
   if (isLoading) return <Loading message="กำลังโหลดคำสั่งซื้อ TikTok Shop…" />;
@@ -56,12 +64,20 @@ export function TikTokOrderTable({
         });
   };
 
+  const total = meta?.total ?? orders.length;
+  const page = meta?.page ?? 1;
+  const limit = meta?.limit ?? 50;
+  const totalPages =
+    meta?.totalPages && meta.totalPages > 0
+      ? meta.totalPages
+      : Math.max(1, Math.ceil(total / limit));
+
   return (
     <section className="border border-neutral-200 bg-white rounded-xl overflow-hidden shadow-sm">
       <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 bg-neutral-50/50">
         <div>
           <span className="text-sm font-semibold text-neutral-800">
-            คำสั่งซื้อทั้งหมด ({orders.length.toLocaleString("th-TH")})
+            คำสั่งซื้อทั้งหมด ({total.toLocaleString("th-TH")})
           </span>
           <p className="text-xs text-neutral-500 mt-0.5">
             ข้อมูลออเดอร์พร้อมสถานะการตัดสต็อกสินค้าในคลัง ERP
@@ -183,6 +199,20 @@ export function TikTokOrderTable({
           </div>
         )}
       </div>
+
+      {onPageChange && totalPages > 1 && (
+        <div className="border-t border-neutral-200 bg-neutral-50/50">
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={total}
+            limit={limit}
+            limitOptions={[20, 50, 100]}
+            onPageChange={onPageChange}
+            onLimitChange={onLimitChange}
+          />
+        </div>
+      )}
     </section>
   );
 }

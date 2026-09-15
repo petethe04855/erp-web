@@ -15,6 +15,7 @@ interface TikTokOrderSearchProps {
   onSearchChange: (search: string) => void;
   onStatusChange: (status: string) => void;
   onStockStatusChange?: (status: string) => void;
+  onLimitChange?: (limit: number) => void;
   onReset: () => void;
   onSync: (days: number) => Promise<unknown>;
   isSyncing: boolean;
@@ -26,6 +27,7 @@ export function TikTokOrderSearch({
   onSearchChange,
   onStatusChange,
   onStockStatusChange,
+  onLimitChange,
   onReset,
   onSync,
   isSyncing,
@@ -92,6 +94,23 @@ export function TikTokOrderSearch({
               <option value="DEDUCTED">ตัดสต็อกสำเร็จแล้ว</option>
               <option value="PENDING">รอตัดสต็อก</option>
               <option value="FAILED">ตัดสต็อกไม่สำเร็จ (สินค้าไม่พอ)</option>
+            </Select>
+          </div>
+        )}
+
+        {onLimitChange && (
+          <div>
+            <label className="block text-xs font-medium text-neutral-600 mb-1.5">
+              จำนวนรายการที่แสดงต่อหน้า
+            </label>
+            <Select
+              value={String(filters.limit || 50)}
+              onChange={(e) => onLimitChange(Number(e.target.value))}
+              className="w-full text-sm"
+            >
+              <option value="20">20 รายการ / หน้า</option>
+              <option value="50">50 รายการ / หน้า</option>
+              <option value="100">100 รายการ / หน้า</option>
             </Select>
           </div>
         )}

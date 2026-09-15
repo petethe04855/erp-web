@@ -28,7 +28,6 @@ const shades = ["#171717", "#737373", "#b5b5b5", "#dedede"];
 
 const CHANNEL_COLORS: Record<string, string> = {
   TikTok: "#000000",
-  Shopee: "#EE4D2D",
   Manual: "#3B82F6",
 };
 
@@ -39,7 +38,6 @@ function getChannelColor(name: string, index: number): string {
 function normalizeChannelName(raw: string): string {
   const upper = (raw || "").toUpperCase().trim();
   if (upper.includes("TIKTOK") || upper.includes("TIK TOK")) return "TikTok";
-  if (upper.includes("SHOPEE")) return "Shopee";
   if (upper.includes("MANUAL") || upper === "DIRECT" || !upper) return "Manual";
   return raw.trim();
 }
@@ -83,7 +81,7 @@ export function DashboardCharts({ data }: { data: DashboardData }) {
           <div>
             <h2 className="font-semibold">ยอดขายตามวันที่</h2>
             <p className="text-xs text-neutral-500 mt-1">
-              Sales Entry ที่ Completed · บาท
+              TikTok สำเร็จ · Manual ชำระเงินแล้ว · บาท
             </p>
           </div>
           <span className="text-[10px] tracking-widest text-neutral-400">
@@ -94,7 +92,7 @@ export function DashboardCharts({ data }: { data: DashboardData }) {
           {labels.length ? (
             <Line
               role="img"
-              aria-label="กราฟยอดขายตามวันที่ จากรายการขาย Completed"
+              aria-label="กราฟยอดขายจาก TikTok ที่สำเร็จและ Manual ที่ชำระเงินแล้ว"
               options={options}
               data={{
                 labels,
@@ -114,7 +112,7 @@ export function DashboardCharts({ data }: { data: DashboardData }) {
             />
           ) : (
             <div className="h-full flex items-center justify-center text-sm text-neutral-500">
-              ยังไม่มีรายการขาย Completed ในเดือนนี้
+              ยังไม่มี TikTok ที่สำเร็จหรือ Manual ที่ชำระแล้วในเดือนนี้
             </div>
           )}
         </div>
@@ -137,7 +135,7 @@ export function DashboardCharts({ data }: { data: DashboardData }) {
       <section className="min-w-0 border rounded-xl bg-white p-6">
         <h2 className="font-semibold">ช่องทางการขาย</h2>
         <p className="text-xs text-neutral-500 mt-1">
-          Manual · Shopee · TikTok
+          Manual จาก Invoice ที่ชำระแล้ว · TikTok สถานะสำเร็จ
         </p>
         <div className="h-56 mt-6">
           {channels.length ? (

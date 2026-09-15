@@ -1,4 +1,5 @@
 import { read, readWithMeta, writeRecord } from "@/lib/api";
+import type { ApiPaginationMeta } from "@/types/api";
 import type {
   TikTokConnection,
   TikTokOrder,
@@ -64,7 +65,7 @@ export const tiktokApi = {
 
   getOrders: async (
     params?: TikTokOrderQueryParams,
-  ): Promise<{ orders: TikTokOrder[]; total: number }> => {
+  ): Promise<{ orders: TikTokOrder[]; total: number; meta: ApiPaginationMeta }> => {
     const raw = await readWithMeta<
       RawTikTokOrder[]
     >("/integrations/tiktok/orders", params);
@@ -132,6 +133,12 @@ export const tiktokApi = {
     return {
       orders,
       total: raw.meta?.total ?? orders.length,
+      meta: raw.meta ?? {
+        page: params?.page ?? 1,
+        limit: params?.limit ?? 50,
+        total: orders.length,
+        totalPages: Math.ceil(orders.length / (params?.limit ?? 50)) || 1,
+      },
     };
   },
 

@@ -13,7 +13,6 @@ import { DashboardCharts } from "./DashboardCharts";
 function normalizeChannelName(raw: string): string {
   const upper = (raw || "").toUpperCase().trim();
   if (upper.includes("TIKTOK") || upper.includes("TIK TOK")) return "TikTok";
-  if (upper.includes("SHOPEE")) return "Shopee";
   if (upper.includes("MANUAL") || upper === "DIRECT" || !upper) return "Manual";
   return raw.trim();
 }
@@ -63,9 +62,9 @@ export function Dashboard() {
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-6">
               {[
                 {
-                  label: "ยอดขาย Completed",
+                  label: "ยอดขายสำเร็จ/ชำระแล้ว",
                   value: money(data.revenue.total),
-                  note: "เดือนที่เลือก",
+                  note: "TikTok สำเร็จ + Manual ชำระแล้ว",
                   href: "/orders",
                 },
                 {
@@ -124,9 +123,14 @@ export function Dashboard() {
             <section className="mt-6 border rounded-xl bg-white overflow-hidden">
               <div className="p-5 border-b flex justify-between">
                 <h2 className="font-semibold">รายการขายล่าสุดในเดือนนี้</h2>
-                <Link href="/orders" className="text-xs underline">
-                  ดูรายการขาย
-                </Link>
+                <div className="flex items-center gap-3 text-xs">
+                  <Link href="/orders" className="underline">
+                    ดู Manual
+                  </Link>
+                  <Link href="/tiktok-orders" className="underline">
+                    ดู TikTok
+                  </Link>
+                </div>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">

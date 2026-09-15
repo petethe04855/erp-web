@@ -36,6 +36,7 @@ export function useTikTokOrders(filters?: TikTokOrderQueryParams) {
   return {
     orders: data?.orders || [],
     total: data?.total || 0,
+    meta: data?.meta,
     isLoading,
     isError,
     error,

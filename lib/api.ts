@@ -1,5 +1,5 @@
 import api from "./axios";
-import type { ApiResponse, ApiListResponse } from "@/types/api";
+import type { ApiResponse, ApiListResponse, ApiPaginationMeta } from "@/types/api";
 export async function read<T>(path: string, params?: object): Promise<T> {
   const response = await api.get<ApiResponse<T>>(path, { params });
   if (response.data.success !== true)
@@ -9,14 +9,13 @@ export async function read<T>(path: string, params?: object): Promise<T> {
 
 /**
  * Like read() but returns the whole envelope including optional meta — for
- * endpoints that return a plain array plus a total without full pagination
- * (e.g. GET /integrations/tiktok/orders).
+ * endpoints that return data plus pagination meta (e.g. GET /integrations/tiktok/orders).
  */
 export async function readWithMeta<T>(
   path: string,
   params?: object,
-): Promise<{ data: T; meta?: { total: number } }> {
-  const response = await api.get<ApiResponse<T> & { meta?: { total: number } }>(
+): Promise<{ data: T; meta?: ApiPaginationMeta }> {
+  const response = await api.get<ApiResponse<T> & { meta?: ApiPaginationMeta }>(
     path,
     { params },
   );
