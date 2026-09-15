@@ -9,6 +9,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useVatRate, splitVatInclusive } from "@/features/settings/hooks/useVatRate";
 import { money, thaiDate, bahtText } from "@/features/orders/types/order";
 import { getImageUrl } from "@/lib/utils";
+import { API_BASE_URL } from "@/lib/axios";
 
 interface RecordLine {
   sku?: string;
@@ -22,6 +23,25 @@ interface RecordLine {
 
 function pdfErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
+}
+
+// Download PDF directly from the backend Go API (server-rendered document)
+async function downloadBackendPdf(resource: string, id: string | number | undefined, filename: string) {
+  if (id === undefined || id === null) throw new Error("missing record id");
+  const token = typeof window !== "undefined" ? localStorage.getItem("chawy_v2_token") : null;
+  const response = await fetch(`${API_BASE_URL}/${resource}/${id}/pdf`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
 }
 
 const actions: Partial<Record<Resource, string[]>> = {
@@ -283,6 +303,12 @@ export function RecordDetails({
                     className="bg-primary text-primary-foreground font-medium shadow-sm hover:bg-primary/90"
                     onClick={async () => {
                       try {
+                        await downloadBackendPdf("sales-orders", query.data?.id, `${query.data?.code || "sales-order"}.pdf`);
+                        return;
+                      } catch (apiErr) {
+                        console.warn("Backend PDF export failed, falling back to client-side export:", apiErr);
+                      }
+                      try {
                         const html2pdf = (await import("html2pdf.js")).default;
                         const element = document.getElementById(`so-print-template-${query.data?.id}`);
                         if (!element) {
@@ -362,6 +388,12 @@ export function RecordDetails({
                   className="mr-2 bg-primary text-primary-foreground font-medium shadow-sm hover:bg-primary/90"
                   onClick={async () => {
                     try {
+                      await downloadBackendPdf("quotations", query.data?.id, `${query.data?.code || "quotation"}.pdf`);
+                      return;
+                    } catch (apiErr) {
+                      console.warn("Backend PDF export failed, falling back to client-side export:", apiErr);
+                    }
+                    try {
                       const html2pdf = (await import("html2pdf.js")).default;
                       const element = document.getElementById(`quotation-print-template-${query.data?.id}`);
                       if (!element) {
@@ -401,6 +433,12 @@ export function RecordDetails({
                   <Button
                     className="bg-primary text-primary-foreground font-medium shadow-sm hover:bg-primary/90"
                     onClick={async () => {
+                      try {
+                        await downloadBackendPdf("invoices", query.data?.id, `${query.data?.code || query.data?.invoiceNo || "invoice"}.pdf`);
+                        return;
+                      } catch (apiErr) {
+                        console.warn("Backend PDF export failed, falling back to client-side export:", apiErr);
+                      }
                       try {
                         const html2pdf = (await import("html2pdf.js")).default;
                         const element = document.getElementById(`invoice-print-template-${query.data?.id}`);

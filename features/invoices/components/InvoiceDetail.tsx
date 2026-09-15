@@ -85,7 +85,31 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
       }
       await exportDocumentPdf(el, `Invoice-${invoice.invoiceNo || invoice.code}.pdf`);
     } catch (err) {
+      // Network failure (API unreachable) — fall back to client-side export
       console.error("PDF export failed:", err);
+      const el = document.getElementById(`invoice-print-${invoice.id}`);
+      if (!el) {
+        setShowPrintModal(true);
+        setTimeout(async () => {
+          const target = document.getElementById(`invoice-print-${invoice.id}`);
+          if (target) {
+            try {
+              await exportDocumentPdf(target, `Invoice-${invoice.invoiceNo || invoice.code}.pdf`);
+            } catch (exportErr) {
+              console.error("Client-side PDF export failed:", exportErr);
+              alert("ดาวน์โหลด PDF ไม่สำเร็จ: ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่อีกครั้ง");
+            }
+          }
+          setIsExporting(false);
+        }, 300);
+        return;
+      }
+      try {
+        await exportDocumentPdf(el, `Invoice-${invoice.invoiceNo || invoice.code}.pdf`);
+      } catch (exportErr) {
+        console.error("Client-side PDF export failed:", exportErr);
+        alert("ดาวน์โหลด PDF ไม่สำเร็จ: ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่อีกครั้ง");
+      }
     } finally {
       setIsExporting(false);
     }

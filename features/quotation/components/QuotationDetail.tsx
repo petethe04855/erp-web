@@ -69,7 +69,7 @@ export function QuotationDetail({ quotationId }: QuotationDetailProps) {
         return;
       }
 
-      // Fallback to client-side DOM export
+      // Fallback to client-side DOM export if API returns error
       const el = document.getElementById(`quotation-print-${quote.id}`);
       if (!el) {
         setShowPrintModal(true);
@@ -84,7 +84,31 @@ export function QuotationDetail({ quotationId }: QuotationDetailProps) {
       }
       await exportDocumentPdf(el, `Quotation-${quote.code}.pdf`);
     } catch (err) {
+      // Network failure (API unreachable) — fall back to client-side export
       console.error("PDF export failed:", err);
+      const el = document.getElementById(`quotation-print-${quote.id}`);
+      if (!el) {
+        setShowPrintModal(true);
+        setTimeout(async () => {
+          const target = document.getElementById(`quotation-print-${quote.id}`);
+          if (target) {
+            try {
+              await exportDocumentPdf(target, `Quotation-${quote.code}.pdf`);
+            } catch (exportErr) {
+              console.error("Client-side PDF export failed:", exportErr);
+              alert("ดาวน์โหลด PDF ไม่สำเร็จ: ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่อีกครั้ง");
+            }
+          }
+          setIsExporting(false);
+        }, 300);
+        return;
+      }
+      try {
+        await exportDocumentPdf(el, `Quotation-${quote.code}.pdf`);
+      } catch (exportErr) {
+        console.error("Client-side PDF export failed:", exportErr);
+        alert("ดาวน์โหลด PDF ไม่สำเร็จ: ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่อีกครั้ง");
+      }
     } finally {
       setIsExporting(false);
     }
