@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import { useSKUListQuery } from "@/features/sku/queries/skuQueries";
 import { useStockBySKU } from "@/features/inventory/queries/useStockBySKU";
 import { useInventoryFormulasQuery } from "@/features/inventory/queries/inventoryQueries";
 import type { SKU } from "@/features/sku/types/sku";
+import type { InventoryFormula } from "@/features/inventory/types/formula";
 import { Select } from "@/components/ui/select";
 import { Package, AlertCircle, Loader2, Boxes } from "lucide-react";
 
@@ -52,6 +53,53 @@ export function SKUSelect({
     return (formulas || []).filter((f) => f.isActive);
   }, [formulas, shouldLoadFormulas]);
 
+  // Price map from SKU Master used to derive an Inventory set's selling price.
+  // Inventory sets have no price of their own (plan/GLM53_SKU_QUANTITY_INVENTORY_IMAGE.md):
+  // ราคาชุด = Σ (ราคาขายวัตถุดิบแต่ละรายการ × qty ต่อชุด)
+  const componentPriceMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const item of data?.data || []) {
+      const code = item.sku?.toUpperCase()?.trim();
+      if (code) map.set(code, Number(item.price) || 0);
+    }
+    return map;
+  }, [data]);
+
+  const getFormulaPrice = useCallback(
+    (formula: InventoryFormula): number => {
+      let total = 0;
+      for (const item of formula.items || []) {
+        const code = item.componentSku?.toUpperCase()?.trim();
+        total += (componentPriceMap.get(code) ?? 0) * (Number(item.qty) || 0);
+      }
+      return total;
+    },
+    [componentPriceMap],
+  );
+
+  // Convert formula to SKU-compatible presentation structure (with derived price)
+  const formulaToSku = useCallback(
+    (f: InventoryFormula): SKU & { isFormula?: boolean } => {
+      const sets = f.availableSets ?? 0;
+      return {
+        id: f.id,
+        sku: f.code,
+        name: f.name,
+        category: "ชุดสินค้า Inventory",
+        price: getFormulaPrice(f),
+        cost: 0,
+        isBundle: false,
+        availableStock: sets,
+        stockQuantity: sets,
+        available: sets,
+        status: f.isActive ? "active" : "inactive",
+        image: f.image,
+        isFormula: true,
+      } as SKU & { isFormula?: boolean };
+    },
+    [getFormulaPrice],
+  );
+
   const selectedSku = useMemo(() => {
     const foundSku = skuList.find((item) => item.sku === value);
     if (foundSku) return foundSku;
@@ -59,26 +107,11 @@ export function SKUSelect({
     if (shouldLoadFormulas) {
       const foundFormula = formulaList.find((f) => f.code === value);
       if (foundFormula) {
-        // Convert formula to SKU-compatible presentation structure
-        return {
-          id: foundFormula.id,
-          sku: foundFormula.code,
-          name: foundFormula.name,
-          category: "ชุดสินค้า Inventory",
-          price: 0,
-          cost: 0,
-          isBundle: false,
-          availableStock: foundFormula.availableSets ?? 0,
-          stockQuantity: foundFormula.availableSets ?? 0,
-          available: foundFormula.availableSets ?? 0,
-          status: foundFormula.isActive ? "active" : "inactive",
-          image: foundFormula.image,
-          isFormula: true,
-        } as SKU & { isFormula?: boolean };
+        return formulaToSku(foundFormula);
       }
     }
     return undefined;
-  }, [skuList, formulaList, value, shouldLoadFormulas]);
+  }, [skuList, formulaList, value, shouldLoadFormulas, formulaToSku]);
 
   // Derive augmented SKU data with real Inventory stock
   const getAugmentedSku = (skuItem?: SKU): SKU | undefined => {
@@ -118,22 +151,7 @@ export function SKUSelect({
     if (shouldLoadFormulas) {
       const foundFormula = formulaList.find((f) => f.code === nextSku);
       if (foundFormula) {
-        const formulaAsSku: SKU = {
-          id: foundFormula.id,
-          sku: foundFormula.code,
-          name: foundFormula.name,
-          category: "ชุดสินค้า Inventory",
-          price: 0,
-          cost: 0,
-          isBundle: false,
-          availableStock: foundFormula.availableSets ?? 0,
-          stockQuantity: foundFormula.availableSets ?? 0,
-          available: foundFormula.availableSets ?? 0,
-          status: foundFormula.isActive ? "active" : "inactive",
-          image: foundFormula.image,
-        };
-        (formulaAsSku as any).isFormula = true;
-        onChange(nextSku, formulaAsSku);
+        onChange(nextSku, formulaToSku(foundFormula));
         return;
       }
     }
@@ -206,9 +224,13 @@ export function SKUSelect({
               inventoryOnly ? (
                 formulaList.map((item) => {
                   const availSets = item.availableSets ?? 0;
+                  const priceFormatted = getFormulaPrice(item).toLocaleString(
+                    undefined,
+                    { minimumFractionDigits: 2 },
+                  );
                   return (
                     <option key={`formula-${item.id || item.code}`} value={item.code}>
-                      {item.code} · {item.name} (พร้อมส่ง {availSets} ชุด)
+                      {item.code} · {item.name} — ฿{priceFormatted} (พร้อมส่ง {availSets} ชุด)
                     </option>
                   );
                 })
@@ -216,9 +238,13 @@ export function SKUSelect({
                 <optgroup label="ชุดสินค้า Inventory (สูตรตัดสต็อกวัตถุดิบ)">
                   {formulaList.map((item) => {
                     const availSets = item.availableSets ?? 0;
+                    const priceFormatted = getFormulaPrice(item).toLocaleString(
+                      undefined,
+                      { minimumFractionDigits: 2 },
+                    );
                     return (
                       <option key={`formula-${item.id || item.code}`} value={item.code}>
-                        [ชุด Inventory] {item.code} · {item.name} (พร้อมส่ง {availSets} ชุด)
+                        [ชุด Inventory] {item.code} · {item.name} — ฿{priceFormatted} (พร้อมส่ง {availSets} ชุด)
                       </option>
                     );
                   })}
@@ -242,16 +268,19 @@ export function SKUSelect({
 
           <span className="text-neutral-300">·</span>
 
-          {!(augmentedSelectedSku as any).isFormula && (
-            <div>
-              ราคาขาย:{" "}
-              <span className="font-bold text-neutral-900">
-                ฿{Number(augmentedSelectedSku.price || 0).toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                })}
+          <div>
+            {(augmentedSelectedSku as any).isFormula ? "ราคาชุด: " : "ราคาขาย: "}
+            <span className="font-bold text-neutral-900">
+              ฿{Number(augmentedSelectedSku.price || 0).toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+              })}
+            </span>
+            {(augmentedSelectedSku as any).isFormula && (
+              <span className="ml-1 text-[10px] font-normal text-neutral-400">
+                (คำนวณจากราคาวัตถุดิบ)
               </span>
-            </div>
-          )}
+            )}
+          </div>
 
           {(augmentedSelectedSku as any).isFormula ? (
             <span className="rounded-md bg-purple-50 px-2 py-0.5 text-[10px] font-semibold text-purple-700 border border-purple-200">

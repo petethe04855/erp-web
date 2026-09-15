@@ -49,7 +49,18 @@ export function OrderForm(props: Props) {
     }
     const validLines = lines.filter((l) => l.sku.trim() !== "");
     if (validLines.length === 0) {
-      throw new Error("กรุณาเลือก SKU สินค้าอย่างน้อย 1 รายการ");
+      throw new Error("กรุณาเลือกสินค้าจาก Inventory อย่างน้อย 1 รายการ");
+    }
+
+    // Every selected Inventory set must carry a selling price (derived from
+    // its component retail prices). A zero/negative price would create a ฿0
+    // order on the backend for formula SKUs.
+    for (const item of validLines) {
+      if (!(Number(item.price) > 0)) {
+        throw new Error(
+          `สินค้า ${item.sku} (${item.name || "ไม่มีชื่อ"}) ยังไม่มีราคาที่ใช้ได้ กรุณาตรวจสอบราคาวัตถุดิบใน SKU Master แล้วเลือกใหม่อีกครั้ง`,
+        );
+      }
     }
 
     // Check if any line exceeds available stock
@@ -85,7 +96,7 @@ export function OrderForm(props: Props) {
     <FormDialog
       {...props}
       title="สร้างใบสั่งขาย (New Sales Order)"
-      description="กรอกข้อมูลลูกค้า และเลือกสินค้าจากรายการ ระบบจะคำนวณราคาให้อัตโนมัติ"
+      description="เลือกสินค้าจาก Inventory Management ระบบจะแสดงราคาของชุดที่เลือกและคำนวณยอดรวมให้อัตโนมัติ"
       onSubmit={handleSubmit}
     >
       <div>
