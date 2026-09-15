@@ -14,9 +14,7 @@ import {
   Package,
   Tag,
   AlertCircle,
-  Printer,
   Download,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuotationDetailQuery } from "../queries/quotationQueries";
@@ -24,11 +22,7 @@ import { money, thaiDate } from "@/features/orders/types/order";
 import { useVatRate, splitVatInclusive } from "@/features/settings/hooks/useVatRate";
 import { getImageUrl } from "@/lib/utils";
 import { DocumentActions } from "@/components/common/DocumentActions";
-import { QuotationPrintTemplate } from "./print/QuotationPrintTemplate";
-import { exportDocumentPdf } from "@/lib/exportDocumentPdf";
-import { useQuery } from "@tanstack/react-query";
-import { API_BASE_URL } from "@/lib/axios";
-import { settingsApi } from "@/features/settings/api/settingsApi";
+import { downloadBackendPdf } from "@/lib/pdfDownload";
 
 interface QuotationDetailProps {
   quotationId: string | number;
@@ -38,77 +32,17 @@ export function QuotationDetail({ quotationId }: QuotationDetailProps) {
   const router = useRouter();
   const { data: quote, isLoading, isError, error, refetch } = useQuotationDetailQuery(quotationId);
   const { vatRate } = useVatRate();
-  const { data: settingsData } = useQuery({
-    queryKey: ["settings"],
-    queryFn: settingsApi.get,
-    staleTime: 5 * 60 * 1000,
-  });
-  const [showPrintModal, setShowPrintModal] = React.useState(false);
   const [isExporting, setIsExporting] = React.useState(false);
 
+  // Download the server-rendered PDF from the backend Go API
   const handleDownloadPdf = async () => {
     if (!quote) return;
     try {
       setIsExporting(true);
-      // Download directly from backend Go API
-      const token = typeof window !== "undefined" ? localStorage.getItem("chawy_v2_token") : null;
-      const response = await fetch(`${API_BASE_URL}/quotations/${quote.id}/pdf`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `Quotation-${quote.code}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        return;
-      }
-
-      // Fallback to client-side DOM export if API returns error
-      const el = document.getElementById(`quotation-print-${quote.id}`);
-      if (!el) {
-        setShowPrintModal(true);
-        setTimeout(async () => {
-          const target = document.getElementById(`quotation-print-${quote.id}`);
-          if (target) {
-            await exportDocumentPdf(target, `Quotation-${quote.code}.pdf`);
-          }
-          setIsExporting(false);
-        }, 300);
-        return;
-      }
-      await exportDocumentPdf(el, `Quotation-${quote.code}.pdf`);
+      await downloadBackendPdf("quotations", quote.id, `Quotation-${quote.code}.pdf`);
     } catch (err) {
-      // Network failure (API unreachable) — fall back to client-side export
       console.error("PDF export failed:", err);
-      const el = document.getElementById(`quotation-print-${quote.id}`);
-      if (!el) {
-        setShowPrintModal(true);
-        setTimeout(async () => {
-          const target = document.getElementById(`quotation-print-${quote.id}`);
-          if (target) {
-            try {
-              await exportDocumentPdf(target, `Quotation-${quote.code}.pdf`);
-            } catch (exportErr) {
-              console.error("Client-side PDF export failed:", exportErr);
-              alert("ดาวน์โหลด PDF ไม่สำเร็จ: ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่อีกครั้ง");
-            }
-          }
-          setIsExporting(false);
-        }, 300);
-        return;
-      }
-      try {
-        await exportDocumentPdf(el, `Quotation-${quote.code}.pdf`);
-      } catch (exportErr) {
-        console.error("Client-side PDF export failed:", exportErr);
-        alert("ดาวน์โหลด PDF ไม่สำเร็จ: ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่อีกครั้ง");
-      }
+      alert(err instanceof Error ? err.message : "ดาวน์โหลด PDF ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
     } finally {
       setIsExporting(false);
     }
@@ -222,16 +156,6 @@ export function QuotationDetail({ quotationId }: QuotationDetailProps) {
               </Button>
             </Link>
           )}
-
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1.5 text-xs"
-            onClick={() => setShowPrintModal(true)}
-          >
-            <Printer className="h-3.5 w-3.5 text-muted-foreground" />
-            พิมพ์เอกสาร
-          </Button>
 
           <Button
             size="sm"
@@ -446,53 +370,6 @@ export function QuotationDetail({ quotationId }: QuotationDetailProps) {
         </div>
       )}
 
-      {/* Print Preview & Export Modal */}
-      {showPrintModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="relative flex max-h-[95vh] w-full max-w-4xl flex-col rounded-xl bg-card shadow-2xl border border-border">
-            <div className="flex items-center justify-between border-b border-border p-4 bg-muted/30 rounded-t-xl">
-              <div className="flex items-center gap-2">
-                <Printer className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-semibold">ตัวอย่างพิมพ์ใบเสนอราคา</h3>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1.5 text-xs"
-                  onClick={handleDownloadPdf}
-                  disabled={isExporting}
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  {isExporting ? "กำลังส่งออก..." : "บันทึกเป็น PDF"}
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => window.print()}
-                  className="gap-1.5 text-xs"
-                >
-                  <Printer className="h-3.5 w-3.5" />
-                  สั่งพิมพ์
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setShowPrintModal(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-auto p-6 bg-neutral-100 flex justify-center">
-              <QuotationPrintTemplate
-                quotation={quote}
-                company={settingsData?.company}
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -6,42 +6,11 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useRecord } from "../hooks/useRecord";
 import type { Resource } from "../api/recordApi";
 import { useAuthStore } from "@/stores/authStore";
-import { useVatRate, splitVatInclusive } from "@/features/settings/hooks/useVatRate";
-import { money, thaiDate, bahtText } from "@/features/orders/types/order";
 import { getImageUrl } from "@/lib/utils";
-import { API_BASE_URL } from "@/lib/axios";
-
-interface RecordLine {
-  sku?: string;
-  name?: string;
-  quantity?: number;
-  qty?: number;
-  unitPrice?: number;
-  price?: number;
-  subtotal?: number;
-}
+import { downloadBackendPdf } from "@/lib/pdfDownload";
 
 function pdfErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
-}
-
-// Download PDF directly from the backend Go API (server-rendered document)
-async function downloadBackendPdf(resource: string, id: string | number | undefined, filename: string) {
-  if (id === undefined || id === null) throw new Error("missing record id");
-  const token = typeof window !== "undefined" ? localStorage.getItem("chawy_v2_token") : null;
-  const response = await fetch(`${API_BASE_URL}/${resource}/${id}/pdf`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  const blob = await response.blob();
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  window.URL.revokeObjectURL(url);
-  document.body.removeChild(a);
 }
 
 const actions: Partial<Record<Resource, string[]>> = {
@@ -267,9 +236,9 @@ export function RecordDetails({
 }) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
+  const [exporting, setExporting] = useState(false);
   const { query, mutation } = useRecord(resource, id, open);
   const role = useAuthStore((s) => s.user?.role);
-  const { vatRate } = useVatRate();
   return (
     <>
       <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
@@ -301,32 +270,16 @@ export function RecordDetails({
                 <div className="flex items-center gap-2">
                   <Button
                     className="bg-primary text-primary-foreground font-medium shadow-sm hover:bg-primary/90"
+                    disabled={exporting}
                     onClick={async () => {
+                      if (exporting) return;
+                      setExporting(true);
                       try {
                         await downloadBackendPdf("sales-orders", query.data?.id, `${query.data?.code || "sales-order"}.pdf`);
-                        return;
-                      } catch (apiErr) {
-                        console.warn("Backend PDF export failed, falling back to client-side export:", apiErr);
-                      }
-                      try {
-                        const html2pdf = (await import("html2pdf.js")).default;
-                        const element = document.getElementById(`so-print-template-${query.data?.id}`);
-                        if (!element) {
-                          alert("ไม่พบแบบฟอร์มเอกสารใบสั่งขายสำหรับ Export PDF");
-                          return;
-                        }
-                        await html2pdf()
-                          .set({
-                            margin: 0,
-                            filename: `${query.data?.code || "sales-order"}.pdf`,
-                            image: { type: "jpeg", quality: 0.98 },
-                            html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
-                            jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-                          })
-                          .from(element)
-                          .save();
                       } catch (err) {
                         alert("Export PDF ไม่สำเร็จ: " + pdfErrorMessage(err));
+                      } finally {
+                        setExporting(false);
                       }
                     }}
                   >
@@ -386,32 +339,16 @@ export function RecordDetails({
               {resource === "quotations" && (
                 <Button
                   className="mr-2 bg-primary text-primary-foreground font-medium shadow-sm hover:bg-primary/90"
+                  disabled={exporting}
                   onClick={async () => {
+                    if (exporting) return;
+                    setExporting(true);
                     try {
                       await downloadBackendPdf("quotations", query.data?.id, `${query.data?.code || "quotation"}.pdf`);
-                      return;
-                    } catch (apiErr) {
-                      console.warn("Backend PDF export failed, falling back to client-side export:", apiErr);
-                    }
-                    try {
-                      const html2pdf = (await import("html2pdf.js")).default;
-                      const element = document.getElementById(`quotation-print-template-${query.data?.id}`);
-                      if (!element) {
-                        alert("ไม่พบแบบฟอร์มเอกสารใบเสนอราคาสำหรับ Export PDF");
-                        return;
-                      }
-                      await html2pdf()
-                        .set({
-                          margin: 0,
-                          filename: `${query.data?.code || "quotation"}.pdf`,
-                          image: { type: "jpeg", quality: 0.98 },
-                          html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
-                          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-                        })
-                        .from(element)
-                        .save();
                     } catch (err) {
                       alert("Export PDF ไม่สำเร็จ: " + pdfErrorMessage(err));
+                    } finally {
+                      setExporting(false);
                     }
                   }}
                 >
@@ -432,32 +369,16 @@ export function RecordDetails({
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
                     className="bg-primary text-primary-foreground font-medium shadow-sm hover:bg-primary/90"
+                    disabled={exporting}
                     onClick={async () => {
+                      if (exporting) return;
+                      setExporting(true);
                       try {
                         await downloadBackendPdf("invoices", query.data?.id, `${query.data?.code || query.data?.invoiceNo || "invoice"}.pdf`);
-                        return;
-                      } catch (apiErr) {
-                        console.warn("Backend PDF export failed, falling back to client-side export:", apiErr);
-                      }
-                      try {
-                        const html2pdf = (await import("html2pdf.js")).default;
-                        const element = document.getElementById(`invoice-print-template-${query.data?.id}`);
-                        if (!element) {
-                          alert("ไม่พบแบบฟอร์มเอกสารใบแจ้งหนี้สำหรับ Export PDF");
-                          return;
-                        }
-                        await html2pdf()
-                          .set({
-                            margin: 0,
-                            filename: `${query.data?.code || query.data?.invoiceNo || "invoice"}.pdf`,
-                            image: { type: "jpeg", quality: 0.98 },
-                            html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
-                            jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-                          })
-                          .from(element)
-                          .save();
                       } catch (err) {
                         alert("Export PDF ไม่สำเร็จ: " + pdfErrorMessage(err));
+                      } finally {
+                        setExporting(false);
                       }
                     }}
                   >
@@ -501,536 +422,6 @@ export function RecordDetails({
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Hidden A4 Print Template for Sales Order (Matches erp-web) */}
-      {resource === "sales-orders" && query.data && (
-        <div style={{ position: "absolute", left: "-9999px", top: "-9999px" }}>
-          <section
-            id={`so-print-template-${query.data.id}`}
-            style={{
-              width: "794px",
-              minHeight: "1122px",
-              boxSizing: "border-box",
-              backgroundColor: "#ffffff",
-              color: "#1f2937",
-              padding: "40px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              fontFamily: "sans-serif",
-            }}
-          >
-            <div>
-              {/* Header */}
-              <header style={{ display: "flex", justifyContent: "space-between", borderBottom: "2px solid #1f2937", paddingBottom: "16px" }}>
-                <div style={{ display: "flex", gap: "12px", maxWidth: "450px" }}>
-                  <img
-                    src="/assets/images/company-logo.jpg"
-                    alt="Chawy ERP"
-                    crossOrigin="anonymous"
-                    style={{ width: "72px", height: "auto", objectFit: "contain" }}
-                    onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
-                  />
-                  <div style={{ fontSize: "11px", lineHeight: "1.5", color: "#374151" }}>
-                    <div style={{ fontSize: "16px", fontWeight: "bold", color: "#111827" }}>
-                      Chawy Co., Ltd. (สำนักงานใหญ่)
-                    </div>
-                    <div>123/45 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพมหานคร 10110</div>
-                    <div>เลขประจำตัวผู้เสียภาษี 0105560000000</div>
-                    <div>โทร 02-123-4567 · info@chawy.com</div>
-                  </div>
-                </div>
-                <div style={{ textAlign: "right", minWidth: "250px" }}>
-                  <h1 style={{ fontSize: "24px", fontWeight: "bold", margin: 0, color: "#111827" }}>
-                    ใบสั่งขาย
-                  </h1>
-                  <div style={{ fontSize: "11px", letterSpacing: "0.15em", color: "#6b7280", marginTop: "4px" }}>
-                    SALES ORDER · ต้นฉบับ
-                  </div>
-                  <div style={{ marginTop: "12px", fontSize: "11px", display: "grid", gridTemplateColumns: "70px 1fr", rowGap: "4px", textAlign: "left" }}>
-                    <span style={{ color: "#374151" }}>เลขที่</span>
-                    <b>{String(query.data.code || query.data.id)}</b>
-                    <span style={{ color: "#374151" }}>วันที่</span>
-                    <span>{thaiDate(String(query.data.date || ""))}</span>
-                    <span style={{ color: "#374151" }}>ช่องทาง</span>
-                    <span>{String(query.data.channel || "Direct")}</span>
-                    <span style={{ color: "#374151" }}>สถานะ</span>
-                    <span style={{ fontWeight: 600, color: "#059669" }}>{String(query.data.status)}</span>
-                  </div>
-                </div>
-              </header>
-
-              {/* Customer Info */}
-              <div style={{ marginTop: "24px", borderBottom: "1px solid #d1d5db", paddingBottom: "16px", fontSize: "11px" }}>
-                <div style={{ fontWeight: "bold", color: "#374151", marginBottom: "4px" }}>ลูกค้า</div>
-                <div style={{ fontSize: "14px", fontWeight: "bold", color: "#111827" }}>
-                  {String(query.data.customer || "–")}
-                </div>
-                <div style={{ marginTop: "4px", color: "#4b5563" }}>
-                  {query.data.customerAddress ? String(query.data.customerAddress) : "สำนักงานใหญ่ / สถานที่จัดส่งตามที่ระบุ"}
-                </div>
-              </div>
-
-              {/* Line Items Table */}
-              <table style={{ marginTop: "24px", width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
-                <thead>
-                  <tr style={{ backgroundColor: "#f3f4f6", borderTop: "2px solid #6b7280", borderBottom: "2px solid #6b7280", height: "36px" }}>
-                    <th style={{ width: "8%", padding: "8px", textAlign: "center" }}>#</th>
-                    <th style={{ width: "46%", padding: "8px", textAlign: "left" }}>รายละเอียดสินค้า</th>
-                    <th style={{ width: "12%", padding: "8px", textAlign: "right" }}>จำนวน</th>
-                    <th style={{ width: "16%", padding: "8px", textAlign: "right" }}>ราคาต่อหน่วย</th>
-                    <th style={{ width: "18%", padding: "8px", textAlign: "right" }}>มูลค่า</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Array.isArray(query.data.lines) && (query.data.lines as RecordLine[]).length > 0 ? (
-                    (query.data.lines as RecordLine[]).map((line, idx) => (
-                      <tr key={idx} style={{ borderBottom: "1px solid #e5e7eb" }}>
-                        <td style={{ padding: "10px 8px", textAlign: "center", color: "#6b7280" }}>{idx + 1}</td>
-                        <td style={{ padding: "10px 8px", textAlign: "left" }}>
-                          <div style={{ fontWeight: "bold", color: "#111827" }}>{line.name || line.sku}</div>
-                          <div style={{ fontSize: "10px", color: "#6b7280", fontFamily: "monospace" }}>{line.sku}</div>
-                        </td>
-                        <td style={{ padding: "10px 8px", textAlign: "right" }}>{line.quantity || line.qty}</td>
-                        <td style={{ padding: "10px 8px", textAlign: "right" }}>{money(Number(line.unitPrice || line.price || 0))}</td>
-                        <td style={{ padding: "10px 8px", textAlign: "right", fontWeight: 600 }}>{money(Number(line.subtotal || (Number(line.quantity || line.qty) * Number(line.unitPrice || line.price)) || 0))}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-                      <td style={{ padding: "10px 8px", textAlign: "center" }}>1</td>
-                      <td style={{ padding: "10px 8px", textAlign: "left" }}>
-                        <div style={{ fontWeight: "bold" }}>รายการสั่งซื้อสินค้า</div>
-                      </td>
-                      <td style={{ padding: "10px 8px", textAlign: "right" }}>{Number(query.data.items || 1)}</td>
-                      <td style={{ padding: "10px 8px", textAlign: "right" }}>{money(Number(query.data.amount || 0))}</td>
-                      <td style={{ padding: "10px 8px", textAlign: "right", fontWeight: 600 }}>{money(Number(query.data.amount || 0))}</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Bottom Totals & Signatures */}
-            <div style={{ marginTop: "40px" }}>
-              {(() => {
-                const total = Number(query.data.amount || 0);
-                const hasVat = query.data.includeVat !== false && !String(query.data.note || "").includes("VAT_INC:false");
-                const rate = hasVat ? vatRate : 0;
-                const { beforeVat, vat } = hasVat
-                  ? splitVatInclusive(total, vatRate)
-                  : { beforeVat: total, vat: 0 };
-
-                return (
-                  <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "40px", fontSize: "12px" }}>
-                    <div>
-                      <div style={{ fontWeight: "bold", color: "#111827" }}>หมายเหตุ</div>
-                      <div style={{ marginTop: "6px", color: "#4b5563" }}>
-                        การชำระเงิน: ตามกำหนดในใบแจ้งหนี้
-                      </div>
-                      <div style={{ color: "#4b5563" }}>
-                        การส่งมอบ: ดำเนินการจัดส่งเรียบร้อยแล้ว (Completed)
-                      </div>
-                    </div>
-                    <div style={{ borderTop: "2px solid #111827", paddingTop: "12px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
-                        <span>ราคาสินค้าก่อนภาษี</span>
-                        <span>{money(beforeVat)}</span>
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
-                        <span>ภาษีมูลค่าเพิ่ม {vatRate}%</span>
-                        <span>{money(vat)}</span>
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", borderTop: "2px solid #111827", paddingTop: "8px", fontSize: "15px", fontWeight: "bold", color: "#111827" }}>
-                        <span>จำนวนเงินรวมทั้งสิ้น</span>
-                        <span>{money(total)}</span>
-                      </div>
-                      <div style={{ textAlign: "center", fontSize: "11px", color: "#4b5563", marginTop: "4px" }}>
-                        ({bahtText(total)})
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              <div style={{ marginTop: "50px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "80px", textAlign: "center", fontSize: "11px" }}>
-                <div>
-                  <div style={{ marginBottom: "40px", color: "#374151" }}>ผู้รับสินค้า / ผู้ซื้อ</div>
-                  <div style={{ borderBottom: "1px solid #9ca3af" }} />
-                  <div style={{ marginTop: "8px", color: "#6b7280" }}>วันที่ _____ / _____ / _________</div>
-                </div>
-                <div>
-                  <div style={{ marginBottom: "40px", color: "#374151" }}>ผู้อนุมัติ / ผู้ขาย</div>
-                  <div style={{ borderBottom: "1px solid #9ca3af" }} />
-                  <div style={{ marginTop: "8px", color: "#6b7280" }}>วันที่ _____ / _____ / _________</div>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-      )}
-
-      {/* Hidden A4 Print Template for Quotation (Matches erp-web) */}
-      {resource === "quotations" && query.data && (
-        <div style={{ position: "absolute", left: "-9999px", top: "-9999px" }}>
-          <section
-            id={`quotation-print-template-${query.data.id}`}
-            style={{
-              width: "794px",
-              minHeight: "1122px",
-              boxSizing: "border-box",
-              backgroundColor: "#ffffff",
-              color: "#1f2937",
-              padding: "40px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              fontFamily: "sans-serif",
-            }}
-          >
-            <div>
-              {/* Header */}
-              <header style={{ display: "flex", justifyContent: "space-between", borderBottom: "2px solid #1f2937", paddingBottom: "16px" }}>
-                <div style={{ display: "flex", gap: "12px", maxWidth: "450px" }}>
-                  <img
-                    src="/assets/images/company-logo.jpg"
-                    alt="Chawy ERP"
-                    crossOrigin="anonymous"
-                    style={{ width: "72px", height: "auto", objectFit: "contain" }}
-                    onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
-                  />
-                  <div style={{ fontSize: "11px", lineHeight: "1.5", color: "#374151" }}>
-                    <div style={{ fontSize: "16px", fontWeight: "bold", color: "#111827" }}>
-                      Chawy Co., Ltd. (สำนักงานใหญ่)
-                    </div>
-                    <div>123/45 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพมหานคร 10110</div>
-                    <div>เลขประจำตัวผู้เสียภาษี 0105560000000</div>
-                    <div>โทร 02-123-4567 · info@chawy.com</div>
-                  </div>
-                </div>
-                <div style={{ textAlign: "right", minWidth: "250px" }}>
-                  <h1 style={{ fontSize: "24px", fontWeight: "bold", margin: 0, color: "#111827" }}>
-                    ใบเสนอราคา
-                  </h1>
-                  <div style={{ fontSize: "11px", letterSpacing: "0.15em", color: "#6b7280", marginTop: "4px" }}>
-                    QUOTATION · ต้นฉบับ
-                  </div>
-                  <div style={{ marginTop: "12px", fontSize: "11px", display: "grid", gridTemplateColumns: "70px 1fr", rowGap: "4px", textAlign: "left" }}>
-                    <span style={{ color: "#374151" }}>เลขที่</span>
-                    <b>{String(query.data.code || query.data.id)}</b>
-                    <span style={{ color: "#374151" }}>วันที่</span>
-                    <span>{thaiDate(String(query.data.date || ""))}</span>
-                    <span style={{ color: "#374151" }}>เครดิต</span>
-                    <span>
-                      {(() => {
-                        const vUntil = String(query.data.validUntil || "");
-                        const dDate = String(query.data.date || "");
-                        if (!vUntil || !dDate) return "15 วัน";
-                        const diff = Math.round(
-                          (new Date(vUntil).getTime() - new Date(dDate).getTime()) / 86400000
-                        );
-                        return `${Math.max(0, isNaN(diff) ? 15 : diff)} วัน`;
-                      })()}
-                    </span>
-                    <span style={{ color: "#374151" }}>ผู้ขาย</span>
-                    <span>{String(query.data.seller || query.data.createdBy || (useAuthStore.getState().user?.name || "User"))}</span>
-                    <span style={{ color: "#374151" }}>ชื่องาน</span>
-                    <span>{String(query.data.leadSource || query.data.project || "–")}</span>
-                  </div>
-                </div>
-              </header>
-
-              {/* Customer Info */}
-              <div style={{ marginTop: "24px", borderBottom: "1px solid #d1d5db", paddingBottom: "16px", fontSize: "11px" }}>
-                <div style={{ fontWeight: "bold", color: "#374151", marginBottom: "4px" }}>ลูกค้า</div>
-                <div style={{ fontSize: "14px", fontWeight: "bold", color: "#111827" }}>
-                  {String(query.data.customer || query.data.customerName || "–")}
-                </div>
-                <div style={{ marginTop: "4px", color: "#4b5563" }}>
-                  {query.data.customerAddress ? String(query.data.customerAddress) : "สำนักงานใหญ่ / สถานที่จัดส่งตามที่ระบุ"}
-                </div>
-              </div>
-
-              {/* Line Items Table */}
-              <table style={{ marginTop: "24px", width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
-                <thead>
-                  <tr style={{ backgroundColor: "#f3f4f6", borderTop: "2px solid #6b7280", borderBottom: "2px solid #6b7280", height: "36px" }}>
-                    <th style={{ width: "8%", padding: "8px", textAlign: "center" }}>#</th>
-                    <th style={{ width: "46%", padding: "8px", textAlign: "left" }}>รายละเอียดสินค้า</th>
-                    <th style={{ width: "12%", padding: "8px", textAlign: "right" }}>จำนวน</th>
-                    <th style={{ width: "16%", padding: "8px", textAlign: "right" }}>ราคาต่อหน่วย</th>
-                    <th style={{ width: "18%", padding: "8px", textAlign: "right" }}>มูลค่า</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Array.isArray(query.data.lines) && (query.data.lines as RecordLine[]).length > 0 ? (
-                    (query.data.lines as RecordLine[]).map((line, idx) => (
-                      <tr key={idx} style={{ borderBottom: "1px solid #e5e7eb" }}>
-                        <td style={{ padding: "10px 8px", textAlign: "center", color: "#6b7280" }}>{idx + 1}</td>
-                        <td style={{ padding: "10px 8px", textAlign: "left" }}>
-                          <div style={{ fontWeight: "bold", color: "#111827" }}>{line.name || line.sku}</div>
-                          <div style={{ fontSize: "10px", color: "#6b7280", fontFamily: "monospace" }}>{line.sku}</div>
-                        </td>
-                        <td style={{ padding: "10px 8px", textAlign: "right" }}>{line.qty || line.quantity}</td>
-                        <td style={{ padding: "10px 8px", textAlign: "right" }}>{money(Number(line.price || line.unitPrice || 0))}</td>
-                        <td style={{ padding: "10px 8px", textAlign: "right", fontWeight: 600 }}>{money(Number(line.subtotal || (Number(line.qty || line.quantity) * Number(line.price || line.unitPrice)) || 0))}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-                      <td style={{ padding: "10px 8px", textAlign: "center" }}>1</td>
-                      <td style={{ padding: "10px 8px", textAlign: "left" }}>
-                        <div style={{ fontWeight: "bold" }}>รายการสินค้าในใบเสนอราคา</div>
-                      </td>
-                      <td style={{ padding: "10px 8px", textAlign: "right" }}>1</td>
-                      <td style={{ padding: "10px 8px", textAlign: "right" }}>{money(Number(query.data.amount || query.data.totalAmount || 0))}</td>
-                      <td style={{ padding: "10px 8px", textAlign: "right", fontWeight: 600 }}>{money(Number(query.data.amount || query.data.totalAmount || 0))}</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Bottom Totals & Signatures */}
-            <div style={{ marginTop: "40px" }}>
-              {(() => {
-                const total = Number(query.data.amount || query.data.totalAmount || 0);
-                const { beforeVat, vat } = splitVatInclusive(total, vatRate);
-
-                return (
-                  <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "40px", fontSize: "12px" }}>
-                    <div>
-                      <div style={{ fontWeight: "bold", color: "#111827" }}>หมายเหตุ</div>
-                      <div style={{ marginTop: "6px", color: "#4b5563" }}>
-                        ราคานี้ยืนยันความถูกต้องตามวันที่ระบุในเอกสาร
-                      </div>
-                      <div style={{ color: "#4b5563" }}>
-                        {String(query.data.note || "เงื่อนไขการชำระเงินตามที่ตกลง")}
-                      </div>
-                    </div>
-                    <div style={{ borderTop: "2px solid #111827", paddingTop: "12px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
-                        <span>ราคาสินค้าก่อนภาษี</span>
-                        <span>{money(beforeVat)}</span>
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
-                        <span>ภาษีมูลค่าเพิ่ม {vatRate}%</span>
-                        <span>{money(vat)}</span>
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", borderTop: "2px solid #111827", paddingTop: "8px", fontSize: "15px", fontWeight: "bold", color: "#111827" }}>
-                        <span>จำนวนเงินรวมทั้งสิ้น</span>
-                        <span>{money(total)}</span>
-                      </div>
-                      <div style={{ textAlign: "center", fontSize: "11px", color: "#4b5563", marginTop: "4px" }}>
-                        ({bahtText(total)})
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              <div style={{ marginTop: "50px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "80px", textAlign: "center", fontSize: "11px" }}>
-                <div>
-                  <div style={{ marginBottom: "40px", color: "#374151" }}>ผู้สั่งซื้อสินค้า / ผู้รับใบเสนอราคา</div>
-                  <div style={{ borderBottom: "1px solid #9ca3af" }} />
-                  <div style={{ marginTop: "8px", color: "#6b7280" }}>วันที่ _____ / _____ / _________</div>
-                </div>
-                <div>
-                  <div style={{ marginBottom: "40px", color: "#374151" }}>ผู้อนุมัติ / ผู้เสนอราคา</div>
-                  <div style={{ borderBottom: "1px solid #9ca3af" }} />
-                  <div style={{ marginTop: "8px", color: "#6b7280" }}>วันที่ _____ / _____ / _________</div>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-      )}
-
-      {/* Hidden A4 Print Template for Invoice (Matches erp-web) */}
-      {resource === "invoices" && query.data && (
-        <div style={{ position: "absolute", left: "-9999px", top: "-9999px" }}>
-          <section
-            id={`invoice-print-template-${query.data.id}`}
-            style={{
-              width: "794px",
-              minHeight: "1122px",
-              boxSizing: "border-box",
-              backgroundColor: "#ffffff",
-              color: "#1f2937",
-              padding: "40px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              fontFamily: "sans-serif",
-            }}
-          >
-            <div>
-              {/* Header */}
-              <header style={{ display: "flex", justifyContent: "space-between", borderBottom: "2px solid #1f2937", paddingBottom: "16px" }}>
-                <div style={{ display: "flex", gap: "12px", maxWidth: "450px" }}>
-                  <img
-                    src="/assets/images/company-logo.jpg"
-                    alt="Chawy ERP"
-                    crossOrigin="anonymous"
-                    style={{ width: "72px", height: "auto", objectFit: "contain" }}
-                    onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
-                  />
-                  <div style={{ fontSize: "11px", lineHeight: "1.5", color: "#374151" }}>
-                    <div style={{ fontSize: "16px", fontWeight: "bold", color: "#111827" }}>
-                      Chawy Co., Ltd. (สำนักงานใหญ่)
-                    </div>
-                    <div>123/45 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพมหานคร 10110</div>
-                    <div>เลขประจำตัวผู้เสียภาษี 0105560000000</div>
-                    <div>โทร 02-123-4567 · info@chawy.com</div>
-                  </div>
-                </div>
-                <div style={{ textAlign: "right", minWidth: "250px" }}>
-                  <h1 style={{ fontSize: "24px", fontWeight: "bold", margin: 0, color: "#111827" }}>
-                    ใบแจ้งหนี้
-                  </h1>
-                  <div style={{ fontSize: "11px", letterSpacing: "0.15em", color: "#6b7280", marginTop: "4px" }}>
-                    INVOICE · ต้นฉบับ
-                  </div>
-                  <div style={{ marginTop: "12px", fontSize: "11px", display: "grid", gridTemplateColumns: "70px 1fr", rowGap: "4px", textAlign: "left" }}>
-                    <span style={{ color: "#374151" }}>เลขที่</span>
-                    <b>{String(query.data.code || query.data.invoiceNo || query.data.id)}</b>
-                    <span style={{ color: "#374151" }}>วันที่</span>
-                    <span>{thaiDate(String(query.data.issueDate || query.data.date || ""))}</span>
-                    <span style={{ color: "#374151" }}>ครบกำหนด</span>
-                    <span>{thaiDate(String(query.data.dueDate || ""))}</span>
-                    <span style={{ color: "#374151" }}>อ้างอิง SO</span>
-                    <span>{String(query.data.soRef || query.data.orderNo || "–")}</span>
-                    <span style={{ color: "#374151" }}>สถานะ</span>
-                    <span style={{ fontWeight: 600, color: query.data.status === "PAID" ? "#059669" : "#d97706" }}>
-                      {String(query.data.status || "UNPAID")}
-                    </span>
-                  </div>
-                </div>
-              </header>
-
-              {/* Customer Info */}
-              <div style={{ marginTop: "24px", borderBottom: "1px solid #d1d5db", paddingBottom: "16px", fontSize: "11px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div>
-                  <div style={{ fontWeight: "bold", color: "#374151", marginBottom: "4px" }}>ลูกค้า</div>
-                  <div style={{ fontSize: "14px", fontWeight: "bold", color: "#111827" }}>
-                    {String(query.data.customer || query.data.customerName || "–")}
-                  </div>
-                  <div style={{ marginTop: "4px", color: "#4b5563" }}>
-                    {query.data.customerAddress ? String(query.data.customerAddress) : "สำนักงานใหญ่ / สถานที่จัดส่งตามที่ระบุ"}
-                  </div>
-                </div>
-                {Boolean(query.data.customerLogo || query.data.logo) ? (
-                  <div style={{ marginLeft: "16px", flexShrink: 0 }}>
-                    <img
-                      src={getImageUrl(String(query.data.customerLogo || query.data.logo))}
-                      alt="Customer Logo"
-                      crossOrigin="anonymous"
-                      style={{ height: "48px", maxWidth: "120px", objectFit: "contain", borderRadius: "4px", border: "1px solid #e5e7eb", padding: "2px" }}
-                      onError={(e) => {
-                        (e.target as HTMLElement).style.display = "none";
-                      }}
-                    />
-                  </div>
-                ) : null}
-              </div>
-
-              {/* Line Items Table */}
-              <table style={{ marginTop: "24px", width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
-                <thead>
-                  <tr style={{ backgroundColor: "#f3f4f6", borderTop: "2px solid #6b7280", borderBottom: "2px solid #6b7280", height: "36px" }}>
-                    <th style={{ width: "8%", padding: "8px", textAlign: "center" }}>#</th>
-                    <th style={{ width: "46%", padding: "8px", textAlign: "left" }}>รายละเอียด</th>
-                    <th style={{ width: "12%", padding: "8px", textAlign: "right" }}>จำนวน</th>
-                    <th style={{ width: "16%", padding: "8px", textAlign: "right" }}>ราคาต่อหน่วย</th>
-                    <th style={{ width: "18%", padding: "8px", textAlign: "right" }}>มูลค่า</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Array.isArray(query.data.lines) && (query.data.lines as RecordLine[]).length > 0 ? (
-                    (query.data.lines as RecordLine[]).map((line, idx) => (
-                      <tr key={idx} style={{ borderBottom: "1px solid #e5e7eb" }}>
-                        <td style={{ padding: "10px 8px", textAlign: "center", color: "#6b7280" }}>{idx + 1}</td>
-                        <td style={{ padding: "10px 8px", textAlign: "left" }}>
-                          <div style={{ fontWeight: "bold", color: "#111827" }}>{line.name || line.sku}</div>
-                          <div style={{ fontSize: "10px", color: "#6b7280", fontFamily: "monospace" }}>{line.sku}</div>
-                        </td>
-                        <td style={{ padding: "10px 8px", textAlign: "right" }}>{line.qty || line.quantity}</td>
-                        <td style={{ padding: "10px 8px", textAlign: "right" }}>{money(Number(line.price || line.unitPrice || 0))}</td>
-                        <td style={{ padding: "10px 8px", textAlign: "right", fontWeight: 600 }}>{money(Number(line.subtotal || (Number(line.qty || line.quantity) * Number(line.price || line.unitPrice)) || 0))}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-                      <td style={{ padding: "10px 8px", textAlign: "center" }}>1</td>
-                      <td style={{ padding: "10px 8px", textAlign: "left" }}>
-                        <div style={{ fontWeight: "bold" }}>ยอดเรียกเก็บตามใบสั่งขาย {String(query.data.soRef || query.data.orderNo || "")}</div>
-                      </td>
-                      <td style={{ padding: "10px 8px", textAlign: "right" }}>1</td>
-                      <td style={{ padding: "10px 8px", textAlign: "right" }}>{money(Number(query.data.amount || query.data.totalAmount || 0))}</td>
-                      <td style={{ padding: "10px 8px", textAlign: "right", fontWeight: 600 }}>{money(Number(query.data.amount || query.data.totalAmount || 0))}</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Bottom Totals & Signatures */}
-            <div style={{ marginTop: "40px" }}>
-              {(() => {
-                const total = Number(query.data.amount || query.data.totalAmount || 0);
-                const { beforeVat, vat } = splitVatInclusive(total, vatRate);
-
-                return (
-                  <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "40px", fontSize: "12px" }}>
-                    <div>
-                      <div style={{ fontWeight: "bold", color: "#111827" }}>เงื่อนไขการชำระเงิน</div>
-                      <div style={{ marginTop: "6px", color: "#4b5563" }}>
-                        โอนเงินเข้าบัญชีธนาคาร: กสิกรไทย 123-4-56789-0 (บจก. ชาวยี่)
-                      </div>
-                      <div style={{ color: "#4b5563" }}>
-                        วิธีการชำระ: {String(query.data.paymentMethod || "Bank Transfer")}
-                      </div>
-                      <div style={{ color: "#4b5563" }}>
-                        {query.data.status === "PAID" ? "ชำระเงินเรียบร้อยแล้ว (Paid)" : "กรุณาชำระเงินภายในวันที่ครบกำหนด"}
-                      </div>
-                    </div>
-                    <div style={{ borderTop: "2px solid #111827", paddingTop: "12px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
-                        <span>ราคาสินค้าก่อนภาษี</span>
-                        <span>{money(beforeVat)}</span>
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
-                        <span>ภาษีมูลค่าเพิ่ม {vatRate}%</span>
-                        <span>{money(vat)}</span>
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", borderTop: "2px solid #111827", paddingTop: "8px", fontSize: "15px", fontWeight: "bold", color: "#111827" }}>
-                        <span>จำนวนเงินรวมทั้งสิ้น</span>
-                        <span>{money(total)}</span>
-                      </div>
-                      <div style={{ textAlign: "center", fontSize: "11px", color: "#4b5563", marginTop: "4px" }}>
-                        ({bahtText(total)})
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              <div style={{ marginTop: "50px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "80px", textAlign: "center", fontSize: "11px" }}>
-                <div>
-                  <div style={{ marginBottom: "40px", color: "#374151" }}>ผู้รับวางบิล / ผู้จ่ายเงิน</div>
-                  <div style={{ borderBottom: "1px solid #9ca3af" }} />
-                  <div style={{ marginTop: "8px", color: "#6b7280" }}>วันที่ _____ / _____ / _________</div>
-                </div>
-                <div>
-                  <div style={{ marginBottom: "40px", color: "#374151" }}>ผู้ออกเอกสาร / ผู้รับเงิน</div>
-                  <div style={{ borderBottom: "1px solid #9ca3af" }} />
-                  <div style={{ marginTop: "8px", color: "#6b7280" }}>วันที่ _____ / _____ / _________</div>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-      )}
     </>
   );
 }
