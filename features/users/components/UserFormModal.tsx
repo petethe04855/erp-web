@@ -83,11 +83,6 @@ export function UserFormModal({
       return;
     }
 
-    if (!isEdit && !password) {
-      setError("กรุณากำหนดรหัสผ่านสำหรับผู้ใช้ใหม่");
-      return;
-    }
-
     if (password && password.length < 6) {
       setError("รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร");
       return;
@@ -111,7 +106,7 @@ export function UserFormModal({
         if (!onSubmitCreate) return;
         await onSubmitCreate({
           email: email.trim(),
-          password,
+          password: password ? password : undefined,
           firstname: firstname.trim(),
           lastname: lastname.trim(),
           role,
@@ -135,7 +130,7 @@ export function UserFormModal({
             <DialogDescription>
               {isEdit
                 ? `แก้ไขบัญชีผู้ใช้ ${initialUser?.email || ""}`
-                : "กำหนดข้อมูลบัญชีผู้ใช้ รหัสผ่าน และบทบาทในการเข้าถึงระบบ ERP"}
+                : "สร้างบัญชีผู้ใช้ใหม่ ระบบจะสุ่มรหัสผ่านและส่งข้อมูลเข้าสู่ระบบไปยังอีเมลของผู้ใช้โดยอัตโนมัติ"}
             </DialogDescription>
           </DialogHeader>
 
@@ -143,6 +138,7 @@ export function UserFormModal({
             <div className="rounded-lg bg-red-50 p-3 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300 border border-red-200 dark:border-red-800">
               {error}
             </div>
+
           )}
 
           <div className="space-y-3.5">
@@ -168,7 +164,9 @@ export function UserFormModal({
                 <Label htmlFor="password" className="text-xs font-semibold">
                   รหัสผ่าน (Password){" "}
                   {!isEdit ? (
-                    <span className="text-red-500">*</span>
+                    <span className="text-neutral-500 font-normal">
+                      (เว้นว่างไว้เพื่อให้ระบบสุ่มรหัสผ่านและส่งทางอีเมล)
+                    </span>
                   ) : (
                     <span className="text-neutral-400 font-normal">
                       (เว้นว่างไว้หากไม่ต้องการเปลี่ยน)
@@ -179,14 +177,23 @@ export function UserFormModal({
               <Input
                 id="password"
                 type="password"
-                minLength={isEdit && !password ? undefined : 6}
-                required={!isEdit}
+                minLength={6}
                 className="mt-1.5 text-xs"
-                placeholder={isEdit ? "•••••••• (ไม่เปลี่ยนรหัสผ่าน)" : "ขั้นต่ำ 6 ตัวอักษร"}
+                placeholder={
+                  isEdit
+                    ? "•••••••• (ไม่เปลี่ยนรหัสผ่าน)"
+                    : "เว้นว่างไว้เพื่อให้ระบบสุ่มรหัสผ่านอัตโนมัติ (หรือระบุอย่างน้อย 6 ตัวอักษร)"
+                }
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+              {!isEdit && (
+                <p className="mt-1.5 text-[11px] text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                  <span>✉️</span> หากเว้นว่างไว้ ระบบจะสุ่มรหัสผ่านที่ปลอดภัยและส่งข้อมูลบัญชีไปยังอีเมลของผู้ใช้งานโดยอัตโนมัติ
+                </p>
+              )}
             </div>
+
 
             {/* Name fields */}
             <div className="grid grid-cols-2 gap-3">

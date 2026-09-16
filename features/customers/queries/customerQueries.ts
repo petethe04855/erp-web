@@ -1,6 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { customerApi } from "../api/customerApi";
-import { CustomerQueryParams, CreateCustomerDTO } from "../types/customer";
+import {
+  CustomerQueryParams,
+  CreateCustomerDTO,
+  UpdateCustomerDTO,
+} from "../types/customer";
+
 
 export const CUSTOMER_QUERY_KEYS = {
   all: ["customers"] as const,
@@ -20,7 +25,34 @@ export function useCreateCustomerMutation() {
   return useMutation({
     mutationFn: (dto: CreateCustomerDTO) => customerApi.createCustomer(dto),
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: CUSTOMER_QUERY_KEYS.all });
     },
   });
 }
+
+export function useUpdateCustomerMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      dto,
+    }: {
+      id: string | number;
+      dto: UpdateCustomerDTO;
+    }) => customerApi.updateCustomer(id, dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: CUSTOMER_QUERY_KEYS.all });
+    },
+  });
+}
+
+export function useDeleteCustomerMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string | number) => customerApi.deleteCustomer(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: CUSTOMER_QUERY_KEYS.all });
+    },
+  });
+}
+
