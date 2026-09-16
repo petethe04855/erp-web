@@ -29,6 +29,8 @@ export interface SalesReturnLine {
   condition: ItemCondition;
   restock: boolean;
   reason_code: ReasonCode;
+  /** รูปถ่ายยืนยันสภาพสินค้า (เช่น สินค้าเสียหาย/หมดอายุ) — URL จาก POST /upload/image */
+  evidence_images?: string[];
   lot_ref?: string;
 }
 
@@ -76,6 +78,8 @@ export interface CreateReturnLineDTO {
   condition?: ItemCondition;
   restock?: boolean;
   reason_code?: ReasonCode;
+  /** รูปยืนยันสภาพสินค้า (บังคับเมื่อ DAMAGED / EXPIRED) */
+  evidence_images?: string[];
   lot_ref?: string;
 }
 
@@ -101,6 +105,8 @@ export interface CompleteReturnLineDTO {
   line_id: number;
   condition: ItemCondition;
   restock: boolean;
+  /** รูปยืนยันเพิ่มเติมจากผลตรวจรับของคลัง (append เข้าเดิม) */
+  add_evidence_images?: string[];
 }
 
 export interface CompleteReturnDTO {

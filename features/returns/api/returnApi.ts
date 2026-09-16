@@ -1,5 +1,23 @@
 import { read, list, writeRecord } from "@/lib/api";
 import type { ApiListResponse } from "@/types/api";
+
+/** อัปโหลดรูปยืนยันสภาพสินค้า (ใช้ endpoint กลางเดียวกับรูป SKU) */
+export async function uploadEvidenceImage(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("image", file);
+  const axios = (await import("@/lib/axios")).default;
+  const res = await axios.post<{
+    success: boolean;
+    data: { url: string };
+    message?: string;
+  }>("/upload/image", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  if (!res.data?.success || !res.data?.data?.url) {
+    throw new Error(res.data?.message || "อัปโหลดรูปภาพไม่สำเร็จ");
+  }
+  return res.data.data.url;
+}
 import type {
   SalesReturn,
   ReturnableItem,

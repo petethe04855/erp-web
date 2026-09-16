@@ -5,16 +5,29 @@ import { FormDialog } from "@/components/form/FormDialog";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, AlertCircle } from "lucide-react";
+import { Trash2, ImagePlus, X, Loader2 } from "lucide-react";
+import { getImageUrl } from "@/lib/utils";
+import { uploadEvidenceImage } from "../api/returnApi";
 import { useOrderListQuery } from "@/features/orders/queries/orderQueries";
 import { useOrderReturnableQuery } from "../queries/returnQueries";
 import type {
   CreateReturnDTO,
-  CreateReturnLineDTO,
   ReturnType,
   ItemCondition,
   ReasonCode,
 } from "../types/return";
+
+/** สภาพสินค้าที่นำกลับเข้าสต็อกพร้อมขายได้ (ส่งผิด = ตัวสินค้ายังสมบูรณ์) */
+const isRestockable = (condition: ItemCondition) =>
+  condition === "GOOD" || condition === "WRONG_ITEM";
+
+/** สาเหตุการคืนถูกกำหนดโดยอัตโนมัติจากสภาพสินค้า */
+const REASON_BY_CONDITION: Record<ItemCondition, ReasonCode> = {
+  GOOD: "CUSTOMER_CHANGE",
+  DAMAGED: "DEFECT",
+  EXPIRED: "DEFECT",
+  WRONG_ITEM: "WRONG_ITEM",
+};
 
 interface Props {
   open: boolean;
@@ -40,8 +53,9 @@ export function ReturnFormModal({ open, onOpenChange, onSubmit }: Props) {
       quantity: number;
       unitPrice: number;
       condition: ItemCondition;
-      restock: boolean;
       reasonCode: ReasonCode;
+      evidenceImages: string[];
+      uploading: boolean;
     }>
   >([]);
 
@@ -77,8 +91,9 @@ export function ReturnFormModal({ open, onOpenChange, onSubmit }: Props) {
             quantity: 1,
             unitPrice: item.unit_price,
             condition: "GOOD" as ItemCondition,
-            restock: true,
             reasonCode: "CUSTOMER_CHANGE" as ReasonCode,
+            evidenceImages: [],
+            uploading: false,
           })),
       );
     }
@@ -89,9 +104,10 @@ export function ReturnFormModal({ open, onOpenChange, onSubmit }: Props) {
       prev.map((line, i) => {
         if (i !== index) return line;
         const updated = { ...line, ...patch };
-        // Enforce business rule: if condition != GOOD, restock must be false
-        if (updated.condition !== "GOOD") {
-          updated.restock = false;
+        // สาเหตุการคืน และการเข้าสต็อก ถูกกำหนดจากสภาพสินค้าโดยอัตโนมัติ:
+        // GOOD / WRONG_ITEM → เข้าสต็อก, DAMAGED / EXPIRED → ไม่เข้าสต็อก
+        if (patch.condition && patch.condition !== line.condition) {
+          updated.reasonCode = REASON_BY_CONDITION[patch.condition];
         }
         return updated;
       }),
@@ -100,6 +116,37 @@ export function ReturnFormModal({ open, onOpenChange, onSubmit }: Props) {
 
   const removeLine = (index: number) => {
     setLines((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  /** เลือกไฟล์รูปยืนยัน → ตรวจนามสกุล/ขนาด → อัปโหลดผ่าน API กลาง */
+  const handleEvidenceFileSelect = async (index: number, file: File) => {
+    if (!"image/png,image/jpeg".split(",").includes(file.type)) {
+      alert("อนุญาตเฉพาะรูปภาพประเภท PNG หรือ JPG เท่านั้น");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert("ขนาดไฟล์รูปภาพเกินกำหนด (ต้องไม่เกิน 5 MB)");
+      return;
+    }
+    updateLine(index, { uploading: true });
+    try {
+      const url = await uploadEvidenceImage(file);
+      updateLine(index, {
+        uploading: false,
+        evidenceImages: [...lines[index].evidenceImages, url],
+      });
+    } catch (err) {
+      updateLine(index, { uploading: false });
+      alert(err instanceof Error ? err.message : "อัปโหลดรูปภาพไม่สำเร็จ");
+    }
+  };
+
+  const removeEvidenceImage = (index: number, url: string) => {
+    const line = lines[index];
+    if (!line) return;
+    updateLine(index, {
+      evidenceImages: line.evidenceImages.filter((x) => x !== url),
+    });
   };
 
   const totalReturnQty = lines.reduce((acc, l) => acc + (Number(l.quantity) || 0), 0);
@@ -125,6 +172,12 @@ export function ReturnFormModal({ open, onOpenChange, onSubmit }: Props) {
           `จำนวนคืนของ ${l.sku} (${l.quantity} ชิ้น) เกินจำนวนที่สามารถคืนได้ (${l.returnableQty} ชิ้น)`,
         );
       }
+      // รูปยืนยันบังคับสำหรับสินค้าเสียหาย/หมดอายุ (backend ตรวจซ้ำอีกชั้น)
+      if (!isRestockable(l.condition) && l.evidenceImages.length === 0) {
+        throw new Error(
+          `สินค้า ${l.sku} มีสภาพเสียหาย/หมดอายุ กรุณาแนบรูปถ่ายยืนยันอย่างน้อย 1 รูป`,
+        );
+      }
     }
 
     const payload: CreateReturnDTO = {
@@ -138,8 +191,9 @@ export function ReturnFormModal({ open, onOpenChange, onSubmit }: Props) {
         sku: l.sku,
         quantity: l.quantity,
         condition: l.condition,
-        restock: l.restock,
+        restock: isRestockable(l.condition),
         reason_code: l.reasonCode,
+        evidence_images: l.evidenceImages.length > 0 ? l.evidenceImages : undefined,
       })),
     };
 
@@ -269,7 +323,7 @@ export function ReturnFormModal({ open, onOpenChange, onSubmit }: Props) {
                     </Button>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                  <div className="grid grid-cols-2 gap-2 pt-1">
                     <div>
                       <span className="text-[10px] font-semibold text-neutral-600 block mb-1">
                         จำนวนขอคืน
@@ -306,42 +360,82 @@ export function ReturnFormModal({ open, onOpenChange, onSubmit }: Props) {
                         <option value="WRONG_ITEM">ส่งผิด (WRONG_ITEM)</option>
                       </Select>
                     </div>
+                  </div>
 
-                    <div>
-                      <span className="text-[10px] font-semibold text-neutral-600 block mb-1">
-                        สาเหตุการคืน
+                  {/* สรุปผลจากสภาพสินค้าโดยอัตโนมัติ */}
+                  <div className="text-[11px] flex items-center gap-1.5 pt-0.5">
+                    {isRestockable(line.condition) ? (
+                      <span className="text-emerald-600 font-medium">
+                        ✓ จะรับเข้าสต็อกอัตโนมัติเมื่อตรวจรับ
                       </span>
-                      <Select
-                        className="h-8 text-xs bg-white"
-                        value={line.reasonCode}
-                        onChange={(e) =>
-                          updateLine(i, {
-                            reasonCode: e.target.value as ReasonCode,
-                          })
-                        }
-                      >
-                        <option value="CUSTOMER_CHANGE">ลูกค้าเปลี่ยนใจ</option>
-                        <option value="DEFECT">สินค้าชำรุด/มีตำหนิ</option>
-                        <option value="LATE_DELIVERY">ส่งช้าเกินกำหนด</option>
-                        <option value="WRONG_ITEM">ส่งผิดรายการ/สี/ไซส์</option>
-                        <option value="OTHER">อื่นๆ</option>
-                      </Select>
-                    </div>
+                    ) : (
+                      <span className="text-amber-600 font-medium">
+                        ✕ สินค้าเสียหาย/หมดอายุ — จะไม่นำกลับเข้าสต็อก
+                      </span>
+                    )}
+                  </div>
 
-                    <div className="flex flex-col justify-end">
-                      <label className="flex items-center gap-1.5 cursor-pointer select-none text-[11px] font-medium text-neutral-700 h-8">
+                  {/* รูปถ่ายยืนยันสภาพสินค้า (บังคับเมื่อเสียหาย/หมดอายุ) */}
+                  <div className="pt-1 border-t border-neutral-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-semibold text-neutral-600">
+                        รูปถ่ายยืนยันสภาพสินค้า
+                        {!isRestockable(line.condition) && (
+                          <span className="text-rose-500"> * (บังคับ)</span>
+                        )}
+                      </span>
+                      <label
+                        className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md border cursor-pointer transition-colors ${
+                          line.uploading
+                            ? "opacity-50 cursor-not-allowed border-neutral-200 text-neutral-400"
+                            : "border-neutral-300 text-neutral-700 hover:bg-neutral-100"
+                        }`}
+                      >
+                        {line.uploading ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <ImagePlus className="h-3 w-3" />
+                        )}
+                        {line.uploading ? "กำลังอัปโหลด..." : "เพิ่มรูป"}
                         <input
-                          type="checkbox"
-                          checked={line.restock}
-                          disabled={line.condition !== "GOOD"}
-                          onChange={(e) =>
-                            updateLine(i, { restock: e.target.checked })
-                          }
-                          className="h-3.5 w-3.5 rounded border-neutral-300 text-primary focus:ring-primary"
+                          type="file"
+                          accept="image/png,image/jpeg"
+                          className="hidden"
+                          disabled={line.uploading}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = ""; // เลือกไฟล์เดิมซ้ำได้
+                            if (file) void handleEvidenceFileSelect(i, file);
+                          }}
                         />
-                        <span>รับเข้าสต็อก (Restock)</span>
                       </label>
                     </div>
+
+                    {line.evidenceImages.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {line.evidenceImages.map((url) => (
+                          <div
+                            key={url}
+                            className="relative w-14 h-14 rounded-md overflow-hidden border border-neutral-200 group"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={getImageUrl(url)}
+                              alt="หลักฐานสภาพสินค้า"
+                              className="w-full h-full object-cover"
+                            />
+                            <button
+                              type="button"
+                              aria-label="ลบรูป"
+                              className="absolute top-0 right-0 bg-black/60 text-white rounded-bl-md p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => removeEvidenceImage(i, url)}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

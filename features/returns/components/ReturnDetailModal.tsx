@@ -18,6 +18,7 @@ import {
   Clock,
   ArrowDownLeft,
 } from "lucide-react";
+import { getImageUrl } from "@/lib/utils";
 import type { SalesReturn } from "../types/return";
 
 interface Props {
@@ -146,6 +147,28 @@ export function ReturnDetailModal({
                       </span>
                     )}
                   </div>
+                  {/* รูปถ่ายยืนยันสภาพสินค้า */}
+                  {(line.evidence_images?.length ?? 0) > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {line.evidence_images!.map((url) => (
+                        <a
+                          key={url}
+                          href={getImageUrl(url)}
+                          target="_blank"
+                          rel="noreferrer"
+                          title="เปิดรูปเต็ม (แท็บใหม่)"
+                          className="w-12 h-12 rounded-md overflow-hidden border border-neutral-200 block"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={getImageUrl(url)}
+                            alt="หลักฐานสภาพสินค้า"
+                            className="w-full h-full object-cover"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="text-right">
                   <div className="font-bold text-neutral-900">
