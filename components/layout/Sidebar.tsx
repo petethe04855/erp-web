@@ -54,7 +54,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     title: "สินค้าและคลัง",
     items: [
-      { label: "สินค้า (Products)", href: "/products", icon: Package },
+      // { label: "สินค้า (Products)", href: "/products", icon: Package }, // ซ่อน Product Catalog ชั่วคราว
       { label: "SKU Master", href: "/sku", icon: Layers },
       { label: "สต็อกคงคลัง (Inventory)", href: "/inventory", icon: Boxes },
       {
