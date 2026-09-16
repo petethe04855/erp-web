@@ -6,12 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Upload, X, Loader2, Building2 } from "lucide-react";
 import { customerApi } from "../api/customerApi";
 import { getImageUrl } from "@/lib/utils";
-import type { CreateCustomerDTO } from "../types/customer";
+import type { CreateCustomerDTO, Customer } from "../types/customer";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: CreateCustomerDTO) => Promise<unknown>;
+  initialData?: Customer | null;
   isSubmitting?: boolean;
 }
 
@@ -30,23 +31,41 @@ export function CustomerForm(props: Props) {
   const [uploadError, setUploadError] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const isEditing = Boolean(props.initialData);
+
   useEffect(() => {
-    if (!props.open) {
-      setName("");
-      setContact("");
-      setEmail("");
-      setPhone("");
-      setTax("");
-      setAddress("");
+    if (props.open) {
+      if (props.initialData) {
+        setName(props.initialData.name || "");
+        setContact(props.initialData.contactPerson || "");
+        setEmail(props.initialData.email || "");
+        setPhone(props.initialData.phone || "");
+        setTax(props.initialData.taxId || "");
+        setAddress(props.initialData.address || "");
+        setPreviewUrl(props.initialData.logo || "");
+      } else {
+        setName("");
+        setContact("");
+        setEmail("");
+        setPhone("");
+        setTax("");
+        setAddress("");
+        setPreviewUrl("");
+      }
       setSelectedFile(null);
+      setUploadError("");
+      setIsUploading(false);
+    } else {
       if (previewUrl && previewUrl.startsWith("blob:")) {
         URL.revokeObjectURL(previewUrl);
       }
+      setSelectedFile(null);
       setPreviewUrl("");
       setUploadError("");
       setIsUploading(false);
     }
-  }, [props.open]);
+  }, [props.open, props.initialData]);
+
 
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -88,7 +107,7 @@ export function CustomerForm(props: Props) {
   };
 
   const handleSubmit = async () => {
-    let finalLogoUrl = "";
+    let finalLogoUrl = previewUrl;
 
     if (selectedFile) {
       try {
@@ -120,11 +139,16 @@ export function CustomerForm(props: Props) {
   return (
     <FormDialog
       {...props}
-      title="เพิ่มลูกค้า"
-      description="บันทึกข้อมูลลูกค้าและรูปบริษัท ระบบจะตรวจสอบและจัดเก็บให้อัตโนมัติ"
+      title={isEditing ? "แก้ไขข้อมูลลูกค้า" : "เพิ่มลูกค้า"}
+      description={
+        isEditing
+          ? `แก้ไขข้อมูลลูกค้า ${props.initialData?.name || props.initialData?.code || ""}`
+          : "บันทึกข้อมูลลูกค้าและรูปบริษัท ระบบจะตรวจสอบและจัดเก็บให้อัตโนมัติ"
+      }
       isSubmitting={props.isSubmitting || isUploading}
       onSubmit={handleSubmit}
     >
+
       {/* Company Logo Upload */}
       <div className="space-y-1.5">
         <span className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">

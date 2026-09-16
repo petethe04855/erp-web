@@ -6,8 +6,12 @@ export interface Customer {
   email: string;
   phone: string;
   taxId: string;
+  address?: string;
   logo?: string;
+  channel?: string;
+  status?: string;
 }
+
 
 export interface CustomerQueryParams {
   search?: string;

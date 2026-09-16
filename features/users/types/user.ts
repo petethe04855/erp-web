@@ -22,12 +22,13 @@ export interface UserFilterState {
 
 export interface CreateUserDTO {
   email: string;
-  password: string;
+  password?: string;
   firstname?: string;
   lastname?: string;
   name?: string;
   role: UserRole;
 }
+
 
 export interface UpdateUserDTO {
   email?: string;

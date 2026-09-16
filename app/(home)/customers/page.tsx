@@ -10,9 +10,11 @@ import { useCustomers } from "@/features/customers/hooks/useCustomers";
 import { CustomerSearch } from "@/features/customers/components/CustomerSearch";
 import { CustomerTable } from "@/features/customers/components/CustomerTable";
 import { CustomerForm } from "@/features/customers/components/CustomerForm";
+import type { Customer, CreateCustomerDTO } from "@/features/customers/types/customer";
 
 export default function CustomersPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
 
   const {
     customers,
@@ -27,8 +29,28 @@ export default function CustomersPage() {
     resetFilters,
     refetch,
     createCustomer,
+    updateCustomer,
     isCreating,
+    isUpdating,
   } = useCustomers();
+
+  const handleOpenCreate = () => {
+    setEditingCustomer(null);
+    setIsFormOpen(true);
+  };
+
+  const handleOpenEdit = (customer: Customer) => {
+    setEditingCustomer(customer);
+    setIsFormOpen(true);
+  };
+
+  const handleFormSubmit = async (dto: CreateCustomerDTO) => {
+    if (editingCustomer) {
+      await updateCustomer(editingCustomer.id, dto);
+    } else {
+      await createCustomer(dto);
+    }
+  };
 
   return (
     <PageContainer>
@@ -36,7 +58,7 @@ export default function CustomersPage() {
         title="Customer Directory"
         description="ข้อมูลจริงจาก Chawy ERP"
         actions={
-          <Button size="sm" onClick={() => setIsFormOpen(true)}>
+          <Button size="sm" onClick={handleOpenCreate}>
             <Plus className="mr-1.5 h-3.5 w-3.5" />
             New Customer
           </Button>
@@ -60,6 +82,7 @@ export default function CustomersPage() {
             onPageChange={handlePageChange}
             onLimitChange={handleLimitChange}
             onRetry={refetch}
+            onEdit={handleOpenEdit}
           />
         }
       />
@@ -67,9 +90,11 @@ export default function CustomersPage() {
       <CustomerForm
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
-        onSubmit={createCustomer}
-        isSubmitting={isCreating}
+        onSubmit={handleFormSubmit}
+        initialData={editingCustomer}
+        isSubmitting={isCreating || isUpdating}
       />
     </PageContainer>
   );
 }
+

@@ -5,6 +5,8 @@ import { DataTable } from "@/components/common/DataTable";
 import { RecordDetails } from "@/features/erp/components/RecordDetails";
 import { Building2 } from "lucide-react";
 import { getImageUrl } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Edit } from "lucide-react";
 import type { Customer } from "../types/customer";
 import type { ApiPaginationMeta } from "@/types/api";
 
@@ -16,6 +18,7 @@ interface CustomerTableProps {
   onPageChange: (page: number) => void;
   onLimitChange?: (limit: number) => void;
   onRetry: () => void;
+  onEdit?: (customer: Customer) => void;
 }
 
 function CustomerLogoThumbnail({
@@ -67,7 +70,23 @@ export function CustomerTable(props: CustomerTableProps) {
         { key: "phone", label: "โทรศัพท์" },
         { key: "taxId", label: "เลขผู้เสียภาษี" },
       ]}
-      actions={(row) => <RecordDetails resource="customers" id={row.id} />}
+      actions={(row) => (
+        <div className="flex items-center justify-end gap-1.5">
+          <RecordDetails resource="customers" id={row.id} />
+          {props.onEdit && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 px-2.5 text-xs gap-1 border-neutral-200 text-neutral-700 hover:text-primary hover:border-primary/50 dark:border-neutral-700 dark:text-neutral-300"
+              onClick={() => props.onEdit?.(row)}
+            >
+              <Edit className="h-3.5 w-3.5" />
+              แก้ไข
+            </Button>
+          )}
+        </div>
+      )}
     />
   );
 }
+
