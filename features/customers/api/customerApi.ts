@@ -30,7 +30,7 @@ export const customerApi = {
       success: boolean;
       data: { url: string };
       message?: string;
-    }>("/upload/image", formData, {
+    }>("/upload/image?folder=customers", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
     if (!res.data?.success || !res.data?.data?.url) {
