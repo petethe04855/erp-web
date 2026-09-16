@@ -1,441 +1,139 @@
 "use client";
-import { useTheme } from "@/lib/design/ThemeContext";
-import { TopBar, StockBadge } from "@/components/ui";
+
+import { PageHeader } from "@/components/layout/PageHeader";
+import React, { useState } from "react";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { TwoColumnLayout } from "@/components/layout/TwoColumnLayout";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
-import { useState } from "react";
-import { useErpStore } from "@/lib/store/useErpStore";
-import type { Product, CreateProductInput } from "@/lib/store/erpWorkflow";
+import { Plus } from "lucide-react";
+import { useSKU } from "@/features/sku/hooks/useSKU";
+import { SKUSearch } from "@/features/sku/components/SKUSearch";
+import { SKUTable } from "@/features/sku/components/SKUTable";
+import { SKUForm } from "@/features/sku/components/SKUForm";
+import { SKUStockAdjustmentModal } from "@/features/sku/components/SKUStockAdjustmentModal";
+import { SKU, CreateSKUDTO, UpdateSKUDTO, StockAdjustmentDTO } from "@/features/sku/types/sku";
 
-// Import Sub-Components
-import SkuStats from "./components/SkuStats";
-import SkuFilters from "./components/SkuFilters";
-import SkuFormModal from "./components/SkuFormModal";
-import SkuViewModal from "./components/SkuViewModal";
-import DeleteConfirmModal from "./components/DeleteConfirmModal";
+/**
+ * SKU Management Page
+ * Adheres strictly to Section 20 of ERP_WEB_ARCHITECTURE.md:
+ * - Lightweight composition only
+ * - No inline API requests
+ * - No inline table or complex business logic
+ */
+export default function SKUPage() {
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingSKU, setEditingSKU] = useState<SKU | null>(null);
+  const [adjustingSKU, setAdjustingSKU] = useState<SKU | null>(null);
 
-const EMPTY_FORM: CreateProductInput = {
-  sku: "",
-  name: "",
-  type: "Finished Product",
-  barcode: "",
-  weightGrams: 0,
-  retailPrice: 0,
-  wholesalePrice: 0,
-  cost: 0,
-  stock: 0,
-  reorder: 0,
-  isBundle: false,
-  note: "",
-  baseUnit: "piece",
-  components: [],
-};
+  const {
+    skus,
+    meta,
+    isLoading,
+    isError,
+    filters,
+    handleSearch,
+    handleCategoryChange,
+    handleStatusChange,
+    handlePageChange,
+    handleLimitChange,
+    resetFilters,
+    refetch,
+    createSKU,
+    updateSKU,
+    toggleSKUStatus,
+    deleteSKU,
+    adjustStock,
+    isCreating,
+    isUpdating,
+    isAdjusting,
+  } = useSKU();
 
-function formatBaht(n: number | undefined | null) {
-  const val = Number(n) || 0;
-  return "฿" + val.toLocaleString("th-TH");
-}
+  const handleOpenCreate = () => {
+    setEditingSKU(null);
+    setIsFormOpen(true);
+  };
 
-type ModalMode = "add" | "edit" | "view" | null;
+  const handleEdit = (skuItem: SKU) => {
+    setEditingSKU(skuItem);
+    setIsFormOpen(true);
+  };
 
-export default function SkuPage() {
-  const { tokens: t } = useTheme();
-  const c = t.color;
-  const products = useErpStore((s) => s.products);
-  const bundleComponents = useErpStore((s) => s.bundleComponents);
-  const calcBundleVirtualStock = useErpStore((s) => s.calcBundleVirtualStock);
-  const addProduct = useErpStore((s) => s.addProduct);
-  const updateProduct = useErpStore((s) => s.updateProduct);
-  const deleteProduct = useErpStore((s) => s.deleteProduct);
+  const handleAdjustStock = (skuItem: SKU) => {
+    setAdjustingSKU(skuItem);
+  };
 
-  const [search, setSearch] = useState("");
-  const [filterActive, setFilterActive] = useState<
-    "all" | "active" | "inactive"
-  >("active");
-  const [modalMode, setModalMode] = useState<ModalMode>(null);
-  const [selected, setSelected] = useState<Product | null>(null);
-  const [form, setForm] = useState<CreateProductInput>(EMPTY_FORM);
-  const [error, setError] = useState("");
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const handleStockAdjustmentSubmit = async (dto: StockAdjustmentDTO) => {
+    await adjustStock(dto);
+    setAdjustingSKU(null);
+  };
 
-  // Filtered list
-  const filtered = products.filter((p) => {
-    const q = search.toLowerCase();
-    const matchSearch =
-      !q ||
-      p.sku.toLowerCase().includes(q) ||
-      p.name.toLowerCase().includes(q) ||
-      p.barcode.includes(q);
-    const matchActive =
-      filterActive === "all" ||
-      (filterActive === "active" ? p.isActive : !p.isActive);
-    return matchSearch && matchActive;
-  });
-
-  // Stats
-  const active = products.filter((p) => p.isActive);
-  const outStock = active.filter((p) => !p.isBundle && p.stock === 0);
-  const availableStock = (product: Product) => product.isBundle
-    ? calcBundleVirtualStock(product.sku)
-    : Math.max(0, product.stock - product.reservedQty);
-
-  // Handlers
-  function openAdd() {
-    setForm({ ...EMPTY_FORM });
-    setError("");
-    setModalMode("add");
-  }
-
-  function openEdit(p: Product) {
-    setSelected(p);
-    setForm({
-      sku: p.sku,
-      name: p.name,
-      type: p.type,
-      barcode: p.barcode,
-      weightGrams: p.weightGrams,
-      retailPrice: p.retailPrice,
-      wholesalePrice: p.wholesalePrice,
-      cost: p.cost,
-      stock: p.stock,
-      reorder: p.reorder,
-      isBundle: p.isBundle,
-      note: p.note,
-      baseUnit: p.baseUnit ?? "piece",
-      components: bundleComponents
-        .filter((component) => component.bundleSku === p.sku)
-        .map((component) => ({
-          componentSku: component.componentSku,
-          qty: component.qty,
-          unit: component.unit ?? "piece",
-          componentType: component.componentType ?? "material",
-        })),
-    });
-    setError("");
-    setModalMode("edit");
-  }
-
-  function openView(p: Product) {
-    setSelected(p);
-    setModalMode("view");
-  }
-
-  function closeModal() {
-    setModalMode(null);
-    setSelected(null);
-    setError("");
-  }
-
-  function handleSave() {
-    if (!form.sku.trim()) {
-      setError("กรุณากรอก SKU");
-      return;
+  const handleSubmitForm = async (data: CreateSKUDTO | UpdateSKUDTO) => {
+    if (editingSKU) {
+      await updateSKU(editingSKU.sku || editingSKU.id, data as UpdateSKUDTO);
+    } else {
+      await createSKU(data as CreateSKUDTO);
     }
-    if (!form.name.trim()) {
-      setError("กรุณากรอกชื่อสินค้า");
-      return;
-    }
-    if (form.retailPrice <= 0) {
-      setError("ราคาขายต้องมากกว่า 0");
-      return;
-    }
-    if (form.isBundle) {
-      const components = form.components ?? [];
-      if (components.length === 0) {
-        setError("กรุณาเพิ่มสินค้าในแพ็กอย่างน้อย 1 รายการ");
-        return;
-      }
-      if (components.some((component) => !component.componentSku || component.qty <= 0)) {
-        setError("กรุณาเลือก SKU และระบุจำนวนสินค้าในแพ็กให้ถูกต้อง");
-        return;
-      }
-      if (new Set(components.map((component) => component.componentSku)).size !== components.length) {
-        setError("SKU สินค้าในแพ็กซ้ำกัน กรุณารวมจำนวนไว้ในรายการเดียว");
-        return;
-      }
-      if (modalMode === "edit" && selected && !selected.isBundle && selected.stock > 0) {
-        setError("ไม่สามารถเปลี่ยน SKU ที่มี Stock เป็นสินค้าแพ็กได้ กรุณาปรับ Stock ให้เป็น 0 ก่อน");
-        return;
-      }
-    }
-    try {
-      if (modalMode === "add") {
-        addProduct({
-          ...form,
-          type: form.isBundle ? "Bundle" : "Finished Product",
-          cost: 0,
-          stock: form.isBundle ? 0 : Math.max(0, Math.floor(Number(form.stock) || 0)),
-          isBundle: Boolean(form.isBundle),
-          baseUnit: "piece",
-        });
-      } else if (modalMode === "edit" && selected) {
-        updateProduct({
-          sku: selected.sku,
-          newSku: form.sku.trim().toUpperCase(),
-          name: form.name,
-          barcode: form.barcode,
-          retailPrice: form.retailPrice,
-          wholesalePrice: form.retailPrice,
-          price: form.retailPrice,
-          type: form.isBundle ? "Bundle" : "Finished Product",
-          stock: form.isBundle ? 0 : Math.max(0, Math.floor(Number(form.stock) || 0)),
-          isBundle: Boolean(form.isBundle),
-          components: form.isBundle ? form.components : [],
-          note: form.note,
-        });
-      }
-      closeModal();
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
-    }
-  }
-
-  function handleToggleActive(p: Product) {
-    updateProduct({ sku: p.sku, isActive: !p.isActive });
-  }
-
-  function handleDelete(sku: string) {
-    deleteProduct(sku);
-    setDeleteConfirm(null);
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-canvas" style={{ background: c.canvas }}>
-      <TopBar
-        t={t}
-        title="SKU Master"
-        subtitle="จัดการข้อมูลสินค้า (Master Data)"
-      />
-      <div className="px-8 py-6">
-        <div className="flex justify-end mb-6">
-          <Button
-            onClick={openAdd}
-            className="bg-[var(--erp-accent)] text-white gap-1.5 h-9 px-4 text-xs font-semibold rounded-lg shadow-none cursor-pointer"
-          >
-            + เพิ่มสินค้า
+    <PageContainer>
+      {/* Standard Header */}
+      <PageHeader
+        title="SKU Management"
+        description="ข้อมูลจริงจาก Chawy ERP"
+        actions={
+          <Button size="sm" onClick={handleOpenCreate}>
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
+            New SKU
           </Button>
-        </div>
-
-        {/* Stats */}
-        <SkuStats activeCount={active.length} outStockCount={outStock.length} />
-
-        {/* Filters */}
-        <SkuFilters
-          search={search}
-          setSearch={setSearch}
-          filterActive={filterActive}
-          setFilterActive={setFilterActive}
-        />
-
-        {/* Table */}
-        <div
-          className="bg-card rounded-lg border border-border overflow-hidden"
-          style={{
-            background: "var(--erp-surface)",
-            borderColor: "var(--erp-border)",
-          }}
-        >
-          <Table className="w-full border-collapse">
-            <TableHeader
-              className="bg-muted/50 border-b border-border"
-              style={{
-                background: "var(--erp-subtle)",
-                borderColor: "var(--erp-border)",
-              }}
-            >
-              <TableRow>
-                {[
-                  "SKU",
-                  "ชื่อสินค้า",
-                  "ราคาขาย",
-                  "คงเหลือ (Stock)",
-                  "สถานะ",
-                  "",
-                ].map((h) => (
-                  <TableHead
-                    key={h}
-                    className="p-3 text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap"
-                    style={{ color: "var(--erp-ink3)" }}
-                  >
-                    {h}
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="p-10 text-center text-muted-foreground text-sm"
-                  >
-                    ไม่พบสินค้า
-                  </TableCell>
-                </TableRow>
-              )}
-              {filtered.map((p) => (
-                <TableRow
-                  key={p.sku}
-                  className="hover:bg-muted/30 border-b border-border"
-                  style={{
-                    borderColor: "var(--erp-subtle)",
-                    opacity: p.isActive ? 1 : 0.5,
-                  }}
-                >
-                  <TableCell className="p-3">
-                    <span
-                      className="font-mono text-xs font-bold text-[var(--erp-accent)] cursor-pointer"
-                      onClick={() => openView(p)}
-                    >
-                      {p.sku}
-                    </span>
-                  </TableCell>
-                  <TableCell className="p-3">
-                    <div
-                      className="text-sm font-semibold text-foreground"
-                      style={{ color: "var(--erp-ink)" }}
-                    >
-                      {p.name}
-                      {p.isBundle && (
-                        <span className="ml-2 rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700 dark:bg-violet-950/30 dark:text-violet-300">
-                          แพ็ก
-                        </span>
-                      )}
-                    </div>
-                    {p.barcode && (
-                      <div
-                        className="text-xs text-muted-foreground"
-                        style={{ color: "var(--erp-ink3)" }}
-                      >
-                        {p.barcode}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell
-                    className="p-3 text-sm font-medium text-foreground"
-                    style={{ color: "var(--erp-ink)" }}
-                  >
-                    {formatBaht(p.retailPrice)}
-                  </TableCell>
-                  <TableCell className="p-3">
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className="text-sm font-semibold text-foreground"
-                        style={{ color: "var(--erp-ink)" }}
-                      >
-                        {availableStock(p).toLocaleString()}
-                      </span>
-                      <StockBadge
-                        stock={availableStock(p)}
-                        reorder={0}
-                        isBundle={p.isBundle}
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell className="p-3">
-                    <button
-                      onClick={() => handleToggleActive(p)}
-                      className={`
-                      px-2.5 py-1 rounded-full border text-[11px] font-semibold cursor-pointer transition-colors
-                      ${
-                        p.isActive
-                          ? "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-400"
-                          : "border-border bg-muted text-muted-foreground"
-                      }
-                    `}
-                      style={
-                        !p.isActive
-                          ? {
-                              borderColor: "var(--erp-border)",
-                              background: "var(--erp-subtle)",
-                              color: "#9CA3AF",
-                            }
-                          : undefined
-                      }
-                    >
-                      {p.isActive ? "Active" : "Inactive"}
-                    </button>
-                  </TableCell>
-                  <TableCell className="p-3">
-                    <div className="flex gap-1 flex-wrap">
-                      <Button
-                        onClick={() => openEdit(p)}
-                        variant="outline"
-                        size="xs"
-                        className="cursor-pointer border-border"
-                        style={{
-                          borderColor: "var(--erp-border)",
-                          background: "var(--erp-surface)",
-                          color: "#374151",
-                        }}
-                      >
-                        แก้ไข
-                      </Button>
-                      <Button
-                        onClick={() => setDeleteConfirm(p.sku)}
-                        variant="destructive"
-                        size="xs"
-                        className="cursor-pointer bg-[#FFF5F5] border-[#FEE2E2] hover:bg-destructive/10 text-destructive border"
-                        style={{ borderColor: "#FEE2E2" }}
-                      >
-                        ลบ
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-        <div
-          className="mt-2 text-xs text-muted-foreground"
-          style={{ color: "var(--erp-ink3)" }}
-        >
-          แสดง {filtered.length} จาก {products.length} รายการ
-        </div>
-
-        {/* Modals */}
-        {(modalMode === "add" || modalMode === "edit") && (
-          <SkuFormModal
-            modalMode={modalMode}
-            selectedSku={selected?.sku}
-            form={form}
-            products={products}
-            setForm={setForm}
-            error={error}
-            onClose={closeModal}
-            onSave={handleSave}
+        }
+      />
+      <TwoColumnLayout
+        sidebar={
+          <SKUSearch
+            filters={filters}
+            onSearch={handleSearch}
+            onCategoryChange={handleCategoryChange}
+            onStatusChange={handleStatusChange}
+            onReset={resetFilters}
           />
-        )}
-
-        {modalMode === "view" && selected && (
-          <SkuViewModal
-            selected={selected}
-            bundleComponents={bundleComponents.filter((component) => component.bundleSku === selected.sku)}
-            componentProducts={products}
-            onClose={closeModal}
-            onEdit={() => {
-              closeModal();
-              openEdit(selected);
-            }}
+        }
+        content={
+          <SKUTable
+            skus={skus}
+            meta={meta}
+            isLoading={isLoading}
+            isError={isError}
+            onPageChange={handlePageChange}
+            onLimitChange={handleLimitChange}
+            onRetry={refetch}
+            onDelete={deleteSKU}
+            onEdit={handleEdit}
+            onAdjustStock={handleAdjustStock}
           />
-        )}
+        }
+      />
 
-        {deleteConfirm && (
-          <DeleteConfirmModal
-            sku={deleteConfirm}
-            onClose={() => setDeleteConfirm(null)}
-            onConfirm={() => handleDelete(deleteConfirm)}
-          />
-        )}
-      </div>
-    </div>
+      {/* SKU Create / Edit Modal Form */}
+      <SKUForm
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        initialData={editingSKU}
+        onSubmit={handleSubmitForm}
+        isSubmitting={isCreating || isUpdating}
+      />
+
+      {/* SKU Stock Adjustment Modal */}
+      <SKUStockAdjustmentModal
+        selectedSKU={adjustingSKU}
+        open={Boolean(adjustingSKU)}
+        onOpenChange={(open) => {
+          if (!open) setAdjustingSKU(null);
+        }}
+        onSubmit={handleStockAdjustmentSubmit}
+        isSubmitting={isAdjusting}
+      />
+    </PageContainer>
   );
 }
+
