@@ -83,7 +83,8 @@ export function UserFormModal({
       return;
     }
 
-    if (password && password.length < 6) {
+    // Password validation only in edit mode (create mode has no password field)
+    if (isEdit && password && password.length < 6) {
       setError("รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร");
       return;
     }
@@ -104,9 +105,9 @@ export function UserFormModal({
         await onSubmitUpdate(initialUser.id, updateData);
       } else {
         if (!onSubmitCreate) return;
+        // No password sent — backend generates random password & emails it
         await onSubmitCreate({
           email: email.trim(),
-          password: password ? password : undefined,
           firstname: firstname.trim(),
           lastname: lastname.trim(),
           role,
@@ -156,43 +157,35 @@ export function UserFormModal({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
-            </div>
-
-            {/* Password */}
-            <div>
-              <div className="flex justify-between items-center">
-                <Label htmlFor="password" className="text-xs font-semibold">
-                  รหัสผ่าน (Password){" "}
-                  {!isEdit ? (
-                    <span className="text-neutral-500 font-normal">
-                      (เว้นว่างไว้เพื่อให้ระบบสุ่มรหัสผ่านและส่งทางอีเมล)
-                    </span>
-                  ) : (
-                    <span className="text-neutral-400 font-normal">
-                      (เว้นว่างไว้หากไม่ต้องการเปลี่ยน)
-                    </span>
-                  )}
-                </Label>
-              </div>
-              <Input
-                id="password"
-                type="password"
-                minLength={6}
-                className="mt-1.5 text-xs"
-                placeholder={
-                  isEdit
-                    ? "•••••••• (ไม่เปลี่ยนรหัสผ่าน)"
-                    : "เว้นว่างไว้เพื่อให้ระบบสุ่มรหัสผ่านอัตโนมัติ (หรือระบุอย่างน้อย 6 ตัวอักษร)"
-                }
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
               {!isEdit && (
                 <p className="mt-1.5 text-[11px] text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
-                  <span>✉️</span> หากเว้นว่างไว้ ระบบจะสุ่มรหัสผ่านที่ปลอดภัยและส่งข้อมูลบัญชีไปยังอีเมลของผู้ใช้งานโดยอัตโนมัติ
+                  <span>✉️</span> ระบบจะสุ่มรหัสผ่านที่ปลอดภัยและส่งข้อมูลบัญชีไปยังอีเมลนี้โดยอัตโนมัติ
                 </p>
               )}
             </div>
+
+            {/* Password — only shown in Edit mode for optional password change */}
+            {isEdit && (
+              <div>
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="password" className="text-xs font-semibold">
+                    รหัสผ่าน (Password){" "}
+                    <span className="text-neutral-400 font-normal">
+                      (เว้นว่างไว้หากไม่ต้องการเปลี่ยน)
+                    </span>
+                  </Label>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  minLength={6}
+                  className="mt-1.5 text-xs"
+                  placeholder="•••••••• (ไม่เปลี่ยนรหัสผ่าน)"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            )}
 
 
             {/* Name fields */}
