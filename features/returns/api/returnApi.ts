@@ -10,7 +10,7 @@ export async function uploadEvidenceImage(file: File): Promise<string> {
     success: boolean;
     data: { url: string };
     message?: string;
-  }>("/upload/image", formData, {
+  }>("/upload/image?folder=returns", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
   if (!res.data?.success || !res.data?.data?.url) {
