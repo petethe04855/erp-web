@@ -6,6 +6,7 @@ import type {
   TikTokOrderItem,
   TikTokOrderQueryParams,
   TikTokSyncResult,
+  TikTokSyncRun,
   SKUMapping,
   SyncLog,
 } from "../types/tiktok";
@@ -175,6 +176,11 @@ export const tiktokApi = {
       erpSku: saved.erpSku || mapping.erpSku || "",
       ratio: saved.ratio || 1,
     };
+  },
+
+  getSyncRuns: async (limit: number = 1): Promise<TikTokSyncRun[]> => {
+    const raw = await read<TikTokSyncRun[]>("/integrations/tiktok/sync-runs", { limit });
+    return Array.isArray(raw) ? raw : [];
   },
 
   getSyncLogs: async (): Promise<SyncLog[]> => {

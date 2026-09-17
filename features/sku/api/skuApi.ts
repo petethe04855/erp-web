@@ -70,6 +70,24 @@ export const skuApi = {
     return res.data;
   },
 
+  getSKUMovements: async (
+    skuId: number,
+    params?: { page?: number; limit?: number },
+  ) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.set("page", String(params.page));
+    if (params?.limit) query.set("limit", String(params.limit));
+    const qs = query.toString();
+    const endpoint = `/inventory/stocks/${skuId}/movements${qs ? `?${qs}` : ""}`;
+    const res = await (await import("@/lib/axios")).default.get<{
+      success: boolean;
+      data: import("../types/sku").SKUMovement[];
+      meta?: { page: number; limit: number; total: number };
+      message?: string;
+    }>(endpoint);
+    return res.data;
+  },
+
   getSKUById: async (sku: string | number) => {
     const p =
       typeof sku === "number"

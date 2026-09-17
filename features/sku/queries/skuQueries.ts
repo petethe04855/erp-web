@@ -11,6 +11,8 @@ export const SKU_QUERY_KEYS = {
   detail: (id: number | string) => [...SKU_QUERY_KEYS.details(), id] as const,
   receipts: (skuId: number, params?: { page?: number; limit?: number; warehouseId?: number }) =>
     [...SKU_QUERY_KEYS.all, "receipts", skuId, params] as const,
+  movements: (skuId: number, params?: { page?: number; limit?: number }) =>
+    [...SKU_QUERY_KEYS.all, "movements", skuId, params] as const,
 };
 
 export function useSKUListQuery(params?: SKUQueryParams) {
@@ -28,6 +30,19 @@ export function useSKUReceiptsQuery(
   return useQuery({
     queryKey: SKU_QUERY_KEYS.receipts(skuId, params),
     queryFn: () => skuApi.getSKUReceipts(skuId, params),
+    enabled: options?.enabled ?? true,
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useSKUMovementsQuery(
+  skuId: number,
+  params?: { page?: number; limit?: number },
+  options?: { enabled?: boolean }
+) {
+  return useQuery({
+    queryKey: SKU_QUERY_KEYS.movements(skuId, params),
+    queryFn: () => skuApi.getSKUMovements(skuId, params),
     enabled: options?.enabled ?? true,
     staleTime: 60 * 1000,
   });

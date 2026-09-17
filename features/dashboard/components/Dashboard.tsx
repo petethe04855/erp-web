@@ -1,5 +1,6 @@
 "use client";
-import { RefreshCw, ArrowUpRight } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { RefreshCw, ArrowUpRight, CheckCircle2, AlertCircle, X } from "lucide-react";
 import Link from "next/link";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -8,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Loading } from "@/components/common/Loading";
 import { ErrorState } from "@/components/common/ErrorState";
 import { useDashboard } from "../hooks/useDashboard";
+import { useTikTokLatestSync } from "@/features/tiktok/hooks/useTikTok";
 import { DashboardCharts } from "./DashboardCharts";
 
 function normalizeChannelName(raw: string): string {
@@ -23,9 +25,48 @@ const money = (v: number) =>
     currency: "THB",
     maximumFractionDigits: 0,
   }).format(v);
+
+function formatSyncTime(dateStr?: string): string {
+  if (!dateStr) return "";
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleTimeString("th-TH", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "";
+  }
+}
+
 export function Dashboard() {
   const q = useDashboard();
+  const { latestRun } = useTikTokLatestSync();
   const data = q.data;
+
+  // Auto-dismiss notification: show for 5 seconds when updated, then hide
+  const [showNotification, setShowNotification] = useState(false);
+  const lastRunIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!latestRun) return;
+
+    // Check if this is a newly observed sync run
+    const sessionKey = `tiktok_sync_notified_${latestRun.id}`;
+    const alreadyNotified = sessionStorage.getItem(sessionKey);
+
+    if (lastRunIdRef.current !== latestRun.id && !alreadyNotified) {
+      lastRunIdRef.current = latestRun.id;
+      sessionStorage.setItem(sessionKey, "1");
+      setShowNotification(true);
+
+      const timer = setTimeout(() => {
+        setShowNotification(false);
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [latestRun]);
   return (
     <PageContainer>
       <PageHeader
@@ -59,12 +100,46 @@ export function Dashboard() {
       ) : (
         data && (
           <>
+            {/* TikTok Sync Status Banner - Displays for 5 seconds when updated */}
+            {showNotification && latestRun && (
+              <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200/80 bg-emerald-50/90 px-4 py-2.5 text-xs text-emerald-900 shadow-sm transition-all duration-300 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                  </span>
+                  <CheckCircle2 size={15} className="text-emerald-600" />
+                  <span>
+                    <strong>TikTok Shop:</strong> ซิงค์ข้อมูลล่าสุดเมื่อ{" "}
+                    {formatSyncTime(latestRun.finishedAt || latestRun.startedAt)} น. (อัตโนมัติ)
+                    {latestRun.synced > 0 && ` · พบคำสั่งซื้อใหม่ ${latestRun.synced} รายการ`}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Link
+                    href="/tiktok-orders"
+                    className="font-medium text-emerald-800 underline underline-offset-2 hover:text-emerald-950"
+                  >
+                    ดูคำสั่งซื้อ TikTok &rarr;
+                  </Link>
+                  <button
+                    type="button"
+                    aria-label="ปิดการแจ้งเตือน"
+                    onClick={() => setShowNotification(false)}
+                    className="rounded p-0.5 text-emerald-700 hover:bg-emerald-100/60"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-6">
               {[
                 {
                   label: "ยอดขายสำเร็จ/ชำระแล้ว",
                   value: money(data.revenue.total),
-                  note: "TikTok สำเร็จ + Manual ชำระแล้ว",
+                  note: "TikTok (จัดส่ง/สำเร็จ) + Manual ชำระแล้ว",
                   href: "/orders",
                 },
                 {
