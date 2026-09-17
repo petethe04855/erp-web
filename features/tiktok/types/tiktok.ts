@@ -78,6 +78,17 @@ export interface SKUMapping {
   createdAt?: string;
 }
 
+export interface TikTokSyncRun {
+  id: number;
+  startedAt: string;
+  finishedAt?: string;
+  status: string;
+  days: number;
+  synced: number;
+  stockDeducted: number;
+  error?: string;
+}
+
 export interface SyncLog {
   id: number;
   orderNo: string;

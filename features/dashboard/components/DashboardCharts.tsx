@@ -81,7 +81,7 @@ export function DashboardCharts({ data }: { data: DashboardData }) {
           <div>
             <h2 className="font-semibold">ยอดขายตามวันที่</h2>
             <p className="text-xs text-neutral-500 mt-1">
-              TikTok สำเร็จ · Manual ชำระเงินแล้ว · บาท
+              TikTok (จัดส่ง/สำเร็จ) · Manual ชำระเงินแล้ว · บาท
             </p>
           </div>
           <span className="text-[10px] tracking-widest text-neutral-400">

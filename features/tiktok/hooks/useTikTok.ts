@@ -47,6 +47,23 @@ export function useTikTokOrders(filters?: TikTokOrderQueryParams) {
   };
 }
 
+export function useTikTokLatestSync() {
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["tiktok-latest-sync"],
+    queryFn: () => tiktokApi.getSyncRuns(1),
+    refetchInterval: 60000,
+    staleTime: 30000,
+  });
+
+  const latestRun = data && data.length > 0 ? data[0] : null;
+
+  return {
+    latestRun,
+    isLoading,
+    refetch,
+  };
+}
+
 export function useTikTokConnection() {
   const queryClient = useQueryClient();
 
