@@ -59,6 +59,27 @@ export interface SKUReceiptHistory {
   note?: string;
 }
 
+export interface SKUMovement {
+  id: number;
+  sku_id: number;
+  sku_code?: string;
+  warehouse_id: number;
+  stock_lot_id?: number | null;
+  lot_number?: string;
+  supplier_lot?: string;
+  expiry_date?: string;
+  source_formula_code?: string;
+  channel?: string;
+  type: "IN" | "OUT" | "ADJUST" | string;
+  quantity: number;
+  before_qty?: number;
+  after_qty?: number;
+  reference_type?: string;
+  reference_id?: string;
+  note?: string;
+  created_at: string;
+}
+
 
 export interface SKUQueryParams {
   search?: string;
