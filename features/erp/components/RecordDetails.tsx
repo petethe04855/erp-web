@@ -62,6 +62,7 @@ const fieldLabels: Record<string, string> = {
   itemsCount: "จำนวนรายการ",
   lines: "รายการสินค้า (Line Items)",
   receivedQty: "จำนวนที่รับเข้า",
+  unitCost: "ราคาต้นทุนต่อหน่วย (บาท)",
   supplierLot: "ล็อตผู้จัดจำหน่าย",
   expiryDate: "วันหมดอายุ",
   qcStatus: "ผลตรวจ QC",
@@ -164,13 +165,13 @@ function Value({ value }: { value: unknown }) {
                 {Object.entries(item)
                   .filter(([ik]) => ik !== "id")
                   .map(([ik, iv]) => (
-                  <div key={ik} className="flex flex-col">
-                    <span className="text-muted-foreground text-[11px]">
-                      {fieldLabels[ik] || ik}
-                    </span>
-                    <span className="font-medium">{formatValue(ik, iv)}</span>
-                  </div>
-                ))}
+                    <div key={ik} className="flex flex-col">
+                      <span className="text-muted-foreground text-[11px]">
+                        {fieldLabels[ik] || ik}
+                      </span>
+                      <span className="font-medium">{formatValue(ik, iv)}</span>
+                    </div>
+                  ))}
               </div>
             ) : (
               <Value value={item} />

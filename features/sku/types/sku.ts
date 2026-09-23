@@ -48,6 +48,8 @@ export interface SKUReceiptHistory {
   receivedAt: string;
   sourceType: "INITIAL_STOCK" | "GOODS_RECEIVE" | "STOCK_ADJUSTMENT_IN" | string;
   quantity: number;
+  unitCost?: number;
+  retailPrice?: number;
   warehouseId: number;
   warehouseName?: string;
   lotNumber?: string;

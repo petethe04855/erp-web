@@ -16,13 +16,11 @@ export function SKUForm(props: Props) {
   const isEditing = Boolean(props.initialData);
   const [sku, setSku] = useState("");
   const [name, setName] = useState("");
-  const [cost, setCost] = useState("0");
   const [initialQuantity, setInitialQuantity] = useState("0");
 
   const resetForm = () => {
     setSku("");
     setName("");
-    setCost("0");
     setInitialQuantity("0");
   };
 
@@ -35,7 +33,6 @@ export function SKUForm(props: Props) {
       const d = props.initialData;
       setSku(d.sku || "");
       setName(d.name || "");
-      setCost(String(d.cost ?? "0"));
       setInitialQuantity("0");
     } else {
       resetForm();
@@ -48,15 +45,15 @@ export function SKUForm(props: Props) {
       title={isEditing ? `แก้ไขข้อมูล SKU: ${props.initialData?.sku}` : "เพิ่ม SKU สินค้า"}
       description={
         isEditing
-          ? "แก้ไขข้อมูลสินค้า รายละเอียด และราคาทุนของ SKU"
-          : "บันทึกข้อมูลสินค้าหลักในระบบ SKU Master"
+          ? "แก้ไขข้อมูลและรายละเอียดสินค้าหลักของ SKU"
+          : "บันทึกข้อมูลสินค้าหลักในระบบ SKU Master (ราคาต้นทุนและราคาขายจะถูกตั้งค่าจากการรับสินค้าเข้า)"
       }
       isSubmitting={props.isSubmitting}
       onSubmit={async () => {
         const payload: CreateSKUDTO = {
           sku,
           name,
-          cost: Number(cost),
+          cost: props.initialData?.cost || 0,
           category: props.initialData?.category || "Finished Product",
           isBundle: false,
           ...(isEditing ? {} : { initialQuantity: Math.max(0, parseInt(initialQuantity, 10) || 0) }),
@@ -102,18 +99,15 @@ export function SKUForm(props: Props) {
           </span>
         </label>
       )}
-      <label className="block text-xs font-medium">
-        ราคาทุน (บาท)
-        <Input
-          className="mt-2"
-          type="number"
-          value={cost}
-          onChange={(e) => setCost(e.target.value)}
-          min="0"
-          step="0.01"
-          required
-        />
-      </label>
+
+      {/* Info note about costing & pricing */}
+      <div className="p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded-lg border border-neutral-200 dark:border-neutral-700 text-xs text-neutral-600 dark:text-neutral-400">
+        <span className="font-semibold text-neutral-800 dark:text-neutral-200 block mb-1">
+          💡 ระบบราคาต้นทุนและราคาขาย:
+        </span>
+        ราคาต้นทุนและราคาขายจะถูกบันทึกตามแต่ละล็อตโดยอัตโนมัติเมื่อทำรายการ <strong>&quot;รับสินค้าเข้าสต็อก (Goods Receive)&quot;</strong>
+      </div>
+
       <p className="text-xs text-neutral-500">
         การรับสต็อกเพิ่มเติมให้ทำผ่านหน้ารับสินค้า ส่วนการตัดสต็อกแบบชุด/เซ็ตให้ตั้งค่าที่ &quot;ชุดสินค้า Inventory&quot;
       </p>

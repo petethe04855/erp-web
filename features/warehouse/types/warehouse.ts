@@ -35,6 +35,8 @@ export interface CreateGoodsReceiveDTO {
   warehouse: string;
   sku: string;
   quantity: number;
+  unitCost?: number;
+  retailPrice?: number;
   lotNumber: string;
   receiveDate: string;
   expiryDate: string;
