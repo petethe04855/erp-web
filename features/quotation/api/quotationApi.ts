@@ -61,7 +61,7 @@ export const quotationApi = {
       customer: dto.customerName,
       date: date.toLocaleDateString("en-CA"),
       validUntil: dto.validUntil,
-      status: "Draft",
+      status: "Pending",
       leadSource: dto.leadSource || "Manual",
       lines,
     });

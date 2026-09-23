@@ -119,11 +119,10 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
     if (s === "paid" || s === "completed") {
       return "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800";
     }
-    if (s === "partial") {
-      return "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800";
-    }
     return "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800";
   };
+
+  const isPaid = (invoice.status || "").toLowerCase() === "paid" || (invoice.balance !== undefined && invoice.balance <= 0);
 
   return (
     <div className="space-y-6">
@@ -143,7 +142,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
                 isOverdue
               )}`}
             >
-              {isOverdue ? "Overdue (เกินกำหนดชำระ)" : invoice.status}
+              {isOverdue ? "Overdue (เกินกำหนดชำระ)" : isPaid ? "Paid" : "Unpaid"}
             </span>
           </h2>
         </div>

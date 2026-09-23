@@ -221,7 +221,7 @@ export const LivePayrollTable: React.FC<LivePayrollTableProps> = ({
             <table className="w-full text-left text-xs text-neutral-600">
               <thead className="border-b border-neutral-200 bg-neutral-50/80 font-semibold text-neutral-800">
                 <tr>
-                  <th className="px-3 py-2.5">พนักงาน (Staff)</th>
+                  <th className="px-3 py-2.5">คนไลฟ์</th>
                   <th className="px-3 py-2.5 text-center">
                     รอบที่ไลฟ์ (อนุมัติ)
                   </th>
@@ -358,10 +358,10 @@ export const LivePayrollTable: React.FC<LivePayrollTableProps> = ({
               {/* Individual Staff Rates */}
               <div className="rounded-lg border border-neutral-200 bg-neutral-50/50 p-3">
                 <h5 className="font-bold text-neutral-800 mb-1">
-                  กำหนดอัตราค่าไลฟ์เฉพาะบุคคล (Staff Custom Rates)
+                  กำหนดอัตราค่าจ้างรายคน (กำหนดเรทเฉพาะคนไลฟ์แต่ละคน)
                 </h5>
                 <p className="text-[11px] text-neutral-500 mb-3">
-                  กำหนดเรทค่าไลฟ์เฉพาะสำหรับพนักงานแต่ละคน
+                  กำหนดเรทค่าไลฟ์เฉพาะสำหรับคนไลฟ์แต่ละคน
                   หากไม่ระบุจะใช้อัตราเริ่มต้นมาตรฐาน
                 </p>
 

@@ -49,16 +49,27 @@ export function InvoiceTable(props: InvoiceTableProps) {
         {
           key: "status",
           label: "สถานะ",
-          render: (row) => (
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs">{row.status}</span>
-              {row.isOverdue && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-100 text-rose-800 border border-rose-200 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800">
-                  Overdue
+          render: (row) => {
+            const isPaid = (row.status || "").toUpperCase() === "PAID";
+            return (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${
+                    isPaid
+                      ? "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800"
+                      : "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800"
+                  }`}
+                >
+                  {isPaid ? "Paid" : "Unpaid"}
                 </span>
-              )}
-            </div>
-          ),
+                {row.isOverdue && (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-100 text-rose-800 border border-rose-200 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800">
+                    Overdue
+                  </span>
+                )}
+              </div>
+            );
+          },
         },
       ]}
       actions={(row) => (

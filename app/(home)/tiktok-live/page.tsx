@@ -16,7 +16,6 @@ import { LiveSessionTable } from "@/features/tiktok/live/components/LiveSessionT
 import { LiveCheckoutModal } from "@/features/tiktok/live/components/LiveCheckoutModal";
 import { LivePayrollTable } from "@/features/tiktok/live/components/LivePayrollTable";
 import { ContentScheduleTable } from "@/features/tiktok/live/components/ContentScheduleTable";
-import { ContentPerformanceTable } from "@/features/tiktok/live/components/ContentPerformanceTable";
 import { Plus, Settings, Filter } from "lucide-react";
 
 export default function TikTokLivePage() {
@@ -161,10 +160,9 @@ export default function TikTokLivePage() {
           />
         )}
 
-        {/* Content Schedules & Content Performance */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+        {/* Content Schedules */}
+        <div className="pt-2">
           <ContentScheduleTable items={contentItems} isLoading={isContentLoading} />
-          <ContentPerformanceTable items={contentItems} isLoading={isContentLoading} />
         </div>
       </div>
 

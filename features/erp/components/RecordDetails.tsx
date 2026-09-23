@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useRecord } from "../hooks/useRecord";
 import type { Resource } from "../api/recordApi";
@@ -239,7 +238,6 @@ export function RecordDetails({
   id: string | number;
 }) {
   const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState("");
   const [exporting, setExporting] = useState(false);
   const { query, mutation } = useRecord(resource, id, open);
   const role = useAuthStore((s) => s.user?.role);
@@ -390,25 +388,28 @@ export function RecordDetails({
                   </Button>
                   {(role === "owner" || role === "accountant") &&
                     query.data?.status !== "PAID" && (
-                      <form
-                        className="flex gap-2"
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          mutation.mutate({ amount: Number(amount) });
+                      <Button
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                        disabled={mutation.isPending}
+                        onClick={() => {
+                          const payAmount =
+                            query.data?.balance !== undefined && Number(query.data.balance) > 0
+                              ? Number(query.data.balance)
+                              : Number(query.data?.amount || query.data?.totalAmount || 0);
+
+                          if (
+                            window.confirm(
+                              `ยืนยันการบันทึกชำระเงินสำหรับใบแจ้งหนี้ ${
+                                query.data?.code || query.data?.invoiceNo || id
+                              }?`
+                            )
+                          ) {
+                            mutation.mutate({ amount: payAmount });
+                          }
                         }}
                       >
-                        <Input
-                          aria-label="จำนวนเงินรับชำระ"
-                          type="number"
-                          min="0.01"
-                          step="0.01"
-                          required
-                          placeholder="ยอดรับชำระ"
-                          value={amount}
-                          onChange={(e) => setAmount(e.target.value)}
-                        />
-                        <Button disabled={mutation.isPending}>รับชำระ</Button>
-                      </form>
+                        {mutation.isPending ? "กำลังบันทึก..." : "ชำระเงิน"}
+                      </Button>
                     )}
                 </div>
               )}

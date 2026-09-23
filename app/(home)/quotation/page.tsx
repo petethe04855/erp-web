@@ -41,7 +41,6 @@ export default function QuotationPage() {
         <QuotationSearch
           filters={filters}
           onSearch={handleSearch}
-          onStatusChange={handleStatusChange}
           onReset={resetFilters}
           actions={
             <Button size="sm" onClick={() => setIsFormOpen(true)} className="h-9 whitespace-nowrap">

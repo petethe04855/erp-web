@@ -39,20 +39,6 @@ export function QuotationTable(props: QuotationTableProps) {
         { key: "issueDate", label: "วันที่" },
         { key: "validUntil", label: "ใช้ได้ถึง" },
         { key: "totalAmount", label: "ยอดรวม", money: true },
-        {
-          key: "status",
-          label: "สถานะ",
-          render: (row) => (
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs">{row.status}</span>
-              {row.isExpired && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-100 text-rose-800 border border-rose-200 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800">
-                  Expired
-                </span>
-              )}
-            </div>
-          ),
-        },
       ]}
       actions={(row) => (
         <div className="flex items-center justify-end gap-2">

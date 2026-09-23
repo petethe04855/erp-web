@@ -13,9 +13,9 @@ export function InvoiceStatsRow({ invoices }: InvoiceStatsRowProps) {
   const overdueAmount = invoices
     .filter((inv) => inv.isOverdue)
     .reduce((sum, inv) => sum + (inv.balance != null ? inv.balance : Number(inv.totalAmount) || 0), 0);
-  const paidCount = invoices.filter((inv) => inv.status === "Paid").length;
+  const paidCount = invoices.filter((inv) => (inv.status || "").toUpperCase() === "PAID").length;
   const outstandingAmount = invoices.reduce((sum, inv) => {
-    if (inv.status === "Paid") return sum;
+    if ((inv.status || "").toUpperCase() === "PAID") return sum;
     return sum + (inv.balance != null ? inv.balance : Number(inv.totalAmount) || 0);
   }, 0);
 

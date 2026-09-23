@@ -79,7 +79,7 @@ export const LiveCheckoutModal: React.FC<LiveCheckoutModalProps> = ({
     setErrorMsg("");
 
     if (!staffId) {
-      setErrorMsg("กรุณาเลือก Staff ผู้ไลฟ์");
+      setErrorMsg("กรุณาเลือก คนไลฟ์");
       return;
     }
 
@@ -150,7 +150,7 @@ export const LiveCheckoutModal: React.FC<LiveCheckoutModalProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block font-semibold text-neutral-700 mb-1">
-                Staff ผู้ไลฟ์ <span className="text-rose-500">*</span>
+                คนไลฟ์ <span className="text-rose-500">*</span>
               </label>
               <select
                 value={staffId}
@@ -159,7 +159,7 @@ export const LiveCheckoutModal: React.FC<LiveCheckoutModalProps> = ({
                 className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-xs focus:border-neutral-900 focus:outline-hidden disabled:bg-neutral-100"
                 required
               >
-                <option value="">-- เลือกผู้ไลฟ์ --</option>
+                <option value="">-- เลือกคนไลฟ์ --</option>
                 {users.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name} ({u.role})
