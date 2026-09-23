@@ -8,12 +8,13 @@ interface DialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
+  zIndex?: number;
 }
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-const Dialog: React.FC<DialogProps> = ({ open, onOpenChange, children }) => {
+const Dialog: React.FC<DialogProps> = ({ open, onOpenChange, children, zIndex }) => {
   const contentRef = React.useRef<HTMLDivElement>(null);
   const previouslyFocusedRef = React.useRef<HTMLElement | null>(null);
 
@@ -96,7 +97,10 @@ const Dialog: React.FC<DialogProps> = ({ open, onOpenChange, children }) => {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div
+      className={cn("fixed inset-0 flex items-center justify-center", !zIndex && "z-50")}
+      style={zIndex ? { zIndex } : undefined}
+    >
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
@@ -108,7 +112,7 @@ const Dialog: React.FC<DialogProps> = ({ open, onOpenChange, children }) => {
         role="presentation"
         tabIndex={-1}
         onKeyDown={handleTabKey}
-        className="relative z-50 w-full max-w-3xl p-4 flex justify-center outline-none"
+        className="relative z-10 w-full max-w-3xl p-4 flex justify-center outline-none"
       >
         {children}
       </div>

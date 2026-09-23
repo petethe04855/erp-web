@@ -15,7 +15,8 @@ import {
   Tag, 
   Layers,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useOrderDetailQuery } from "../queries/orderQueries";
@@ -23,6 +24,7 @@ import { money, thaiDate } from "../types/order";
 import { useVatRate, splitVatInclusive } from "@/features/settings/hooks/useVatRate";
 import { getImageUrl } from "@/lib/utils";
 import { DocumentActions } from "@/components/common/DocumentActions";
+import { downloadBackendPdf } from "@/lib/pdfDownload";
 
 interface OrderDetailProps {
   orderId: string | number;
@@ -36,6 +38,21 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
 
   const toggleRow = (idx: number) => {
     setExpandedRows((prev) => ({ ...prev, [idx]: !prev[idx] }));
+  };
+
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    if (!order) return;
+    try {
+      setIsExporting(true);
+      await downloadBackendPdf("sales-orders", order.id, `SO-${order.code || order.id}.pdf`);
+    } catch (err) {
+      console.error("PDF export failed:", err);
+      alert(err instanceof Error ? err.message : "ดาวน์โหลด PDF ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   if (isLoading) {
@@ -130,14 +147,18 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
               </Button>
             </Link>
           )}
-          {order.qtRef && (
-            <Link href={`/quotation?search=${encodeURIComponent(order.qtRef)}`}>
-              <Button size="sm" variant="outline" className="gap-1.5 text-xs">
-                <Tag className="h-3.5 w-3.5 text-blue-600" />
-                ใบเสนอราคา: {order.qtRef}
-                <ExternalLink className="h-3 w-3 text-muted-foreground" />
-              </Button>
-            </Link>
+
+          {["COMPLETED", "SHIPPED"].includes(String(order.status || "").toUpperCase()) && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 text-xs"
+              onClick={handleDownloadPdf}
+              disabled={isExporting}
+            >
+              <Download className="h-3.5 w-3.5 text-muted-foreground" />
+              {isExporting ? "กำลังส่งออก..." : "ดาวน์โหลด PDF"}
+            </Button>
           )}
 
           <DocumentActions

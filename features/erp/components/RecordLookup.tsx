@@ -32,8 +32,8 @@ export function RecordLookup({
   return (
     <div className="space-y-2">
       <label className="block text-xs font-medium text-neutral-800 dark:text-neutral-200">
-        {label}
-        <div className="mt-1.5">
+        {label && <span>{label}</span>}
+        <div className={label ? "mt-1.5" : ""}>
           <Select
             value={value}
             onChange={(e) => {

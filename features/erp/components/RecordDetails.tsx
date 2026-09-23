@@ -268,8 +268,8 @@ export function RecordDetails({
           )}
           {query.data && (
             <div className="space-y-3 border-t pt-4">
-              {resource === "sales-orders" && (query.data?.status === "Completed" || query.data?.status === "COMPLETED" || query.data?.status === "SHIPPED") ? (
-                <div className="flex items-center gap-2">
+              {resource === "sales-orders" && ["COMPLETED", "SHIPPED"].includes(String(query.data?.status || "").toUpperCase()) && (
+                <div className="flex items-center gap-2 mb-2">
                   <Button
                     className="bg-primary text-primary-foreground font-medium shadow-sm hover:bg-primary/90"
                     disabled={exporting}
@@ -288,9 +288,9 @@ export function RecordDetails({
                     📄 Export PDF (ใบสั่งขาย)
                   </Button>
                 </div>
-              ) : (
-                (() => {
-                  let availableStatuses = actions[resource] || [];
+              )}
+              {(() => {
+                let availableStatuses = actions[resource] || [];
                   if (resource === "quotations") {
                     const currentStatus = String(query.data?.status || "Draft").toUpperCase();
                     if (currentStatus === "DRAFT" || !currentStatus) {
@@ -331,8 +331,7 @@ export function RecordDetails({
                         {status}
                       </Button>
                     ));
-                })()
-              )}
+                })()}
               {mutation.isError && (
                 <p className="text-sm text-destructive font-medium mt-2" role="alert">
                   {mutation.error instanceof Error ? mutation.error.message : "เกิดข้อผิดพลาดในการอัปเดต"}
