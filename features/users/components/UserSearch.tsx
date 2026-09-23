@@ -1,17 +1,16 @@
-"use client";
-
-import React from "react";
 import { Input } from "@/components/ui/input";
-import { SearchPanel } from "@/components/common/SearchPanel";
-import { ROLE_CONFIG, type UserFilterState, type UserRole } from "../types/user";
+import { FilterToolbar } from "@/components/common/FilterToolbar";
+import { ROLE_CONFIG, type UserFilterState } from "../types/user";
 
 interface UserSearchProps {
   filters: UserFilterState;
-  stats: { total: number; active: number; inactive: number };
+  stats?: { total: number; active: number; inactive: number };
   onSearch: (val: string) => void;
   onRoleChange: (val: string) => void;
   onStatusChange: (val: string) => void;
   onReset: () => void;
+  actions?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 export function UserSearch({
@@ -21,6 +20,8 @@ export function UserSearch({
   onRoleChange,
   onStatusChange,
   onReset,
+  actions,
+  children,
 }: UserSearchProps) {
   let activeCount = 0;
   if (filters.search) activeCount++;
@@ -28,61 +29,44 @@ export function UserSearch({
   if (filters.status !== "all") activeCount++;
 
   return (
-    <div className="space-y-4">
-      {/* Quick Summary Cards */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 space-y-3">
-        <h3 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
-          สรุปผู้ใช้ทั้งหมด
-        </h3>
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="rounded-lg bg-neutral-50 p-2.5 dark:bg-neutral-800/60">
-            <div className="text-lg font-bold text-neutral-900 dark:text-neutral-100">
-              {stats.total}
-            </div>
-            <div className="text-[11px] text-neutral-500 dark:text-neutral-400">
-              ทั้งหมด
-            </div>
+    <div className="space-y-3">
+      {/* Stats Summary Badges if stats provided */}
+      {stats && (
+        <div className="grid grid-cols-3 gap-3">
+          <div className="flex items-center justify-between rounded-xl border border-neutral-200 bg-white px-4 py-3 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+            <span className="text-xs text-neutral-500">ผู้ใช้ทั้งหมด</span>
+            <span className="text-lg font-bold text-neutral-900 dark:text-neutral-100">{stats.total}</span>
           </div>
-          <div className="rounded-lg bg-emerald-50 p-2.5 dark:bg-emerald-950/30">
-            <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-              {stats.active}
-            </div>
-            <div className="text-[11px] text-emerald-600/80 dark:text-emerald-400/80">
-              ใช้งานอยู่
-            </div>
+          <div className="flex items-center justify-between rounded-xl border border-emerald-200/60 bg-emerald-50/50 px-4 py-3 shadow-sm dark:border-emerald-900/40 dark:bg-emerald-950/20">
+            <span className="text-xs text-emerald-700 dark:text-emerald-400">ใช้งานอยู่</span>
+            <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{stats.active}</span>
           </div>
-          <div className="rounded-lg bg-neutral-100 p-2.5 dark:bg-neutral-800/40">
-            <div className="text-lg font-bold text-neutral-500 dark:text-neutral-400">
-              {stats.inactive}
-            </div>
-            <div className="text-[11px] text-neutral-500 dark:text-neutral-400">
-              ปิดใช้งาน
-            </div>
+          <div className="flex items-center justify-between rounded-xl border border-neutral-200 bg-white px-4 py-3 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+            <span className="text-xs text-neutral-500">ปิดใช้งาน</span>
+            <span className="text-lg font-bold text-neutral-500">{stats.inactive}</span>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Filter Options */}
-      <SearchPanel
-        title="ค้นหา / ตัวกรอง"
+      {/* Horizontal Toolbar */}
+      <FilterToolbar
         onReset={onReset}
         activeFilterCount={activeCount}
+        actions={actions || children}
       >
-        <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
-          ค้นหาผู้ใช้
+        <div className="relative min-w-[240px] flex-1 sm:max-w-xs">
           <Input
             type="search"
-            className="mt-1.5 text-xs"
+            className="h-9 text-xs"
             value={filters.search}
             onChange={(e) => onSearch(e.target.value)}
             placeholder="ค้นหาชื่อ, นามสกุล หรืออีเมล..."
           />
-        </label>
+        </div>
 
-        <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
-          บทบาท (Role)
+        <div className="w-full sm:w-48">
           <select
-            className="mt-1.5 w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-xs shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+            className="h-9 w-full rounded-md border border-neutral-300 bg-white px-3 py-1 text-xs shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
             value={filters.role}
             onChange={(e) => onRoleChange(e.target.value)}
           >
@@ -93,12 +77,11 @@ export function UserSearch({
               </option>
             ))}
           </select>
-        </label>
+        </div>
 
-        <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
-          สถานะ (Status)
+        <div className="w-full sm:w-40">
           <select
-            className="mt-1.5 w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-xs shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+            className="h-9 w-full rounded-md border border-neutral-300 bg-white px-3 py-1 text-xs shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
             value={filters.status}
             onChange={(e) => onStatusChange(e.target.value)}
           >
@@ -106,8 +89,8 @@ export function UserSearch({
             <option value="active">ใช้งานอยู่ (Active)</option>
             <option value="inactive">ปิดใช้งาน (Inactive)</option>
           </select>
-        </label>
-      </SearchPanel>
+        </div>
+      </FilterToolbar>
     </div>
   );
 }

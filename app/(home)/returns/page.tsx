@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { TwoColumnLayout } from "@/components/layout/TwoColumnLayout";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import {
@@ -97,52 +96,49 @@ export default function ReturnsPage() {
       <PageHeader
         title="รับคืนสินค้า (Sales Returns)"
         description="บันทึกการรับคืนสินค้าจากลูกค้า หรือการคืนสินค้าภายใน และนำเข้าสต็อกอย่างถูกต้อง"
-        actions={
-          <Button
-            size="sm"
-            className="gap-1.5 text-xs font-medium bg-primary hover:bg-primary/90 text-white"
-            onClick={() => setIsFormOpen(true)}
-          >
-            <Plus className="h-4 w-4" />
-            สร้างใบรับคืน
-          </Button>
-        }
       />
 
-      <TwoColumnLayout
-        sidebar={
-          <ReturnSearch
-            search={search}
-            status={status}
-            returnType={returnType}
-            onSearch={(v) => {
-              setSearch(v);
-              setPage(1);
-            }}
-            onStatusChange={(v) => {
-              setStatus(v);
-              setPage(1);
-            }}
-            onReturnTypeChange={(v) => {
-              setReturnType(v);
-              setPage(1);
-            }}
-            onReset={handleReset}
-          />
-        }
-        content={
-          <ReturnTable
-            returns={returns}
-            meta={meta}
-            isLoading={isLoading}
-            isError={isError}
-            onPageChange={setPage}
-            onLimitChange={setLimit}
-            onRetry={refetch}
-            onSelectReturn={handleSelectReturn}
-          />
-        }
-      />
+      <div className="space-y-4">
+        <ReturnSearch
+          search={search}
+          status={status}
+          returnType={returnType}
+          onSearch={(v) => {
+            setSearch(v);
+            setPage(1);
+          }}
+          onStatusChange={(v) => {
+            setStatus(v);
+            setPage(1);
+          }}
+          onReturnTypeChange={(v) => {
+            setReturnType(v);
+            setPage(1);
+          }}
+          onReset={handleReset}
+          actions={
+            <Button
+              size="sm"
+              className="gap-1.5 text-xs font-medium bg-primary hover:bg-primary/90 text-white h-9 whitespace-nowrap"
+              onClick={() => setIsFormOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+              สร้างใบรับคืน
+            </Button>
+          }
+        />
+
+        <ReturnTable
+          returns={returns}
+          meta={meta}
+          isLoading={isLoading}
+          isError={isError}
+          onPageChange={setPage}
+          onLimitChange={setLimit}
+          onRetry={refetch}
+          onSelectReturn={handleSelectReturn}
+        />
+      </div>
 
       {/* Form Dialog */}
       <ReturnFormModal

@@ -2,7 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { SearchPanel } from "@/components/common/SearchPanel";
+import { FilterToolbar } from "@/components/common/FilterToolbar";
 import type { OrderQueryParams } from "../types/order";
 
 interface OrderSearchProps {
@@ -12,6 +12,8 @@ interface OrderSearchProps {
   onPaymentChange: (val: string) => void;
   onChannelChange: (val: string) => void;
   onReset: () => void;
+  actions?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 export function OrderSearch(props: OrderSearchProps) {
@@ -27,62 +29,62 @@ export function OrderSearch(props: OrderSearchProps) {
   if (props.filters.channel && props.filters.channel !== "all") activeCount++;
 
   return (
-    <SearchPanel
-      title="ค้นหา / ตัวกรอง"
+    <FilterToolbar
       onReset={props.onReset}
       activeFilterCount={activeCount}
+      actions={props.actions || props.children}
     >
-      <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
-        คำค้นหา
+      {/* Search Input */}
+      <div className="relative min-w-[220px] flex-1 sm:max-w-xs">
         <Input
           type="search"
-          className="mt-1.5 text-xs"
+          className="h-9 text-xs"
           value={props.filters.search || ""}
           onChange={(e) => props.onSearch(e.target.value)}
-          placeholder="รหัส / ชื่อลูกค้า / เลขเอกสาร"
+          placeholder="ค้นหารหัส / ชื่อลูกค้า / เลขเอกสาร..."
         />
-      </label>
+      </div>
 
-      <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
-        ช่องทางการขาย (Channel)
+      {/* Channel */}
+      <div className="w-full sm:w-44">
         <Select
-          className="mt-1.5 text-xs"
+          className="h-9 text-xs"
           value={props.filters.channel || "all"}
           onChange={(e) => props.onChannelChange(e.target.value)}
         >
-          <option value="all">ทั้งหมด</option>
+          <option value="all">ช่องทางทั้งหมด</option>
           <option value="Manual">Manual (หน้าร้าน / ทั่วไป)</option>
           <option value="TikTok">TikTok (TikTok Shop)</option>
           <option value="Shopee">Shopee</option>
           <option value="LINE">LINE</option>
         </Select>
-      </label>
+      </div>
 
-      <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
-        สถานะออเดอร์
+      {/* Fulfillment Status */}
+      <div className="w-full sm:w-40">
         <Select
-          className="mt-1.5 text-xs"
+          className="h-9 text-xs"
           value={props.filters.fulfillmentStatus || "all"}
           onChange={(e) => props.onFulfillmentChange(e.target.value)}
         >
-          <option value="all">ทั้งหมด</option>
+          <option value="all">สถานะออเดอร์ทั้งหมด</option>
           <option value="Completed">Completed (สำเร็จ)</option>
           <option value="Cancelled">Cancelled (ยกเลิก)</option>
         </Select>
-      </label>
+      </div>
 
-      <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
-        สถานะการชำระเงิน
+      {/* Payment Status */}
+      <div className="w-full sm:w-36">
         <Select
-          className="mt-1.5 text-xs"
+          className="h-9 text-xs"
           value={props.filters.paymentStatus || "all"}
           onChange={(e) => props.onPaymentChange(e.target.value)}
         >
-          <option value="all">ทั้งหมด</option>
+          <option value="all">การชำระทั้งหมด</option>
           <option value="Unpaid">Unpaid (ยังไม่ชำระ)</option>
           <option value="Paid">Paid (ชำระแล้ว)</option>
         </Select>
-      </label>
-    </SearchPanel>
+      </div>
+    </FilterToolbar>
   );
 }

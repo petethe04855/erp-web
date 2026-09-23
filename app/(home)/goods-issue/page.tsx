@@ -3,7 +3,6 @@
 import { PageHeader } from "@/components/layout/PageHeader";
 import React, { useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { TwoColumnLayout } from "@/components/layout/TwoColumnLayout";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useGoodsIssue } from "@/features/warehouse/hooks/useGoodsIssue";
@@ -34,33 +33,31 @@ export default function GoodsIssuePage() {
       <PageHeader
         title="Goods Issue (GIN)"
         description="ข้อมูลจริงจาก Chawy ERP"
-        actions={
-          <Button size="sm" onClick={() => setIsFormOpen(true)}>
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
-            New Goods Issue
-          </Button>
-        }
       />
-      <TwoColumnLayout
-        sidebar={
-          <GoodsIssueSearch
-            filters={filters}
-            onSearch={handleSearch}
-            onReasonChange={handleReasonChange}
-            onReset={resetFilters}
-          />
-        }
-        content={
-          <GoodsIssueTable
-            issues={issues}
-            meta={meta}
-            isLoading={isLoading}
-            isError={isError}
-            onPageChange={handlePageChange}
-            onRetry={refetch}
-          />
-        }
-      />
+
+      <div className="space-y-4">
+        <GoodsIssueSearch
+          filters={filters}
+          onSearch={handleSearch}
+          onReasonChange={handleReasonChange}
+          onReset={resetFilters}
+          actions={
+            <Button size="sm" onClick={() => setIsFormOpen(true)} className="h-9 whitespace-nowrap">
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              New Goods Issue
+            </Button>
+          }
+        />
+
+        <GoodsIssueTable
+          issues={issues}
+          meta={meta}
+          isLoading={isLoading}
+          isError={isError}
+          onPageChange={handlePageChange}
+          onRetry={refetch}
+        />
+      </div>
 
       <GoodsIssueForm
         open={isFormOpen}

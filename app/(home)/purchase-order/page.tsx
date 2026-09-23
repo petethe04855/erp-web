@@ -3,7 +3,6 @@
 import { PageHeader } from "@/components/layout/PageHeader";
 import React, { useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { TwoColumnLayout } from "@/components/layout/TwoColumnLayout";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { usePurchase } from "@/features/purchase/hooks/usePurchase";
@@ -35,34 +34,32 @@ export default function PurchaseOrderPage() {
       <PageHeader
         title="Purchase Orders"
         description="ข้อมูลจริงจาก Chawy ERP"
-        actions={
-          <Button size="sm" onClick={() => setIsFormOpen(true)}>
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
-            New Purchase Order
-          </Button>
-        }
       />
-      <TwoColumnLayout
-        sidebar={
-          <PurchaseOrderSearch
-            filters={filters}
-            onSearch={handleSearch}
-            onStatusChange={handleStatusChange}
-            onReset={resetFilters}
-          />
-        }
-        content={
-          <PurchaseOrderTable
-            purchaseOrders={purchaseOrders}
-            meta={meta}
-            isLoading={isLoading}
-            isError={isError}
-            onPageChange={handlePageChange}
-            onLimitChange={handleLimitChange}
-            onRetry={refetch}
-          />
-        }
-      />
+
+      <div className="space-y-4">
+        <PurchaseOrderSearch
+          filters={filters}
+          onSearch={handleSearch}
+          onStatusChange={handleStatusChange}
+          onReset={resetFilters}
+          actions={
+            <Button size="sm" onClick={() => setIsFormOpen(true)} className="h-9 whitespace-nowrap">
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              New Purchase Order
+            </Button>
+          }
+        />
+
+        <PurchaseOrderTable
+          purchaseOrders={purchaseOrders}
+          meta={meta}
+          isLoading={isLoading}
+          isError={isError}
+          onPageChange={handlePageChange}
+          onLimitChange={handleLimitChange}
+          onRetry={refetch}
+        />
+      </div>
 
       <PurchaseOrderForm
         open={isFormOpen}

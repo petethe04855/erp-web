@@ -3,7 +3,6 @@
 import { PageHeader } from "@/components/layout/PageHeader";
 import React, { useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { TwoColumnLayout } from "@/components/layout/TwoColumnLayout";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useQuotation } from "@/features/quotation/hooks/useQuotation";
@@ -36,37 +35,33 @@ export default function QuotationPage() {
       <PageHeader
         title="Sales Quotations"
         description="ข้อมูลจริงจาก Chawy ERP"
-        actions={
-          <Button size="sm" onClick={() => setIsFormOpen(true)}>
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
-            New Quotation
-          </Button>
-        }
       />
-      <TwoColumnLayout
-        sidebar={
-          <QuotationSearch
-            filters={filters}
-            onSearch={handleSearch}
-            onStatusChange={handleStatusChange}
-            onReset={resetFilters}
-          />
-        }
-        content={
-          <div className="space-y-4">
-            <QuotationStatsRow quotations={quotations} />
-            <QuotationTable
-              quotations={quotations}
-              meta={meta}
-              isLoading={isLoading}
-              isError={isError}
-              onPageChange={handlePageChange}
-              onLimitChange={handleLimitChange}
-              onRetry={refetch}
-            />
-          </div>
-        }
-      />
+
+      <div className="space-y-4">
+        <QuotationSearch
+          filters={filters}
+          onSearch={handleSearch}
+          onStatusChange={handleStatusChange}
+          onReset={resetFilters}
+          actions={
+            <Button size="sm" onClick={() => setIsFormOpen(true)} className="h-9 whitespace-nowrap">
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              New Quotation
+            </Button>
+          }
+        />
+
+        <QuotationStatsRow quotations={quotations} />
+        <QuotationTable
+          quotations={quotations}
+          meta={meta}
+          isLoading={isLoading}
+          isError={isError}
+          onPageChange={handlePageChange}
+          onLimitChange={handleLimitChange}
+          onRetry={refetch}
+        />
+      </div>
 
       <QuotationForm
         open={isFormOpen}

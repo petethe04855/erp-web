@@ -2,7 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { SearchPanel } from "@/components/common/SearchPanel";
+import { FilterToolbar } from "@/components/common/FilterToolbar";
 import type { SKUQueryParams } from "../types/sku";
 
 interface SKUSearchProps {
@@ -11,6 +11,8 @@ interface SKUSearchProps {
   onCategoryChange: (val: string) => void;
   onStatusChange: (val: string) => void;
   onReset: () => void;
+  actions?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 export function SKUSearch(props: SKUSearchProps) {
@@ -20,47 +22,47 @@ export function SKUSearch(props: SKUSearchProps) {
   if (props.filters.status && props.filters.status !== "all") activeCount++;
 
   return (
-    <SearchPanel
-      title="ค้นหา / ตัวกรอง"
+    <FilterToolbar
       onReset={props.onReset}
       activeFilterCount={activeCount}
+      actions={props.actions || props.children}
     >
-      <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
-        คำค้นหา
+      {/* Search Input */}
+      <div className="relative min-w-[240px] flex-1 sm:max-w-xs">
         <Input
           type="search"
-          className="mt-1.5 text-xs"
+          className="h-9 text-xs"
           value={props.filters.search || ""}
           onChange={(e) => props.onSearch(e.target.value)}
-          placeholder="รหัส SKU / ชื่อสินค้า / บาร์โค้ด"
+          placeholder="ค้นหา SKU / ชื่อสินค้า / บาร์โค้ด..."
         />
-      </label>
+      </div>
 
-      <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
-        ประเภทสินค้า
+      {/* Category Select */}
+      <div className="w-full sm:w-48">
         <Select
-          className="mt-1.5 text-xs"
+          className="h-9 text-xs"
           value={props.filters.category || "all"}
           onChange={(e) => props.onCategoryChange(e.target.value)}
         >
-          <option value="all">ทั้งหมด</option>
-          <option value="Finished Product">Finished Product (สินค้าสำเร็จรูป)</option>
-          <option value="Raw Material">Raw Material (วัตถุดิบ)</option>
+          <option value="all">ประเภททั้งหมด</option>
+          <option value="Finished Product">Finished Product</option>
+          <option value="Raw Material">Raw Material</option>
         </Select>
-      </label>
+      </div>
 
-      <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
-        สถานะการใช้งาน
+      {/* Status Select */}
+      <div className="w-full sm:w-40">
         <Select
-          className="mt-1.5 text-xs"
+          className="h-9 text-xs"
           value={props.filters.status || "all"}
           onChange={(e) => props.onStatusChange(e.target.value)}
         >
-          <option value="all">ทั้งหมด</option>
-          <option value="active">Active (ใช้งานอยู่)</option>
-          <option value="inactive">Inactive (ปิดการใช้งาน)</option>
+          <option value="all">สถานะทั้งหมด</option>
+          <option value="active">Active (ใช้งาน)</option>
+          <option value="inactive">Inactive (ปิดใช้งาน)</option>
         </Select>
-      </label>
-    </SearchPanel>
+      </div>
+    </FilterToolbar>
   );
 }

@@ -1,49 +1,53 @@
-"use client";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
+import { FilterToolbar } from "@/components/common/FilterToolbar";
 import type { QuotationQueryParams } from "../types/quotation";
+
 interface QuotationSearchProps {
   filters: QuotationQueryParams;
   onSearch: (val: string) => void;
   onStatusChange: (val: string) => void;
   onReset: () => void;
+  actions?: React.ReactNode;
+  children?: React.ReactNode;
 }
+
 export function QuotationSearch(props: QuotationSearchProps) {
+  let activeCount = 0;
+  if (props.filters.search) activeCount++;
+  if (props.filters.status && props.filters.status !== "all") activeCount++;
+
   return (
-    <aside className="space-y-5 border border-neutral-200 rounded-xl p-5 bg-white">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold">ค้นหา / ตัวกรอง</h2>
-        <Button size="sm" variant="ghost" onClick={props.onReset}>
-          ล้าง
-        </Button>
-      </div>
-      <label className="block text-xs">
-        คำค้น
+    <FilterToolbar
+      onReset={props.onReset}
+      activeFilterCount={activeCount}
+      actions={props.actions || props.children}
+    >
+      <div className="relative min-w-[240px] flex-1 sm:max-w-xs">
         <Input
           type="search"
-          className="mt-2"
+          className="h-9 text-xs"
           value={props.filters.search || ""}
           onChange={(e) => props.onSearch(e.target.value)}
-          placeholder="รหัส / ชื่อ / เลขเอกสาร"
+          placeholder="ค้นหารหัส / ชื่อ / เลขเอกสาร..."
         />
-      </label>
-      <label className="block text-xs">
-        สถานะ
+      </div>
+
+      <div className="w-full sm:w-48">
         <Select
-          className="mt-2"
+          className="h-9 text-xs"
           value={props.filters.status || "all"}
           onChange={(e) => props.onStatusChange(e.target.value)}
         >
-          <option value="all">ทั้งหมด</option>
-          <option value="expired">Expired (หมดอายุ)</option>
+          <option value="all">สถานะทั้งหมด</option>
           <option value="Draft">Draft</option>
           <option value="Sent">Sent</option>
           <option value="Approved">Approved</option>
           <option value="Converted">Converted</option>
           <option value="Rejected">Rejected</option>
+          <option value="expired">Expired (หมดอายุ)</option>
         </Select>
-      </label>
-    </aside>
+      </div>
+    </FilterToolbar>
   );
 }

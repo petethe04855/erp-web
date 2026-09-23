@@ -1,8 +1,6 @@
-"use client";
-
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
+import { FilterToolbar } from "@/components/common/FilterToolbar";
 
 interface InventorySearchProps {
   search: string;
@@ -10,6 +8,8 @@ interface InventorySearchProps {
   onSearch: (val: string) => void;
   onStatusChange: (val: string) => void;
   onReset: () => void;
+  actions?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 export function InventorySearch({
@@ -18,43 +18,41 @@ export function InventorySearch({
   onSearch,
   onStatusChange,
   onReset,
+  actions,
+  children,
 }: InventorySearchProps) {
-  return (
-    <aside className="space-y-5 border border-neutral-200 rounded-xl p-5 bg-white dark:border-neutral-800 dark:bg-neutral-900">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-          ค้นหา / ตัวกรอง
-        </h2>
-        <Button size="sm" variant="ghost" onClick={onReset} className="h-7 text-xs">
-          ล้าง
-        </Button>
-      </div>
+  let activeCount = 0;
+  if (search) activeCount++;
+  if (status && status !== "all") activeCount++;
 
-      <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
-        คำค้น (รหัส Inventory / ชื่อชุด)
+  return (
+    <FilterToolbar
+      onReset={onReset}
+      activeFilterCount={activeCount}
+      actions={actions || children}
+    >
+      <div className="relative min-w-[240px] flex-1 sm:max-w-xs">
         <Input
           type="search"
-          className="mt-1.5 text-xs"
+          className="h-9 text-xs"
           value={search}
           onChange={(e) => onSearch(e.target.value)}
-          placeholder="เช่น SET-A หรือ ชุดทำความสะอาด"
+          placeholder="ค้นหารหัส Inventory / ชื่อชุด..."
         />
-      </label>
+      </div>
 
-      <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
-        สถานะการใช้งาน
-        <div className="mt-1.5">
-          <Select
-            value={status}
-            onChange={(e) => onStatusChange(e.target.value)}
-          >
-            <option value="all">ทั้งหมด</option>
-            <option value="active">เปิดใช้งาน (Active)</option>
-            <option value="inactive">ปิดใช้งาน (Inactive)</option>
-          </Select>
-        </div>
-      </label>
-    </aside>
+      <div className="w-full sm:w-44">
+        <Select
+          className="h-9 text-xs"
+          value={status}
+          onChange={(e) => onStatusChange(e.target.value)}
+        >
+          <option value="all">สถานะทั้งหมด</option>
+          <option value="active">เปิดใช้งาน (Active)</option>
+          <option value="inactive">ปิดใช้งาน (Inactive)</option>
+        </Select>
+      </div>
+    </FilterToolbar>
   );
 }
 

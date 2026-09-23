@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { TwoColumnLayout } from "@/components/layout/TwoColumnLayout";
 import { useInventory } from "@/features/inventory/hooks/useInventory";
 import { InventorySearch } from "@/features/inventory/components/InventorySearch";
 import { InventoryTable } from "@/features/inventory/components/InventoryTable";
@@ -58,47 +57,44 @@ export default function InventoryPage() {
       <PageHeader
         title="Inventory Management"
         description="จัดการชุดสินค้าและสต็อกที่ประกอบจาก SKU วัตถุดิบ"
-        actions={
-          <Button
-            size="sm"
-            className="gap-1.5 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white"
-            onClick={handleOpenCreate}
-          >
-            <Plus className="h-4 w-4" />
-            New Inventory
-          </Button>
-        }
       />
 
-      <TwoColumnLayout
-        sidebar={
-          <InventorySearch
-            search={search}
-            status={status}
-            onSearch={handleSearch}
-            onStatusChange={handleStatusChange}
-            onReset={resetFilters}
-          />
-        }
-        content={
-          <InventoryTable
-            formulas={formulas}
-            meta={meta}
-            isLoading={isLoading}
-            isError={isError}
-            togglingCode={togglingCode}
-            deletingCode={deletingCode}
-            onPageChange={handlePageChange}
-            onLimitChange={handleLimitChange}
-            onRetry={refetch}
-            onView={handleOpenView}
-            onEdit={handleOpenEdit}
-            onToggleStatus={handleToggleStatus}
-            onDelete={handleDelete}
-            onCreateNew={handleOpenCreate}
-          />
-        }
-      />
+      <div className="space-y-4">
+        <InventorySearch
+          search={search}
+          status={status}
+          onSearch={handleSearch}
+          onStatusChange={handleStatusChange}
+          onReset={resetFilters}
+          actions={
+            <Button
+              size="sm"
+              className="gap-1.5 text-xs font-medium h-9 whitespace-nowrap"
+              onClick={handleOpenCreate}
+            >
+              <Plus className="h-4 w-4" />
+              New Inventory
+            </Button>
+          }
+        />
+
+        <InventoryTable
+          formulas={formulas}
+          meta={meta}
+          isLoading={isLoading}
+          isError={isError}
+          togglingCode={togglingCode}
+          deletingCode={deletingCode}
+          onPageChange={handlePageChange}
+          onLimitChange={handleLimitChange}
+          onRetry={refetch}
+          onView={handleOpenView}
+          onEdit={handleOpenEdit}
+          onToggleStatus={handleToggleStatus}
+          onDelete={handleDelete}
+          onCreateNew={handleOpenCreate}
+        />
+      </div>
 
       {/* Detail Modal */}
       <InventoryDetailModal
