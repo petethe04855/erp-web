@@ -5,6 +5,7 @@ import {
   settingsApi,
   type LivePayrollSettings,
 } from "@/features/settings/api/settingsApi";
+import { userApi } from "@/features/users/api/userApi";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   DollarSign,
@@ -54,6 +55,13 @@ export const LivePayrollTable: React.FC<LivePayrollTableProps> = ({
     queryKey: ["settings"],
     queryFn: () => settingsApi.get(),
     enabled: canViewPayroll,
+  });
+
+  // Fetch all users to allow configuring rates for any live streamer/staff
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["users"],
+    queryFn: () => userApi.getUsers(),
+    enabled: canViewPayroll && isOwner,
   });
 
   // Rates draft state for the modal
@@ -361,55 +369,93 @@ export const LivePayrollTable: React.FC<LivePayrollTableProps> = ({
                   กำหนดอัตราค่าจ้างรายคน (กำหนดเรทเฉพาะคนไลฟ์แต่ละคน)
                 </h5>
                 <p className="text-[11px] text-neutral-500 mb-3">
-                  กำหนดเรทค่าไลฟ์เฉพาะสำหรับคนไลฟ์แต่ละคน
-                  หากไม่ระบุจะใช้อัตราเริ่มต้นมาตรฐาน
+                  กำหนดเรทค่าไลฟ์เฉพาะสำหรับคนไลฟ์แต่ละคน หากไม่ระบุจะใช้อัตราเริ่มต้นมาตรฐาน (฿{defaultHourlyDraft}/ชม.)
                 </p>
 
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {payroll?.staff_payroll?.map((staff) => {
-                    const staffKey = String(staff.staff_id);
-                    const currentRate =
-                      staffRatesDraft[staffKey] ?? defaultHourlyDraft;
+                {(() => {
+                  // Merge staff from payroll with all active users (live, sales, owner, etc.)
+                  const staffMap = new Map<string, { id: number; name: string; role?: string }>();
+                  
+                  // 1. Add from current payroll summary
+                  payroll?.staff_payroll?.forEach((s) => {
+                    staffMap.set(String(s.staff_id), {
+                      id: s.staff_id,
+                      name: s.staff_name,
+                    });
+                  });
 
+                  // 2. Add from allUsers (prioritizing live & sales roles)
+                  allUsers
+                    .filter((u) => u.isActive !== false)
+                    .forEach((u) => {
+                      const idStr = String(u.id);
+                      const existing = staffMap.get(idStr);
+                      const displayName = u.name || `${u.firstname || ""} ${u.lastname || ""}`.trim() || u.email;
+                      staffMap.set(idStr, {
+                        id: Number(u.id),
+                        name: existing?.name || displayName,
+                        role: u.role,
+                      });
+                    });
+
+                  const staffList = Array.from(staffMap.values());
+
+                  if (staffList.length === 0) {
                     return (
-                      <div
-                        key={staff.staff_id}
-                        className="flex items-center justify-between gap-3 bg-white p-2 rounded-md border border-neutral-200"
-                      >
-                        <span className="font-medium text-neutral-800">
-                          {staff.staff_name}
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-neutral-400 text-[11px]">
-                            ฿
-                          </span>
-                          <input
-                            type="number"
-                            min="0"
-                            placeholder={String(defaultHourlyDraft)}
-                            value={staffRatesDraft[staffKey] ?? ""}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setStaffRatesDraft((prev) => {
-                                const next = { ...prev };
-                                if (val === "") {
-                                  delete next[staffKey];
-                                } else {
-                                  next[staffKey] = Number(val);
-                                }
-                                return next;
-                              });
-                            }}
-                            className="w-20 rounded border border-neutral-300 px-2 py-1 text-xs text-right focus:border-neutral-900 focus:outline-hidden"
-                          />
-                          <span className="text-neutral-500 text-[11px]">
-                            /ชม.
-                          </span>
-                        </div>
+                      <div className="py-4 text-center text-xs text-neutral-400">
+                        ไม่พบรายชื่อพนักงานในระบบ
                       </div>
                     );
-                  })}
-                </div>
+                  }
+
+                  return (
+                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                      {staffList.map((staff) => {
+                        const staffKey = String(staff.id);
+                        return (
+                          <div
+                            key={staff.id}
+                            className="flex items-center justify-between gap-3 bg-white p-2.5 rounded-md border border-neutral-200"
+                          >
+                            <div>
+                              <div className="font-medium text-neutral-800 text-xs">
+                                {staff.name}
+                              </div>
+                              {staff.role && (
+                                <div className="text-[10px] text-neutral-400 capitalize">
+                                  บทบาท: {staff.role}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-neutral-400 text-[11px]">฿</span>
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder={String(defaultHourlyDraft)}
+                                value={staffRatesDraft[staffKey] ?? ""}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setStaffRatesDraft((prev) => {
+                                    const next = { ...prev };
+                                    if (val === "" || val === undefined) {
+                                      delete next[staffKey];
+                                    } else {
+                                      next[staffKey] = Number(val);
+                                    }
+                                    return next;
+                                  });
+                                }}
+                                className="w-24 rounded border border-neutral-300 px-2 py-1 text-xs text-right font-mono focus:border-neutral-900 focus:outline-hidden"
+                              />
+                              <span className="text-neutral-500 text-[11px]">/ชม.</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
 
               {saveSuccessMsg && (

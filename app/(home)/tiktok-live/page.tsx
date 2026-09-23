@@ -146,7 +146,7 @@ export default function TikTokLivePage() {
             sessions={sessions}
             isLoading={isSessionsLoading}
             onEdit={handleEditSession}
-            canEdit={isOwner || userRole === "sales"}
+            canEdit={isOwner || userRole === "sales" || userRole === "live"}
           />
         </div>
 
