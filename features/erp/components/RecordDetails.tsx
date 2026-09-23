@@ -121,11 +121,10 @@ function formatValue(key: string, val: unknown): React.ReactNode {
     const isAct = val === true || val === "active" || val === "Active";
     return (
       <span
-        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-          isAct
-            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-            : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-        }`}
+        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${isAct
+          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+          : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+          }`}
       >
         {String(val)}
       </span>
@@ -162,7 +161,9 @@ function Value({ value }: { value: unknown }) {
           >
             {typeof item === "object" && item !== null ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                {Object.entries(item).map(([ik, iv]) => (
+                {Object.entries(item)
+                  .filter(([ik]) => ik !== "id")
+                  .map(([ik, iv]) => (
                   <div key={ik} className="flex flex-col">
                     <span className="text-muted-foreground text-[11px]">
                       {fieldLabels[ik] || ik}
@@ -182,7 +183,9 @@ function Value({ value }: { value: unknown }) {
 
   if (typeof value === "object" && value !== null) {
     const entries = Object.entries(value);
-    const regularEntries = entries.filter(([k]) => k !== "components" && k !== "lines");
+    const regularEntries = entries.filter(
+      ([k]) => k !== "components" && k !== "lines" && k !== "id"
+    );
     const componentsEntry = entries.find(([k]) => k === "components");
     const linesEntry = entries.find(([k]) => k === "lines");
 
@@ -386,26 +389,26 @@ export function RecordDetails({
                   </Button>
                   {(role === "owner" || role === "accountant") &&
                     query.data?.status !== "PAID" && (
-                    <form
-                      className="flex gap-2"
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        mutation.mutate({ amount: Number(amount) });
-                      }}
-                    >
-                      <Input
-                        aria-label="จำนวนเงินรับชำระ"
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        required
-                        placeholder="ยอดรับชำระ"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                      />
-                      <Button disabled={mutation.isPending}>รับชำระ</Button>
-                    </form>
-                  )}
+                      <form
+                        className="flex gap-2"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          mutation.mutate({ amount: Number(amount) });
+                        }}
+                      >
+                        <Input
+                          aria-label="จำนวนเงินรับชำระ"
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          required
+                          placeholder="ยอดรับชำระ"
+                          value={amount}
+                          onChange={(e) => setAmount(e.target.value)}
+                        />
+                        <Button disabled={mutation.isPending}>รับชำระ</Button>
+                      </form>
+                    )}
                 </div>
               )}
             </div>

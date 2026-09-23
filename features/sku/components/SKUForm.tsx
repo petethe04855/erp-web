@@ -16,14 +16,12 @@ export function SKUForm(props: Props) {
   const isEditing = Boolean(props.initialData);
   const [sku, setSku] = useState("");
   const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
   const [cost, setCost] = useState("0");
   const [initialQuantity, setInitialQuantity] = useState("0");
 
   const resetForm = () => {
     setSku("");
     setName("");
-    setPrice("");
     setCost("0");
     setInitialQuantity("0");
   };
@@ -37,7 +35,6 @@ export function SKUForm(props: Props) {
       const d = props.initialData;
       setSku(d.sku || "");
       setName(d.name || "");
-      setPrice(String(d.price ?? ""));
       setCost(String(d.cost ?? "0"));
       setInitialQuantity("0");
     } else {
@@ -51,7 +48,7 @@ export function SKUForm(props: Props) {
       title={isEditing ? `แก้ไขข้อมูล SKU: ${props.initialData?.sku}` : "เพิ่ม SKU สินค้า"}
       description={
         isEditing
-          ? "แก้ไขข้อมูลสินค้า รายละเอียด และราคา/ต้นทุนของ SKU"
+          ? "แก้ไขข้อมูลสินค้า รายละเอียด และราคาทุนของ SKU"
           : "บันทึกข้อมูลสินค้าหลักในระบบ SKU Master"
       }
       isSubmitting={props.isSubmitting}
@@ -59,7 +56,6 @@ export function SKUForm(props: Props) {
         const payload: CreateSKUDTO = {
           sku,
           name,
-          price: Number(price),
           cost: Number(cost),
           category: props.initialData?.category || "Finished Product",
           isBundle: false,
@@ -107,19 +103,7 @@ export function SKUForm(props: Props) {
         </label>
       )}
       <label className="block text-xs font-medium">
-        ราคาขาย (บาท)
-        <Input
-          className="mt-2"
-          type="number"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          min="0.01"
-          step="0.01"
-          required
-        />
-      </label>
-      <label className="block text-xs font-medium">
-        ต้นทุน (บาท)
+        ราคาทุน (บาท)
         <Input
           className="mt-2"
           type="number"

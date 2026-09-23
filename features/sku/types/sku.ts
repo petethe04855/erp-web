@@ -20,7 +20,7 @@ export interface SKU {
   sku: string;
   name: string;
   category: string;
-  price: number;
+  price?: number;
   cost: number;
   isBundle: boolean;
   stockQuantity?: number;
@@ -94,7 +94,7 @@ export interface CreateSKUDTO {
   sku: string;
   name: string;
   category: string;
-  price: number;
+  price?: number;
   cost: number;
   isBundle: boolean;
   image?: string;
@@ -114,7 +114,7 @@ export interface UpdateSKUDTO {
   sku?: string;
   name: string;
   category?: string;
-  price: number;
+  price?: number;
   cost: number;
   isBundle?: boolean;
   image?: string;
