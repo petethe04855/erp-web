@@ -1,6 +1,4 @@
-import Link from "next/link";
 import { DataTable } from "@/components/common/DataTable";
-import { Button } from "@/components/ui/button";
 import { RecordDetails } from "@/features/erp/components/RecordDetails";
 import type { Invoice } from "../types/invoice";
 import type { ApiPaginationMeta } from "@/types/api";
@@ -26,12 +24,9 @@ export function InvoiceTable(props: InvoiceTableProps) {
           key: "invoiceNumber",
           label: "ใบแจ้งหนี้",
           render: (row) => (
-            <Link
-              href={`/invoices/${row.id}`}
-              className="font-medium text-primary hover:underline"
-            >
+            <span className="font-medium">
               {row.invoiceNumber}
-            </Link>
+            </span>
           ),
         },
         {
@@ -74,11 +69,6 @@ export function InvoiceTable(props: InvoiceTableProps) {
       ]}
       actions={(row) => (
         <div className="flex items-center justify-end gap-2">
-          <Link href={`/invoices/${row.id}`}>
-            <Button size="sm" variant="outline">
-              ดูเอกสาร
-            </Button>
-          </Link>
           <RecordDetails resource="invoices" id={row.id} />
         </div>
       )}

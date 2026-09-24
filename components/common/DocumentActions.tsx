@@ -105,14 +105,9 @@ export function DocumentActions({
       if (!window.confirm("ยืนยันแปลงใบเสนอราคานี้เป็น ใบสั่งขาย (Sales Order)?")) return;
       try {
         const res = await convertQuotation.mutateAsync(id);
-        const newOrderId = res?.data?.orderId;
         showFeedback("แปลงเป็นใบสั่งขายเรียบร้อย กำลังนำทาง...");
         onSuccess?.();
-        if (newOrderId) {
-          router.push(`/orders/${newOrderId}`);
-        } else {
-          router.push("/orders");
-        }
+        router.push("/orders");
       } catch (err: any) {
         showFeedback(err?.response?.data?.message || err?.message || "แปลงเป็นใบสั่งขายไม่สำเร็จ", true);
       }
@@ -174,15 +169,10 @@ export function DocumentActions({
       if (!window.confirm(`ยืนยันการออกใบแจ้งหนี้จากใบสั่งขาย ${ref}?`)) return;
 
       try {
-        const res = await createInvoice.mutateAsync(ref);
-        const invId = res?.data?.id;
+        await createInvoice.mutateAsync(ref);
         showFeedback("ออกใบแจ้งหนี้สำเร็จ กำลังนำทาง...");
         onSuccess?.();
-        if (invId) {
-          router.push(`/invoices/${invId}`);
-        } else {
-          router.push("/invoices");
-        }
+        router.push("/invoices");
       } catch (err: any) {
         showFeedback(err?.response?.data?.message || err?.message || "ออกใบแจ้งหนี้ไม่สำเร็จ", true);
       }
