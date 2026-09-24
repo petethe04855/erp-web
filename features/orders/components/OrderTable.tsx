@@ -1,6 +1,4 @@
-import Link from "next/link";
 import { DataTable } from "@/components/common/DataTable";
-import { Button } from "@/components/ui/button";
 import { RecordDetails } from "@/features/erp/components/RecordDetails";
 import type { Order } from "../types/order";
 import type { ApiPaginationMeta } from "@/types/api";
@@ -25,12 +23,9 @@ export function OrderTable(props: OrderTableProps) {
           key: "orderNumber",
           label: "ใบสั่งขาย",
           render: (row) => (
-            <Link
-              href={`/orders/${row.id}`}
-              className="font-medium text-primary hover:underline"
-            >
+            <span className="font-medium">
               {row.orderNumber}
-            </Link>
+            </span>
           ),
         },
         { key: "customerName", label: "ลูกค้า" },
@@ -42,11 +37,6 @@ export function OrderTable(props: OrderTableProps) {
       ]}
       actions={(row) => (
         <div className="flex items-center justify-end gap-2">
-          <Link href={`/orders/${row.id}`}>
-            <Button size="sm" variant="outline">
-              ดูเอกสาร
-            </Button>
-          </Link>
           <RecordDetails resource="sales-orders" id={row.id} />
         </div>
       )}

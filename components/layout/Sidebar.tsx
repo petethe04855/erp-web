@@ -76,7 +76,6 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: "คำสั่งซื้อ (Orders)", href: "/orders", icon: ShoppingCart, roles: ["owner", "sales", "accountant"] },
       { label: "ใบแจ้งหนี้ (Invoices)", href: "/invoices", icon: Receipt, roles: ["owner", "accountant", "sales"] },
-      { label: "ใบเสนอราคา (Quotation)", href: "/quotation", icon: FileText, roles: ["owner", "sales"] },
       { label: "รับคืนสินค้า (Returns)", href: "/returns", icon: RotateCcw, roles: ["owner", "sales", "accountant", "warehouse"] },
       { label: "ลูกค้า (Customers)", href: "/customers", icon: Users, roles: ["owner", "sales"] },
     ],
@@ -96,7 +95,7 @@ const NAV_SECTIONS: NavSection[] = [
     title: "TikTok Shop",
     items: [
       { label: "TikTok Orders", href: "/tiktok-orders", icon: Store, roles: ["owner", "sales", "warehouse"] },
-      { label: "Live & Content", href: "/tiktok-live", icon: Video, roles: ["owner", "sales", "warehouse"] },
+      { label: "Live & Content", href: "/tiktok-live", icon: Video, roles: ["owner", "sales", "warehouse", "live"] },
       { label: "Fee Calculator", href: "/tiktok-calculator", icon: Calculator, roles: ["owner", "sales", "accountant"] },
       { label: "TikTok Setup", href: "/tiktok-setup", icon: Settings, roles: ["owner"] },
     ],

@@ -5,6 +5,12 @@ import { FormDialog } from "@/components/form/FormDialog";
 import { RecordLookup } from "@/features/erp/components/RecordLookup";
 import { ItemLines, type ItemLine } from "@/features/erp/components/ItemLines";
 import { useVatRate } from "@/features/settings/hooks/useVatRate";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { CustomerForm } from "@/features/customers/components/CustomerForm";
+import { useCreateCustomerMutation } from "@/features/customers/queries/customerQueries";
+import { useQueryClient } from "@tanstack/react-query";
+import type { CreateCustomerDTO } from "@/features/customers/types/customer";
 import type { CreateOrderDTO } from "../types/order";
 
 interface Props {
@@ -15,6 +21,9 @@ interface Props {
 }
 
 export function OrderForm(props: Props) {
+  const queryClient = useQueryClient();
+  const createCustomerMutation = useCreateCustomerMutation();
+  const [isNewCustomerOpen, setIsNewCustomerOpen] = useState(false);
   const { vatRate, isLoading: vatLoading, isError: vatError } = useVatRate();
   const [customer, setCustomer] = useState("");
   const [includeVat, setIncludeVat] = useState(true);
@@ -93,72 +102,106 @@ export function OrderForm(props: Props) {
   };
 
   return (
-    <FormDialog
-      {...props}
-      title="สร้างใบสั่งขาย (New Sales Order)"
-      description="เลือกสินค้าจาก Inventory Management ระบบจะแสดงราคาของชุดที่เลือกและคำนวณยอดรวมให้อัตโนมัติ"
-      onSubmit={handleSubmit}
-    >
-      <div>
-        <RecordLookup
-          kind="customers"
-          label="ชื่อลูกค้า / บัญชีลูกค้า"
-          value={customer}
-          onChange={setCustomer}
-        />
-      </div>
-      <ItemLines
-        value={lines}
-        onChange={setLines}
-        enforceMaxStock={true}
-        inventoryOnly={true}
-      />
-
-      <div className="rounded-lg border bg-muted/20 p-3 space-y-3 mt-4 text-xs">
-        <label className="flex items-center gap-2 cursor-pointer select-none font-medium text-foreground">
-          <input
-            type="checkbox"
-            checked={includeVat}
-            onChange={(e) => setIncludeVat(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+    <>
+      <FormDialog
+        {...props}
+        title="สร้างใบสั่งขาย (New Sales Order)"
+        description="เลือกสินค้าจาก Inventory Management ระบบจะแสดงราคาของชุดที่เลือกและคำนวณยอดรวมให้อัตโนมัติ"
+        onSubmit={handleSubmit}
+      >
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-neutral-800 dark:text-neutral-200">
+              ชื่อลูกค้า / บัญชีลูกค้า
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs gap-1 text-primary border-primary/30 hover:bg-primary/5 hover:text-primary"
+              onClick={() => setIsNewCustomerOpen(true)}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              เพิ่มลูกค้าใหม่
+            </Button>
+          </div>
+          <RecordLookup
+            kind="customers"
+            label=""
+            value={customer}
+            onChange={setCustomer}
           />
-          <span>
-            คิดภาษีมูลค่าเพิ่ม (Include VAT{" "}
-            {vatLoading ? "…" : vatError ? `${vatRate}% (ประมาณการ - ยังยืนยันไม่ได้)` : `${vatRate}%`})
-          </span>
-        </label>
+        </div>
+        <ItemLines
+          value={lines}
+          onChange={setLines}
+          enforceMaxStock={true}
+          inventoryOnly={true}
+        />
 
-        <div className="space-y-1.5 pt-2 border-t border-border/60 text-muted-foreground">
-          <div className="flex justify-between">
-            <span>ยอดรวมสินค้า (Subtotal):</span>
-            <span className="font-mono text-foreground">
-              ฿
-              {rawSubtotal.toLocaleString("th-TH", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
+        <div className="rounded-lg border bg-muted/20 p-3 space-y-3 mt-4 text-xs">
+          <label className="flex items-center gap-2 cursor-pointer select-none font-medium text-foreground">
+            <input
+              type="checkbox"
+              checked={includeVat}
+              onChange={(e) => setIncludeVat(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <span>
+              คิดภาษีมูลค่าเพิ่ม (Include VAT{" "}
+              {vatLoading ? "…" : vatError ? `${vatRate}% (ประมาณการ - ยังยืนยันไม่ได้)` : `${vatRate}%`})
             </span>
-          </div>
-          <div className="flex justify-between">
-            <span>ภาษีมูลค่าเพิ่ม {vatRate}% (VAT):</span>
-            <span className="font-mono text-foreground">
-              {includeVat
-                ? `฿${vatAmount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                : "ยกเว้นภาษี (0.00)"}
-            </span>
-          </div>
-          <div className="flex justify-between pt-1 border-t border-border/40 font-semibold text-sm text-foreground">
-            <span>ยอดสุทธิรวมทั้งสิ้น:</span>
-            <span className="font-mono text-primary">
-              ฿
-              {totalAmount.toLocaleString("th-TH", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </span>
+          </label>
+
+          <div className="space-y-1.5 pt-2 border-t border-border/60 text-muted-foreground">
+            <div className="flex justify-between">
+              <span>ยอดรวมสินค้า (Subtotal):</span>
+              <span className="font-mono text-foreground">
+                ฿
+                {rawSubtotal.toLocaleString("th-TH", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>ภาษีมูลค่าเพิ่ม {vatRate}% (VAT):</span>
+              <span className="font-mono text-foreground">
+                {includeVat
+                  ? `฿${vatAmount.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  : "ยกเว้นภาษี (0.00)"}
+              </span>
+            </div>
+            <div className="flex justify-between pt-1 border-t border-border/40 font-semibold text-sm text-foreground">
+              <span>ยอดสุทธิรวมทั้งสิ้น:</span>
+              <span className="font-mono text-primary">
+                ฿
+                {totalAmount.toLocaleString("th-TH", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
-    </FormDialog>
+      </FormDialog>
+
+      <CustomerForm
+        open={isNewCustomerOpen}
+        zIndex={60}
+        onOpenChange={setIsNewCustomerOpen}
+        isSubmitting={createCustomerMutation.isPending}
+        onSubmit={async (dto: CreateCustomerDTO) => {
+          const newCust = await createCustomerMutation.mutateAsync(dto);
+          await queryClient.invalidateQueries({ queryKey: ["lookup", "customers"] });
+          if (newCust && typeof newCust === "object" && "name" in newCust && typeof newCust.name === "string") {
+            setCustomer(newCust.name);
+          } else if (dto.name) {
+            setCustomer(dto.name);
+          }
+          setIsNewCustomerOpen(false);
+        }}
+      />
+    </>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useRecord } from "../hooks/useRecord";
 import type { Resource } from "../api/recordApi";
@@ -62,6 +61,7 @@ const fieldLabels: Record<string, string> = {
   itemsCount: "จำนวนรายการ",
   lines: "รายการสินค้า (Line Items)",
   receivedQty: "จำนวนที่รับเข้า",
+  unitCost: "ราคาต้นทุนต่อหน่วย (บาท)",
   supplierLot: "ล็อตผู้จัดจำหน่าย",
   expiryDate: "วันหมดอายุ",
   qcStatus: "ผลตรวจ QC",
@@ -121,11 +121,10 @@ function formatValue(key: string, val: unknown): React.ReactNode {
     const isAct = val === true || val === "active" || val === "Active";
     return (
       <span
-        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-          isAct
-            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-            : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-        }`}
+        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${isAct
+          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+          : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+          }`}
       >
         {String(val)}
       </span>
@@ -162,14 +161,16 @@ function Value({ value }: { value: unknown }) {
           >
             {typeof item === "object" && item !== null ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                {Object.entries(item).map(([ik, iv]) => (
-                  <div key={ik} className="flex flex-col">
-                    <span className="text-muted-foreground text-[11px]">
-                      {fieldLabels[ik] || ik}
-                    </span>
-                    <span className="font-medium">{formatValue(ik, iv)}</span>
-                  </div>
-                ))}
+                {Object.entries(item)
+                  .filter(([ik]) => ik !== "id")
+                  .map(([ik, iv]) => (
+                    <div key={ik} className="flex flex-col">
+                      <span className="text-muted-foreground text-[11px]">
+                        {fieldLabels[ik] || ik}
+                      </span>
+                      <span className="font-medium">{formatValue(ik, iv)}</span>
+                    </div>
+                  ))}
               </div>
             ) : (
               <Value value={item} />
@@ -182,7 +183,9 @@ function Value({ value }: { value: unknown }) {
 
   if (typeof value === "object" && value !== null) {
     const entries = Object.entries(value);
-    const regularEntries = entries.filter(([k]) => k !== "components" && k !== "lines");
+    const regularEntries = entries.filter(
+      ([k]) => k !== "components" && k !== "lines" && k !== "id"
+    );
     const componentsEntry = entries.find(([k]) => k === "components");
     const linesEntry = entries.find(([k]) => k === "lines");
 
@@ -235,7 +238,6 @@ export function RecordDetails({
   id: string | number;
 }) {
   const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState("");
   const [exporting, setExporting] = useState(false);
   const { query, mutation } = useRecord(resource, id, open);
   const role = useAuthStore((s) => s.user?.role);
@@ -266,8 +268,8 @@ export function RecordDetails({
           )}
           {query.data && (
             <div className="space-y-3 border-t pt-4">
-              {resource === "sales-orders" && (query.data?.status === "Completed" || query.data?.status === "COMPLETED" || query.data?.status === "SHIPPED") ? (
-                <div className="flex items-center gap-2">
+              {resource === "sales-orders" && ["COMPLETED", "SHIPPED"].includes(String(query.data?.status || "").toUpperCase()) && (
+                <div className="flex items-center gap-2 mb-2">
                   <Button
                     className="bg-primary text-primary-foreground font-medium shadow-sm hover:bg-primary/90"
                     disabled={exporting}
@@ -286,9 +288,9 @@ export function RecordDetails({
                     📄 Export PDF (ใบสั่งขาย)
                   </Button>
                 </div>
-              ) : (
-                (() => {
-                  let availableStatuses = actions[resource] || [];
+              )}
+              {(() => {
+                let availableStatuses = actions[resource] || [];
                   if (resource === "quotations") {
                     const currentStatus = String(query.data?.status || "Draft").toUpperCase();
                     if (currentStatus === "DRAFT" || !currentStatus) {
@@ -329,8 +331,7 @@ export function RecordDetails({
                         {status}
                       </Button>
                     ));
-                })()
-              )}
+                })()}
               {mutation.isError && (
                 <p className="text-sm text-destructive font-medium mt-2" role="alert">
                   {mutation.error instanceof Error ? mutation.error.message : "เกิดข้อผิดพลาดในการอัปเดต"}
@@ -386,26 +387,29 @@ export function RecordDetails({
                   </Button>
                   {(role === "owner" || role === "accountant") &&
                     query.data?.status !== "PAID" && (
-                    <form
-                      className="flex gap-2"
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        mutation.mutate({ amount: Number(amount) });
-                      }}
-                    >
-                      <Input
-                        aria-label="จำนวนเงินรับชำระ"
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        required
-                        placeholder="ยอดรับชำระ"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                      />
-                      <Button disabled={mutation.isPending}>รับชำระ</Button>
-                    </form>
-                  )}
+                      <Button
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                        disabled={mutation.isPending}
+                        onClick={() => {
+                          const payAmount =
+                            query.data?.balance !== undefined && Number(query.data.balance) > 0
+                              ? Number(query.data.balance)
+                              : Number(query.data?.amount || query.data?.totalAmount || 0);
+
+                          if (
+                            window.confirm(
+                              `ยืนยันการบันทึกชำระเงินสำหรับใบแจ้งหนี้ ${
+                                query.data?.code || query.data?.invoiceNo || id
+                              }?`
+                            )
+                          ) {
+                            mutation.mutate({ amount: payAmount });
+                          }
+                        }}
+                      >
+                        {mutation.isPending ? "กำลังบันทึก..." : "ชำระเงิน"}
+                      </Button>
+                    )}
                 </div>
               )}
             </div>

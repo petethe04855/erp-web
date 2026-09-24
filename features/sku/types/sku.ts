@@ -20,7 +20,7 @@ export interface SKU {
   sku: string;
   name: string;
   category: string;
-  price: number;
+  price?: number;
   cost: number;
   isBundle: boolean;
   stockQuantity?: number;
@@ -48,6 +48,8 @@ export interface SKUReceiptHistory {
   receivedAt: string;
   sourceType: "INITIAL_STOCK" | "GOODS_RECEIVE" | "STOCK_ADJUSTMENT_IN" | string;
   quantity: number;
+  unitCost?: number;
+  retailPrice?: number;
   warehouseId: number;
   warehouseName?: string;
   lotNumber?: string;
@@ -94,7 +96,7 @@ export interface CreateSKUDTO {
   sku: string;
   name: string;
   category: string;
-  price: number;
+  price?: number;
   cost: number;
   isBundle: boolean;
   image?: string;
@@ -114,7 +116,7 @@ export interface UpdateSKUDTO {
   sku?: string;
   name: string;
   category?: string;
-  price: number;
+  price?: number;
   cost: number;
   isBundle?: boolean;
   image?: string;

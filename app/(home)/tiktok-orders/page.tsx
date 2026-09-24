@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { TwoColumnLayout } from "@/components/layout/TwoColumnLayout";
 import { Button } from "@/components/ui/button";
 import { Settings, RefreshCw, Calculator } from "lucide-react";
 import { useTikTokOrders } from "@/features/tiktok/hooks/useTikTok";
@@ -63,36 +62,33 @@ export default function TikTokOrdersPage() {
         }
       />
 
-      <TwoColumnLayout
-        sidebar={
-          <TikTokOrderSearch
-            filters={filters}
-            onSearchChange={(search) => setFilters((f) => ({ ...f, search, page: 1 }))}
-            onStatusChange={(status) => setFilters((f) => ({ ...f, status, page: 1 }))}
-            onStockStatusChange={(stockStatus) =>
-              setFilters((f) => ({ ...f, stockStatus, page: 1 }))
-            }
-            onLimitChange={(limit) => setFilters((f) => ({ ...f, limit, page: 1 }))}
-            onReset={() =>
-              setFilters({ search: "", status: "ALL", stockStatus: "all", page: 1, limit: filters.limit || 50 })
-            }
-            onSync={(days) => syncOrders(days)}
-            isSyncing={isSyncing}
-            syncResult={syncResult}
-          />
-        }
-        content={
-          <TikTokOrderTable
-            orders={orders}
-            meta={meta}
-            isLoading={isLoading}
-            isError={isError}
-            onPageChange={(page) => setFilters((f) => ({ ...f, page }))}
-            onLimitChange={(limit) => setFilters((f) => ({ ...f, limit, page: 1 }))}
-            onRetry={refetch}
-          />
-        }
-      />
+      <div className="space-y-4">
+        <TikTokOrderSearch
+          filters={filters}
+          onSearchChange={(search) => setFilters((f) => ({ ...f, search, page: 1 }))}
+          onStatusChange={(status) => setFilters((f) => ({ ...f, status, page: 1 }))}
+          onStockStatusChange={(stockStatus) =>
+            setFilters((f) => ({ ...f, stockStatus, page: 1 }))
+          }
+          onLimitChange={(limit) => setFilters((f) => ({ ...f, limit, page: 1 }))}
+          onReset={() =>
+            setFilters({ search: "", status: "ALL", stockStatus: "all", page: 1, limit: filters.limit || 50 })
+          }
+          onSync={(days) => syncOrders(days)}
+          isSyncing={isSyncing}
+          syncResult={syncResult}
+        />
+
+        <TikTokOrderTable
+          orders={orders}
+          meta={meta}
+          isLoading={isLoading}
+          isError={isError}
+          onPageChange={(page) => setFilters((f) => ({ ...f, page }))}
+          onLimitChange={(limit) => setFilters((f) => ({ ...f, limit, page: 1 }))}
+          onRetry={refetch}
+        />
+      </div>
     </PageContainer>
   );
 }

@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { TwoColumnLayout } from "@/components/layout/TwoColumnLayout";
 import { Button } from "@/components/ui/button";
 import { Plus, UserPlus, ShieldAlert } from "lucide-react";
 import { useUsers } from "@/features/users/hooks/useUsers";
@@ -78,37 +77,34 @@ export default function UsersPage() {
       <PageHeader
         title="จัดการผู้ใช้งาน (User Management)"
         description="จัดการบัญชีผู้ใช้ กำหนดบทบาท และสิทธิ์การเข้าถึงระบบ Chawy ERP"
-        actions={
-          <Button size="sm" onClick={handleOpenCreate}>
-            <UserPlus className="mr-1.5 h-3.5 w-3.5" />
-            เพิ่มผู้ใช้งานใหม่ (New User)
-          </Button>
-        }
       />
 
-      <TwoColumnLayout
-        sidebar={
-          <UserSearch
-            filters={filters}
-            stats={stats}
-            onSearch={handleSearch}
-            onRoleChange={handleRoleChange}
-            onStatusChange={handleStatusChange}
-            onReset={resetFilters}
-          />
-        }
-        content={
-          <UserTable
-            users={users}
-            isLoading={isLoading}
-            isError={isError}
-            onRetry={refetch}
-            onEdit={handleOpenEdit}
-            onToggleStatus={toggleUserStatus}
-            onDelete={deleteUser}
-          />
-        }
-      />
+      <div className="space-y-4">
+        <UserSearch
+          filters={filters}
+          stats={stats}
+          onSearch={handleSearch}
+          onRoleChange={handleRoleChange}
+          onStatusChange={handleStatusChange}
+          onReset={resetFilters}
+          actions={
+            <Button size="sm" onClick={handleOpenCreate} className="h-9 whitespace-nowrap">
+              <UserPlus className="mr-1.5 h-3.5 w-3.5" />
+              เพิ่มผู้ใช้งานใหม่ (New User)
+            </Button>
+          }
+        />
+
+        <UserTable
+          users={users}
+          isLoading={isLoading}
+          isError={isError}
+          onRetry={refetch}
+          onEdit={handleOpenEdit}
+          onToggleStatus={toggleUserStatus}
+          onDelete={deleteUser}
+        />
+      </div>
 
       <UserFormModal
         open={isFormOpen}

@@ -3,7 +3,6 @@
 import { PageHeader } from "@/components/layout/PageHeader";
 import React, { useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { TwoColumnLayout } from "@/components/layout/TwoColumnLayout";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useOrders } from "@/features/orders/hooks/useOrders";
@@ -38,39 +37,35 @@ export default function OrdersPage() {
       <PageHeader
         title="Sales Orders"
         description="ข้อมูลจริงจาก Chawy ERP"
-        actions={
-          <Button size="sm" onClick={() => setIsFormOpen(true)}>
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
-            New Order
-          </Button>
-        }
       />
-      <TwoColumnLayout
-        sidebar={
-          <OrderSearch
-            filters={filters}
-            onSearch={handleSearch}
-            onFulfillmentChange={handleFulfillmentChange}
-            onPaymentChange={handlePaymentChange}
-            onChannelChange={handleChannelChange}
-            onReset={resetFilters}
-          />
-        }
-        content={
-          <div className="space-y-4">
-            <OrderStatsRow orders={orders} />
-            <OrderTable
-              orders={orders}
-              meta={meta}
-              isLoading={isLoading}
-              isError={isError}
-              onPageChange={handlePageChange}
-              onLimitChange={handleLimitChange}
-              onRetry={refetch}
-            />
-          </div>
-        }
-      />
+
+      <div className="space-y-4">
+        <OrderSearch
+          filters={filters}
+          onSearch={handleSearch}
+          onFulfillmentChange={handleFulfillmentChange}
+          onPaymentChange={handlePaymentChange}
+          onChannelChange={handleChannelChange}
+          onReset={resetFilters}
+          actions={
+            <Button size="sm" onClick={() => setIsFormOpen(true)} className="h-9 whitespace-nowrap">
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              New Order
+            </Button>
+          }
+        />
+
+        <OrderStatsRow orders={orders} />
+        <OrderTable
+          orders={orders}
+          meta={meta}
+          isLoading={isLoading}
+          isError={isError}
+          onPageChange={handlePageChange}
+          onLimitChange={handleLimitChange}
+          onRetry={refetch}
+        />
+      </div>
 
       <OrderForm
         open={isFormOpen}

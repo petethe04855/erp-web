@@ -64,7 +64,7 @@ export const LiveSessionTable: React.FC<LiveSessionTableProps> = ({
             <tr>
               <th className="px-4 py-3">รหัสเซสชัน</th>
               <th className="px-4 py-3">วันที่ / แพลตฟอร์ม</th>
-              <th className="px-4 py-3">Staff (ผู้ไลฟ์)</th>
+              <th className="px-4 py-3">คนไลฟ์</th>
               <th className="px-4 py-3">ช่วงเวลาไลฟ์</th>
               <th className="px-4 py-3 text-right">สุทธิ (หักพัก)</th>
               <th className="px-4 py-3 text-right">ยอดขาย (฿)</th>

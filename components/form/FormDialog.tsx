@@ -15,6 +15,7 @@ export function FormDialog({
   onSubmit,
   isSubmitting,
   children,
+  zIndex,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -23,12 +24,14 @@ export function FormDialog({
   onSubmit: () => Promise<unknown>;
   isSubmitting?: boolean;
   children: React.ReactNode;
+  zIndex?: number;
 }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   return (
     <Dialog
       open={open}
+      zIndex={zIndex}
       onOpenChange={(v) => {
         if (!busy) {
           setError("");

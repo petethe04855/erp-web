@@ -105,24 +105,6 @@ export function QuotationDetail({ quotationId }: QuotationDetailProps) {
   const subtotal = split.beforeVat;
   const vatAmount = split.vat;
 
-  // Status badge colors
-  const getStatusBadge = (status: string, expired?: boolean) => {
-    if (expired) {
-      return "bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800";
-    }
-    const s = (status || "").toLowerCase();
-    if (s === "approved" || s === "converted") {
-      return "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800";
-    }
-    if (s === "sent") {
-      return "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800";
-    }
-    if (s === "rejected") {
-      return "bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800";
-    }
-    return "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800";
-  };
-
   return (
     <div className="space-y-6">
       {/* Top navigation & action bar */}
@@ -135,14 +117,6 @@ export function QuotationDetail({ quotationId }: QuotationDetailProps) {
           <div className="h-4 w-px bg-border hidden sm:block" />
           <h2 className="text-xl font-semibold tracking-tight flex items-center gap-2">
             <span>ใบเสนอราคา {quote.code}</span>
-            <span
-              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadge(
-                quote.status,
-                isExpired
-              )}`}
-            >
-              {isExpired ? "Expired (หมดอายุ)" : quote.status}
-            </span>
           </h2>
         </div>
 

@@ -3,7 +3,6 @@
 import { PageHeader } from "@/components/layout/PageHeader";
 import React, { useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { TwoColumnLayout } from "@/components/layout/TwoColumnLayout";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useCustomers } from "@/features/customers/hooks/useCustomers";
@@ -57,35 +56,33 @@ export default function CustomersPage() {
       <PageHeader
         title="Customer Directory"
         description="ข้อมูลจริงจาก Chawy ERP"
-        actions={
-          <Button size="sm" onClick={handleOpenCreate}>
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
-            New Customer
-          </Button>
-        }
       />
-      <TwoColumnLayout
-        sidebar={
-          <CustomerSearch
-            filters={filters}
-            onSearch={handleSearch}
-            onStatusChange={handleStatusChange}
-            onReset={resetFilters}
-          />
-        }
-        content={
-          <CustomerTable
-            customers={customers}
-            meta={meta}
-            isLoading={isLoading}
-            isError={isError}
-            onPageChange={handlePageChange}
-            onLimitChange={handleLimitChange}
-            onRetry={refetch}
-            onEdit={handleOpenEdit}
-          />
-        }
-      />
+
+      <div className="space-y-4">
+        <CustomerSearch
+          filters={filters}
+          onSearch={handleSearch}
+          onStatusChange={handleStatusChange}
+          onReset={resetFilters}
+          actions={
+            <Button size="sm" onClick={handleOpenCreate} className="h-9 whitespace-nowrap">
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              New Customer
+            </Button>
+          }
+        />
+
+        <CustomerTable
+          customers={customers}
+          meta={meta}
+          isLoading={isLoading}
+          isError={isError}
+          onPageChange={handlePageChange}
+          onLimitChange={handleLimitChange}
+          onRetry={refetch}
+          onEdit={handleOpenEdit}
+        />
+      </div>
 
       <CustomerForm
         open={isFormOpen}

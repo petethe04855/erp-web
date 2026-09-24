@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useMemo } from "react";
-import Link from "next/link";
 import { Invoice } from "../types/invoice";
 import { money } from "@/features/orders/types/order";
-import { Users, AlertTriangle, ChevronRight, CheckCircle2 } from "lucide-react";
+import { Users, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 interface CustomerDebt {
   customer: string;
@@ -138,14 +137,12 @@ export function OutstandingCustomersPanel({ invoices }: OutstandingCustomersPane
 
               <div className="flex items-center gap-1">
                 {c.invoices.slice(0, 2).map((inv) => (
-                  <Link
+                  <span
                     key={inv.id}
-                    href={`/invoices/${inv.id}`}
-                    className="inline-flex items-center px-2 py-1 rounded bg-muted/60 hover:bg-muted text-[11px] font-mono text-primary hover:underline transition-colors"
+                    className="inline-flex items-center px-2 py-1 rounded bg-muted/60 text-[11px] font-mono text-foreground"
                   >
                     {inv.invoiceNumber}
-                    <ChevronRight className="h-3 w-3 ml-0.5" />
-                  </Link>
+                  </span>
                 ))}
                 {c.invoices.length > 2 && (
                   <span className="text-[10px] text-muted-foreground pl-1">

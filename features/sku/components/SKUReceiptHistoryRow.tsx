@@ -173,11 +173,10 @@ export function SKUReceiptHistoryRow({
                 <button
                   type="button"
                   onClick={() => setActiveTab("receipts")}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition-all cursor-pointer ${
-                    activeTab === "receipts"
-                      ? "bg-white text-neutral-900 shadow-xs dark:bg-neutral-900 dark:text-neutral-100"
-                      : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200"
-                  }`}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition-all cursor-pointer ${activeTab === "receipts"
+                    ? "bg-white text-neutral-900 shadow-xs dark:bg-neutral-900 dark:text-neutral-100"
+                    : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200"
+                    }`}
                 >
                   <Inbox className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                   <span>ประวัติรับเข้าสต็อก (เข้าก่อนอยู่บนสุด)</span>
@@ -191,11 +190,10 @@ export function SKUReceiptHistoryRow({
                 <button
                   type="button"
                   onClick={() => setActiveTab("usage")}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition-all cursor-pointer ${
-                    activeTab === "usage"
-                      ? "bg-white text-neutral-900 shadow-xs dark:bg-neutral-900 dark:text-neutral-100"
-                      : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200"
-                  }`}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition-all cursor-pointer ${activeTab === "usage"
+                    ? "bg-white text-neutral-900 shadow-xs dark:bg-neutral-900 dark:text-neutral-100"
+                    : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200"
+                    }`}
                 >
                   <ArrowUpRight className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
                   <span>ประวัติการขาย / ดึงไปใช้ (ระบุ Lot)</span>
@@ -275,6 +273,9 @@ export function SKUReceiptHistoryRow({
                         <th className="py-2.5 px-3 whitespace-nowrap">วันที่รับเข้า</th>
                         <th className="py-2.5 px-3 whitespace-nowrap">ประเภท</th>
                         <th className="py-2.5 px-3 whitespace-nowrap text-right">จำนวนเข้า</th>
+                        <th className="py-2.5 px-3 whitespace-nowrap text-right">ราคาทุนต่อหน่วย</th>
+                        {/* <th className="py-2.5 px-3 whitespace-nowrap text-right">ราคาขายปลีก</th>
+                        <th className="py-2.5 px-3 whitespace-nowrap text-right">มูลค่ารวมล็อต</th> */}
                         <th className="py-2.5 px-3 whitespace-nowrap">คลังสินค้า</th>
                         <th className="py-2.5 px-3 whitespace-nowrap">Lot / ผู้ผลิต</th>
                         <th className="py-2.5 px-3 whitespace-nowrap">วันหมดอายุ</th>
@@ -283,66 +284,93 @@ export function SKUReceiptHistoryRow({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800/60">
-                      {receipts.map((item, idx) => (
-                        <tr
-                          key={item.id}
-                          className="hover:bg-neutral-50/50 dark:hover:bg-neutral-800/40 transition-colors"
-                        >
-                          <td className="py-2 px-3 whitespace-nowrap font-mono text-neutral-400">
-                            #{(receiptPage - 1) * limit + idx + 1}
-                          </td>
-                          <td className="py-2 px-3 whitespace-nowrap font-mono text-neutral-700 dark:text-neutral-300">
-                            {formatThaiDateTime(item.receivedAt)}
-                          </td>
-                          <td className="py-2 px-3 whitespace-nowrap">
-                            {getSourceBadge(item.sourceType)}
-                          </td>
-                          <td className="py-2 px-3 whitespace-nowrap text-right font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-                            +{item.quantity.toLocaleString("th-TH")}
-                          </td>
-                          <td className="py-2 px-3 whitespace-nowrap text-neutral-600 dark:text-neutral-400">
-                            {item.warehouseName || `คลัง #${item.warehouseId}`}
-                          </td>
-                          <td className="py-2 px-3 whitespace-nowrap font-mono text-neutral-700 dark:text-neutral-300">
-                            {item.lotNumber ? (
-                              <div className="flex flex-col">
-                                <span className="font-semibold text-primary">{item.lotNumber}</span>
-                                {item.supplierLot && (
-                                  <span className="text-[10px] text-neutral-400">
-                                    ผู้ผลิต: {item.supplierLot}
-                                  </span>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-neutral-400">-</span>
-                            )}
-                          </td>
-                          <td className="py-2 px-3 whitespace-nowrap text-neutral-600 dark:text-neutral-400">
-                            {item.expiryDate
-                              ? formatThaiDateTime(item.expiryDate, { includeTime: false })
-                              : "-"}
-                          </td>
-                          <td className="py-2 px-3 whitespace-nowrap">
-                            <div className="flex flex-col font-mono text-[11px]">
-                              {item.referenceId ? (
-                                <span className="font-medium text-neutral-800 dark:text-neutral-200">
-                                  {item.referenceId}
-                                </span>
+                      {receipts.map((item, idx) => {
+                        const unitCost = Number(item.unitCost || 0);
+                        const retailPrice = Number(item.retailPrice || 0);
+                        const lotTotalCost = unitCost * item.quantity;
+
+                        return (
+                          <tr
+                            key={item.id}
+                            className="hover:bg-neutral-50/50 dark:hover:bg-neutral-800/40 transition-colors"
+                          >
+                            <td className="py-2 px-3 whitespace-nowrap font-mono text-neutral-400">
+                              #{(receiptPage - 1) * limit + idx + 1}
+                            </td>
+                            <td className="py-2 px-3 whitespace-nowrap font-mono text-neutral-700 dark:text-neutral-300">
+                              {formatThaiDateTime(item.receivedAt)}
+                            </td>
+                            <td className="py-2 px-3 whitespace-nowrap">
+                              {getSourceBadge(item.sourceType)}
+                            </td>
+                            <td className="py-2 px-3 whitespace-nowrap text-right font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                              +{item.quantity.toLocaleString("th-TH")}
+                            </td>
+                            <td className="py-2 px-3 whitespace-nowrap text-right font-mono text-neutral-700 dark:text-neutral-300">
+                              {unitCost > 0 ? (
+                                <span>฿{unitCost.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                               ) : (
                                 <span className="text-neutral-400">-</span>
                               )}
-                              {item.purchaseOrderRef && (
-                                <span className="text-[10px] text-neutral-500">
-                                  PO: {item.purchaseOrderRef}
-                                </span>
+                            </td>
+                            {/* <td className="py-2 px-3 whitespace-nowrap text-right font-mono font-medium text-blue-600 dark:text-blue-400">
+                              {retailPrice > 0 ? (
+                                <span>฿{retailPrice.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                              ) : (
+                                <span className="text-neutral-400">-</span>
                               )}
-                            </div>
-                          </td>
-                          <td className="py-2 px-3 text-neutral-500 max-w-xs truncate" title={item.note || ""}>
-                            {item.note || "-"}
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                            <td className="py-2 px-3 whitespace-nowrap text-right font-mono text-neutral-500 dark:text-neutral-400">
+                              {lotTotalCost > 0 ? (
+                                <span>฿{lotTotalCost.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                              ) : (
+                                <span className="text-neutral-400">-</span>
+                              )}
+                            </td> */}
+                            <td className="py-2 px-3 whitespace-nowrap text-neutral-600 dark:text-neutral-400">
+                              {item.warehouseName || `คลัง #${item.warehouseId}`}
+                            </td>
+                            <td className="py-2 px-3 whitespace-nowrap font-mono text-neutral-700 dark:text-neutral-300">
+                              {item.lotNumber ? (
+                                <div className="flex flex-col">
+                                  <span className="font-semibold text-primary">{item.lotNumber}</span>
+                                  {item.supplierLot && (
+                                    <span className="text-[10px] text-neutral-400">
+                                      ผู้ผลิต: {item.supplierLot}
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-neutral-400">-</span>
+                              )}
+                            </td>
+                            <td className="py-2 px-3 whitespace-nowrap text-neutral-600 dark:text-neutral-400">
+                              {item.expiryDate
+                                ? formatThaiDateTime(item.expiryDate, { includeTime: false })
+                                : "-"}
+                            </td>
+                            <td className="py-2 px-3 whitespace-nowrap">
+                              <div className="flex flex-col font-mono text-[11px]">
+                                {item.referenceId ? (
+                                  <span className="font-medium text-neutral-800 dark:text-neutral-200">
+                                    {item.referenceId}
+                                  </span>
+                                ) : (
+                                  <span className="text-neutral-400">-</span>
+                                )}
+                                {item.purchaseOrderRef && (
+                                  <span className="text-[10px] text-neutral-500">
+                                    PO: {item.purchaseOrderRef}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-2 px-3 text-neutral-500 max-w-xs truncate" title={item.note || ""}>
+                              {item.note || "-"}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
 

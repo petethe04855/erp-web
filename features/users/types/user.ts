@@ -1,6 +1,6 @@
 // Must mirror backend isValidRole() (erp-api-v2 internal/usecase/auth):
 // there is no "admin" role in this system.
-export type UserRole = "owner" | "sales" | "warehouse" | "accountant";
+export type UserRole = "owner" | "sales" | "warehouse" | "accountant" | "live";
 
 export interface AppUser {
   id: number | string;
@@ -67,5 +67,11 @@ export const ROLE_CONFIG: Record<
     desc: "จัดการสต็อกสินค้า รับเข้า-เบิกออก และจัดส่ง",
     color: "teal",
     badgeClass: "bg-teal-50 text-teal-800 border-teal-200 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800",
+  },
+  live: {
+    label: "พนักงานไลฟ์ (Live Streamer)",
+    desc: "บันทึกผลการไลฟ์ จัดการตารางคอนเทนต์ และดูรายการไลฟ์",
+    color: "purple",
+    badgeClass: "bg-purple-50 text-purple-800 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800",
   },
 };

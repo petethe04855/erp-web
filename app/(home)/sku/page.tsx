@@ -3,7 +3,6 @@
 import { PageHeader } from "@/components/layout/PageHeader";
 import React, { useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { TwoColumnLayout } from "@/components/layout/TwoColumnLayout";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useSKU } from "@/features/sku/hooks/useSKU";
@@ -81,38 +80,37 @@ export default function SKUPage() {
       <PageHeader
         title="SKU Management"
         description="ข้อมูลจริงจาก Chawy ERP"
-        actions={
-          <Button size="sm" onClick={handleOpenCreate}>
+      />
+
+      <div className="space-y-4">
+        {/* Horizontal Search & Filter Toolbar with New SKU button */}
+        <SKUSearch
+          filters={filters}
+          onSearch={handleSearch}
+          onCategoryChange={handleCategoryChange}
+          onStatusChange={handleStatusChange}
+          onReset={resetFilters}
+        >
+          <Button size="sm" onClick={handleOpenCreate} className="h-9 whitespace-nowrap">
             <Plus className="mr-1.5 h-3.5 w-3.5" />
             New SKU
           </Button>
-        }
-      />
-      <TwoColumnLayout
-        sidebar={
-          <SKUSearch
-            filters={filters}
-            onSearch={handleSearch}
-            onCategoryChange={handleCategoryChange}
-            onStatusChange={handleStatusChange}
-            onReset={resetFilters}
-          />
-        }
-        content={
-          <SKUTable
-            skus={skus}
-            meta={meta}
-            isLoading={isLoading}
-            isError={isError}
-            onPageChange={handlePageChange}
-            onLimitChange={handleLimitChange}
-            onRetry={refetch}
-            onDelete={deleteSKU}
-            onEdit={handleEdit}
-            onAdjustStock={handleAdjustStock}
-          />
-        }
-      />
+        </SKUSearch>
+
+        {/* Content & Table Area */}
+        <SKUTable
+          skus={skus}
+          meta={meta}
+          isLoading={isLoading}
+          isError={isError}
+          onPageChange={handlePageChange}
+          onLimitChange={handleLimitChange}
+          onRetry={refetch}
+          onDelete={deleteSKU}
+          onEdit={handleEdit}
+          onAdjustStock={handleAdjustStock}
+        />
+      </div>
 
       {/* SKU Create / Edit Modal Form */}
       <SKUForm

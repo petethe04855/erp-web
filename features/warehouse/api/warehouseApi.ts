@@ -65,6 +65,8 @@ export const warehouseApi = {
         {
           sku: dto.sku,
           qtyReceived: dto.quantity,
+          unitCost: dto.unitCost,
+          retailPrice: dto.retailPrice,
           expiryDate: dto.expiryDate,
           supplierLot: dto.lotNumber,
           qcStatus: "Accepted",

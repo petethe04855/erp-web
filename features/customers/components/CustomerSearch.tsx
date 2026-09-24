@@ -1,7 +1,8 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
-import { SearchPanel } from "@/components/common/SearchPanel";
+import { Select } from "@/components/ui/select";
+import { FilterToolbar } from "@/components/common/FilterToolbar";
 import type { CustomerQueryParams } from "../types/customer";
 
 interface CustomerSearchProps {
@@ -9,6 +10,8 @@ interface CustomerSearchProps {
   onSearch: (val: string) => void;
   onStatusChange: (val: string) => void;
   onReset: () => void;
+  actions?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 export function CustomerSearch(props: CustomerSearchProps) {
@@ -17,21 +20,32 @@ export function CustomerSearch(props: CustomerSearchProps) {
   if (props.filters.status && props.filters.status !== "all") activeCount++;
 
   return (
-    <SearchPanel
-      title="ค้นหา / ตัวกรอง"
+    <FilterToolbar
       onReset={props.onReset}
       activeFilterCount={activeCount}
+      actions={props.actions || props.children}
     >
-      <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
-        คำค้นหา
+      <div className="relative min-w-[260px] flex-1 sm:max-w-md">
         <Input
           type="search"
-          className="mt-1.5 text-xs"
+          className="h-9 text-xs"
           value={props.filters.search || ""}
           onChange={(e) => props.onSearch(e.target.value)}
-          placeholder="รหัสลูกค้า / ชื่อ / เบอร์โทร / เลขภาษี"
+          placeholder="ค้นหารหัสลูกค้า / ชื่อ / เบอร์โทร / เลขภาษี..."
         />
-      </label>
-    </SearchPanel>
+      </div>
+
+      <div className="w-full sm:w-40">
+        <Select
+          className="h-9 text-xs"
+          value={props.filters.status || "all"}
+          onChange={(e) => props.onStatusChange(e.target.value)}
+        >
+          <option value="all">สถานะทั้งหมด</option>
+          <option value="active">Active (ใช้งาน)</option>
+          <option value="inactive">Inactive (ปิดใช้งาน)</option>
+        </Select>
+      </div>
+    </FilterToolbar>
   );
 }

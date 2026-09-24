@@ -1,8 +1,6 @@
-"use client";
-
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { SearchPanel } from "@/components/common/SearchPanel";
+import { FilterToolbar } from "@/components/common/FilterToolbar";
 
 interface ReturnSearchProps {
   search: string;
@@ -12,6 +10,8 @@ interface ReturnSearchProps {
   onStatusChange: (val: string) => void;
   onReturnTypeChange: (val: string) => void;
   onReset: () => void;
+  actions?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 export function ReturnSearch(props: ReturnSearchProps) {
@@ -21,30 +21,28 @@ export function ReturnSearch(props: ReturnSearchProps) {
   if (props.returnType && props.returnType !== "all") activeCount++;
 
   return (
-    <SearchPanel
-      title="ค้นหา / ตัวกรอง"
+    <FilterToolbar
       onReset={props.onReset}
       activeFilterCount={activeCount}
+      actions={props.actions || props.children}
     >
-      <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
-        คำค้นหา
+      <div className="relative min-w-[240px] flex-1 sm:max-w-xs">
         <Input
           type="search"
-          className="mt-1.5 text-xs"
+          className="h-9 text-xs"
           value={props.search}
           onChange={(e) => props.onSearch(e.target.value)}
-          placeholder="เลขที่ใบรับคืน / ชื่อลูกค้า / เลขที่ออเดอร์"
+          placeholder="ค้นหาเลขที่ใบรับคืน / ชื่อลูกค้า / ออเดอร์..."
         />
-      </label>
+      </div>
 
-      <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
-        สถานะเอกสาร
+      <div className="w-full sm:w-48">
         <Select
-          className="mt-1.5 text-xs"
+          className="h-9 text-xs"
           value={props.status}
           onChange={(e) => props.onStatusChange(e.target.value)}
         >
-          <option value="all">ทั้งหมด</option>
+          <option value="all">สถานะทั้งหมด</option>
           <option value="DRAFT">ฉบับร่าง (DRAFT)</option>
           <option value="SUBMITTED">ส่งอนุมัติ (SUBMITTED)</option>
           <option value="APPROVED">อนุมัติแล้ว (APPROVED)</option>
@@ -52,20 +50,19 @@ export function ReturnSearch(props: ReturnSearchProps) {
           <option value="REJECTED">ปฏิเสธ (REJECTED)</option>
           <option value="CANCELLED">ยกเลิก (CANCELLED)</option>
         </Select>
-      </label>
+      </div>
 
-      <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
-        ประเภทการรับคืน
+      <div className="w-full sm:w-44">
         <Select
-          className="mt-1.5 text-xs"
+          className="h-9 text-xs"
           value={props.returnType}
           onChange={(e) => props.onReturnTypeChange(e.target.value)}
         >
-          <option value="all">ทั้งหมด</option>
+          <option value="all">ประเภททั้งหมด</option>
           <option value="CUSTOMER">ลูกค้าคืน (CUSTOMER)</option>
           <option value="INTERNAL">คืนภายใน (INTERNAL)</option>
         </Select>
-      </label>
-    </SearchPanel>
+      </div>
+    </FilterToolbar>
   );
 }

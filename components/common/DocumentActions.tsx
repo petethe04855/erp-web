@@ -25,8 +25,6 @@ import {
   useCreateInvoiceFromSOMutation 
 } from "@/features/orders/queries/orderQueries";
 import { usePayInvoiceMutation } from "@/features/invoices/queries/invoiceQueries";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 
 export type DocumentType = "quotation" | "order" | "invoice";
 
@@ -56,8 +54,6 @@ export function DocumentActions({
   const router = useRouter();
   const role = useAuthStore((s) => s.user?.role?.toLowerCase() || "");
   const [feedbackMessage, setFeedbackMessage] = useState<{ text: string; isError?: boolean } | null>(null);
-  const [isPayOpen, setIsPayOpen] = useState(false);
-  const [payAmount, setPayAmount] = useState<string>("");
 
   // Mutations
   const updateQuotationStatus = useUpdateQuotationStatusMutation();
@@ -88,11 +84,8 @@ export function DocumentActions({
 
   // Quotation Actions
   if (type === "quotation") {
-    const isDraft = normStatus === "DRAFT" || !normStatus;
-    const isSent = normStatus === "SENT";
-    const isApproved = normStatus === "APPROVED";
     const isConverted = normStatus === "CONVERTED";
-    const isRejected = normStatus === "REJECTED";
+    const isPendingOrOpen = normStatus === "PENDING" || normStatus === "DRAFT" || normStatus === "SENT" || normStatus === "APPROVED" || !normStatus;
 
     // Expired check
     let expired = !!isExpired;
@@ -104,17 +97,6 @@ export function DocumentActions({
       if (validDate < today) expired = true;
     }
 
-    const handleQuotationStatus = async (newStatus: string) => {
-      if (!window.confirm(`ยืนยันการเปลี่ยนสถานะใบเสนอราคาเป็น ${newStatus}?`)) return;
-      try {
-        await updateQuotationStatus.mutateAsync({ id, status: newStatus });
-        showFeedback(`อัปเดตสถานะเป็น ${newStatus} สำเร็จ`);
-        onSuccess?.();
-      } catch (err: any) {
-        showFeedback(err?.response?.data?.message || err?.message || "ไม่สามารถเปลี่ยนสถานะได้", true);
-      }
-    };
-
     const handleConvert = async () => {
       if (expired) {
         showFeedback("ไม่สามารถแปลงได้เนื่องจากใบเสนอราคาหมดอายุแล้ว", true);
@@ -123,14 +105,9 @@ export function DocumentActions({
       if (!window.confirm("ยืนยันแปลงใบเสนอราคานี้เป็น ใบสั่งขาย (Sales Order)?")) return;
       try {
         const res = await convertQuotation.mutateAsync(id);
-        const newOrderId = res?.data?.orderId;
         showFeedback("แปลงเป็นใบสั่งขายเรียบร้อย กำลังนำทาง...");
         onSuccess?.();
-        if (newOrderId) {
-          router.push(`/orders/${newOrderId}`);
-        } else {
-          router.push("/orders");
-        }
+        router.push("/orders");
       } catch (err: any) {
         showFeedback(err?.response?.data?.message || err?.message || "แปลงเป็นใบสั่งขายไม่สำเร็จ", true);
       }
@@ -144,46 +121,7 @@ export function DocumentActions({
           </span>
         )}
 
-        {isDraft && (
-          <Button
-            size="sm"
-            disabled={isPending || !canManageSales}
-            onClick={() => handleQuotationStatus("Sent")}
-            className="gap-1.5"
-            title={!canManageSales ? "คุณไม่มีสิทธิ์ดำเนินการ" : "ส่งใบเสนอราคาให้ลูกค้า"}
-          >
-            {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-            ส่งเอกสาร (Sent)
-          </Button>
-        )}
-
-        {isSent && (
-          <>
-            <Button
-              size="sm"
-              disabled={isPending || !canManageSales || expired}
-              onClick={() => handleQuotationStatus("Approved")}
-              className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-              title={expired ? "ใบเสนอราคาหมดอายุแล้ว" : !canManageSales ? "คุณไม่มีสิทธิ์ดำเนินการ" : "อนุมัติใบเสนอราคา"}
-            >
-              <CheckCircle className="h-3.5 w-3.5" />
-              อนุมัติ (Approve)
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={isPending || !canManageSales}
-              onClick={() => handleQuotationStatus("Rejected")}
-              className="gap-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
-              title={!canManageSales ? "คุณไม่มีสิทธิ์ดำเนินการ" : "ปฏิเสธใบเสนอราคา"}
-            >
-              <XCircle className="h-3.5 w-3.5" />
-              ปฏิเสธ (Reject)
-            </Button>
-          </>
-        )}
-
-        {isApproved && (
+        {isPendingOrOpen && !isConverted && (
           <Button
             size="sm"
             disabled={isPending || !canManageSales || expired}
@@ -231,15 +169,10 @@ export function DocumentActions({
       if (!window.confirm(`ยืนยันการออกใบแจ้งหนี้จากใบสั่งขาย ${ref}?`)) return;
 
       try {
-        const res = await createInvoice.mutateAsync(ref);
-        const invId = res?.data?.id;
+        await createInvoice.mutateAsync(ref);
         showFeedback("ออกใบแจ้งหนี้สำเร็จ กำลังนำทาง...");
         onSuccess?.();
-        if (invId) {
-          router.push(`/invoices/${invId}`);
-        } else {
-          router.push("/invoices");
-        }
+        router.push("/invoices");
       } catch (err: any) {
         showFeedback(err?.response?.data?.message || err?.message || "ออกใบแจ้งหนี้ไม่สำเร็จ", true);
       }
@@ -299,18 +232,14 @@ export function DocumentActions({
   if (type === "invoice") {
     const isPaid = normStatus === "PAID" || (balance !== undefined && balance <= 0);
 
-    const handlePaySubmit = async (e: React.FormEvent) => {
-      e.preventDefault();
-      const num = parseFloat(payAmount);
-      if (isNaN(num) || num <= 0) {
-        showFeedback("กรุณาระบุจำนวนเงินที่ถูกต้อง", true);
+    const handleDirectPay = async () => {
+      const payVal = balance !== undefined && balance > 0 ? balance : amount;
+      if (!window.confirm(`ยืนยันการบันทึกชำระเงินสำหรับ ${code || `INV-${id}`}?`)) {
         return;
       }
       try {
-        await payInvoice.mutateAsync({ id, amount: num });
+        await payInvoice.mutateAsync({ id, amount: payVal });
         showFeedback("บันทึกการรับชำระเงินสำเร็จ");
-        setIsPayOpen(false);
-        setPayAmount("");
         onSuccess?.();
       } catch (err: any) {
         showFeedback(err?.response?.data?.message || err?.message || "บันทึกการรับชำระเงินไม่สำเร็จ", true);
@@ -329,46 +258,18 @@ export function DocumentActions({
           <Button
             size="sm"
             disabled={isPending || !canManageFinance}
-            onClick={() => {
-              setPayAmount(String(balance ?? amount));
-              setIsPayOpen(true);
-            }}
+            onClick={handleDirectPay}
             className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
             title={!canManageFinance ? "คุณไม่มีสิทธิ์บันทึกการเงิน" : "บันทึกการรับชำระเงิน"}
           >
-            <CreditCard className="h-3.5 w-3.5" />
-            รับชำระเงิน (Record Payment)
+            {payInvoice.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <CreditCard className="h-3.5 w-3.5" />
+            )}
+            ชำระเงิน
           </Button>
         )}
-
-        <Dialog open={isPayOpen} onOpenChange={setIsPayOpen}>
-          <DialogContent className="max-w-md">
-            <DialogTitle>รับชำระเงินสำหรับ {code || `INV-${id}`}</DialogTitle>
-            <form onSubmit={handlePaySubmit} className="space-y-4 pt-2">
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">จำนวนเงินที่รับชำระ (บาท)</label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  required
-                  value={payAmount}
-                  onChange={(e) => setPayAmount(e.target.value)}
-                  placeholder="0.00"
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => setIsPayOpen(false)}>
-                  ยกเลิก
-                </Button>
-                <Button type="submit" size="sm" disabled={isPending}>
-                  {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
-                  ยืนยันรับชำระ
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
       </div>
     );
   }
