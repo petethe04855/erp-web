@@ -17,6 +17,7 @@ export function SKUForm(props: Props) {
   const [sku, setSku] = useState("");
   const [name, setName] = useState("");
   const [initialQuantity, setInitialQuantity] = useState("0");
+  const [barcode, setBarcode] = useState("");
 
   const resetForm = () => {
     setSku("");
@@ -42,7 +43,11 @@ export function SKUForm(props: Props) {
   return (
     <FormDialog
       {...props}
-      title={isEditing ? `แก้ไขข้อมูล SKU: ${props.initialData?.sku}` : "เพิ่ม SKU สินค้า"}
+      title={
+        isEditing
+          ? `แก้ไขข้อมูล SKU: ${props.initialData?.sku}`
+          : "เพิ่ม SKU สินค้า"
+      }
       description={
         isEditing
           ? "แก้ไขข้อมูลและรายละเอียดสินค้าหลักของ SKU"
@@ -56,19 +61,39 @@ export function SKUForm(props: Props) {
           cost: props.initialData?.cost || 0,
           category: props.initialData?.category || "Finished Product",
           isBundle: false,
-          ...(isEditing ? {} : { initialQuantity: Math.max(0, parseInt(initialQuantity, 10) || 0) }),
+          ...(isEditing
+            ? {}
+            : {
+                initialQuantity: Math.max(
+                  0,
+                  parseInt(initialQuantity, 10) || 0,
+                ),
+              }),
         };
         await props.onSubmit(payload);
         resetForm();
       }}
     >
       <label className="block text-xs font-medium">
-        SKU {isEditing && <span className="text-neutral-400 font-normal">(แก้ไขรหัสได้)</span>}
+        SKU{" "}
+        {isEditing && (
+          <span className="text-neutral-400 font-normal">(แก้ไขรหัสได้)</span>
+        )}
         <Input
           className="mt-2"
           type="text"
           value={sku}
           onChange={(e) => setSku(e.target.value.toUpperCase())}
+          required
+        />
+      </label>
+      <label className="block text-xs font-medium">
+        รหัสบาร์โค้ด
+        <Input
+          className="mt-2"
+          type="number"
+          value={barcode}
+          onChange={(e) => setBarcode(e.target.value)}
           required
         />
       </label>
@@ -95,7 +120,8 @@ export function SKUForm(props: Props) {
             required
           />
           <span className="text-[11px] text-neutral-400 mt-1 block">
-            กรอกจำนวนสต็อกคงเหลือเริ่มต้นสำหรับ SKU นี้ (สามารถเพิ่มได้เฉพาะตอนสร้างใหม่)
+            กรอกจำนวนสต็อกคงเหลือเริ่มต้นสำหรับ SKU นี้
+            (สามารถเพิ่มได้เฉพาะตอนสร้างใหม่)
           </span>
         </label>
       )}
@@ -105,11 +131,13 @@ export function SKUForm(props: Props) {
         <span className="font-semibold text-neutral-800 dark:text-neutral-200 block mb-1">
           💡 ระบบราคาต้นทุนและราคาขาย:
         </span>
-        ราคาต้นทุนและราคาขายจะถูกบันทึกตามแต่ละล็อตโดยอัตโนมัติเมื่อทำรายการ <strong>&quot;รับสินค้าเข้าสต็อก (Goods Receive)&quot;</strong>
+        ราคาต้นทุนและราคาขายจะถูกบันทึกตามแต่ละล็อตโดยอัตโนมัติเมื่อทำรายการ{" "}
+        <strong>&quot;รับสินค้าเข้าสต็อก (Goods Receive)&quot;</strong>
       </div>
 
       <p className="text-xs text-neutral-500">
-        การรับสต็อกเพิ่มเติมให้ทำผ่านหน้ารับสินค้า ส่วนการตัดสต็อกแบบชุด/เซ็ตให้ตั้งค่าที่ &quot;ชุดสินค้า Inventory&quot;
+        การรับสต็อกเพิ่มเติมให้ทำผ่านหน้ารับสินค้า
+        ส่วนการตัดสต็อกแบบชุด/เซ็ตให้ตั้งค่าที่ &quot;ชุดสินค้า Inventory&quot;
       </p>
     </FormDialog>
   );

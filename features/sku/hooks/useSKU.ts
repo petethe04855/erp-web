@@ -65,9 +65,8 @@ export function useSKU() {
     return updateMutation.mutateAsync({ sku, data: dto });
   };
 
-  const toggleSKUStatus = async (sku: string | number, currentStatus: string) => {
-    const nextStatus = currentStatus === "active" ? "inactive" : "active";
-    return updateStatusMutation.mutateAsync({ sku, status: nextStatus });
+  const toggleSKUStatus = async (sku: string | number, status: string) => {
+    return updateStatusMutation.mutateAsync({ sku, status: status });
   };
 
   const deleteSKU = async (sku: string | number) => {

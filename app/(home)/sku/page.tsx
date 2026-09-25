@@ -10,7 +10,12 @@ import { SKUSearch } from "@/features/sku/components/SKUSearch";
 import { SKUTable } from "@/features/sku/components/SKUTable";
 import { SKUForm } from "@/features/sku/components/SKUForm";
 import { SKUStockAdjustmentModal } from "@/features/sku/components/SKUStockAdjustmentModal";
-import { SKU, CreateSKUDTO, UpdateSKUDTO, StockAdjustmentDTO } from "@/features/sku/types/sku";
+import {
+  SKU,
+  CreateSKUDTO,
+  UpdateSKUDTO,
+  StockAdjustmentDTO,
+} from "@/features/sku/types/sku";
 
 /**
  * SKU Management Page
@@ -91,7 +96,11 @@ export default function SKUPage() {
           onStatusChange={handleStatusChange}
           onReset={resetFilters}
         >
-          <Button size="sm" onClick={handleOpenCreate} className="h-9 whitespace-nowrap">
+          <Button
+            size="sm"
+            onClick={handleOpenCreate}
+            className="h-9 whitespace-nowrap"
+          >
             <Plus className="mr-1.5 h-3.5 w-3.5" />
             New SKU
           </Button>
@@ -108,6 +117,7 @@ export default function SKUPage() {
           onRetry={refetch}
           onDelete={deleteSKU}
           onEdit={handleEdit}
+          onChangeStatus={toggleSKUStatus}
           onAdjustStock={handleAdjustStock}
         />
       </div>
@@ -134,4 +144,3 @@ export default function SKUPage() {
     </PageContainer>
   );
 }
-
