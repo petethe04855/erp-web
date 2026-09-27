@@ -22,6 +22,7 @@ export function SKUForm(props: Props) {
   const resetForm = () => {
     setSku("");
     setName("");
+    setBarcode("");
     setInitialQuantity("0");
   };
 
@@ -34,6 +35,7 @@ export function SKUForm(props: Props) {
       const d = props.initialData;
       setSku(d.sku || "");
       setName(d.name || "");
+      setBarcode(d.barcode || "");
       setInitialQuantity("0");
     } else {
       resetForm();
@@ -58,6 +60,7 @@ export function SKUForm(props: Props) {
         const payload: CreateSKUDTO = {
           sku,
           name,
+          barcode: barcode || undefined,
           cost: props.initialData?.cost || 0,
           category: props.initialData?.category || "Finished Product",
           isBundle: false,
@@ -91,10 +94,10 @@ export function SKUForm(props: Props) {
         รหัสบาร์โค้ด
         <Input
           className="mt-2"
-          type="number"
+          type="text"
           value={barcode}
           onChange={(e) => setBarcode(e.target.value)}
-          required
+          placeholder="เช่น 885000000001 (ถ้ามี)"
         />
       </label>
       <label className="block text-xs font-medium">

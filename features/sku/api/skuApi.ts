@@ -5,6 +5,7 @@ export const toSKU = (p: ProductRecord): SKU => ({
   id: p.id,
   sku: p.sku,
   name: p.name,
+  barcode: p.barcode,
   category: p.type,
   price: p.retailPrice,
   cost: p.cost,
@@ -99,6 +100,7 @@ export const skuApi = {
     const result = await writeRecord<ProductRecord>("/products", {
       sku: dto.sku,
       name: dto.name,
+      barcode: dto.barcode,
       type: dto.isBundle ? "Bundle" : "Finished Product",
       ...(dto.price !== undefined ? { retailPrice: dto.price, wholesalePrice: dto.price } : {}),
       cost: dto.cost,
@@ -148,6 +150,7 @@ export const skuApi = {
       {
         sku: dto.sku,
         name: dto.name,
+        barcode: dto.barcode,
         type: dto.category,
         ...(dto.price !== undefined ? { retailPrice: dto.price, wholesalePrice: dto.price } : {}),
         cost: dto.cost,

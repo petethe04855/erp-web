@@ -19,6 +19,7 @@ export interface SKU {
   id: number;
   sku: string;
   name: string;
+  barcode?: string;
   category: string;
   price?: number;
   cost: number;
@@ -95,6 +96,7 @@ export interface SKUQueryParams {
 export interface CreateSKUDTO {
   sku: string;
   name: string;
+  barcode?: string;
   category: string;
   price?: number;
   cost: number;
@@ -115,6 +117,7 @@ export interface CreateSKUDTO {
 export interface UpdateSKUDTO {
   sku?: string;
   name: string;
+  barcode?: string;
   category?: string;
   price?: number;
   cost: number;

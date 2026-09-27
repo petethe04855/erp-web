@@ -219,38 +219,106 @@ export function SKUImportModal({
           {/* Import Result Summary */}
           {result && (
             <div className="space-y-3">
-              <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/50 dark:bg-emerald-950/20">
-                <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-medium text-xs mb-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                  การประมวลผลไฟล์เสร็จสมบูรณ์
+              {result.failed > 0 && result.created === 0 && result.updated === 0 ? (
+                <div className="p-3.5 rounded-xl border border-red-200 bg-red-50/70 dark:border-red-900/50 dark:bg-red-950/30">
+                  <div className="flex items-center gap-2 text-red-800 dark:text-red-300 font-semibold text-xs mb-2">
+                    <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                    เกิดข้อผิดพลาดในการนำเข้าไฟล์ (ไม่สามารถนำเข้าข้อมูลได้)
+                  </div>
+                  <div className="grid grid-cols-4 gap-2 text-center">
+                    <div className="p-2 rounded bg-white dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700">
+                      <div className="text-base font-bold text-neutral-800 dark:text-neutral-100">
+                        {result.totalRows}
+                      </div>
+                      <div className="text-[10px] text-neutral-500">ข้อมูลทั้งหมด</div>
+                    </div>
+                    <div className="p-2 rounded bg-white dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700">
+                      <div className="text-base font-bold text-emerald-600 dark:text-emerald-400">
+                        {result.created}
+                      </div>
+                      <div className="text-[10px] text-neutral-500">สร้างใหม่</div>
+                    </div>
+                    <div className="p-2 rounded bg-white dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700">
+                      <div className="text-base font-bold text-blue-600 dark:text-blue-400">
+                        {result.updated}
+                      </div>
+                      <div className="text-[10px] text-neutral-500">อัปเดต</div>
+                    </div>
+                    <div className="p-2 rounded bg-white dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700">
+                      <div className="text-base font-bold text-red-600 dark:text-red-400">
+                        {result.failed}
+                      </div>
+                      <div className="text-[10px] text-neutral-500">ผิดพลาด</div>
+                    </div>
+                  </div>
                 </div>
-                <div className="grid grid-cols-4 gap-2 text-center">
-                  <div className="p-2 rounded bg-white dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700">
-                    <div className="text-base font-bold text-neutral-800 dark:text-neutral-100">
-                      {result.totalRows}
-                    </div>
-                    <div className="text-[10px] text-neutral-500">ข้อมูลทั้งหมด</div>
+              ) : result.failed > 0 ? (
+                <div className="p-3.5 rounded-xl border border-amber-200 bg-amber-50/70 dark:border-amber-900/50 dark:bg-amber-950/30">
+                  <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-semibold text-xs mb-2">
+                    <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    การนำเข้าเสร็จสิ้นบางส่วน (พบข้อผิดพลาดบางรายการ)
                   </div>
-                  <div className="p-2 rounded bg-white dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700">
-                    <div className="text-base font-bold text-emerald-600 dark:text-emerald-400">
-                      {result.created}
+                  <div className="grid grid-cols-4 gap-2 text-center">
+                    <div className="p-2 rounded bg-white dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700">
+                      <div className="text-base font-bold text-neutral-800 dark:text-neutral-100">
+                        {result.totalRows}
+                      </div>
+                      <div className="text-[10px] text-neutral-500">ข้อมูลทั้งหมด</div>
                     </div>
-                    <div className="text-[10px] text-neutral-500">สร้างใหม่</div>
-                  </div>
-                  <div className="p-2 rounded bg-white dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700">
-                    <div className="text-base font-bold text-blue-600 dark:text-blue-400">
-                      {result.updated}
+                    <div className="p-2 rounded bg-white dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700">
+                      <div className="text-base font-bold text-emerald-600 dark:text-emerald-400">
+                        {result.created}
+                      </div>
+                      <div className="text-[10px] text-neutral-500">สร้างใหม่</div>
                     </div>
-                    <div className="text-[10px] text-neutral-500">อัปเดต</div>
-                  </div>
-                  <div className="p-2 rounded bg-white dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700">
-                    <div className={`text-base font-bold ${result.failed > 0 ? "text-red-600 dark:text-red-400" : "text-neutral-500"}`}>
-                      {result.failed}
+                    <div className="p-2 rounded bg-white dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700">
+                      <div className="text-base font-bold text-blue-600 dark:text-blue-400">
+                        {result.updated}
+                      </div>
+                      <div className="text-[10px] text-neutral-500">อัปเดต</div>
                     </div>
-                    <div className="text-[10px] text-neutral-500">ผิดพลาด</div>
+                    <div className="p-2 rounded bg-white dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700">
+                      <div className="text-base font-bold text-red-600 dark:text-red-400">
+                        {result.failed}
+                      </div>
+                      <div className="text-[10px] text-neutral-500">ผิดพลาด</div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+                  <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-medium text-xs mb-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    การประมวลผลไฟล์เสร็จสมบูรณ์
+                  </div>
+                  <div className="grid grid-cols-4 gap-2 text-center">
+                    <div className="p-2 rounded bg-white dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700">
+                      <div className="text-base font-bold text-neutral-800 dark:text-neutral-100">
+                        {result.totalRows}
+                      </div>
+                      <div className="text-[10px] text-neutral-500">ข้อมูลทั้งหมด</div>
+                    </div>
+                    <div className="p-2 rounded bg-white dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700">
+                      <div className="text-base font-bold text-emerald-600 dark:text-emerald-400">
+                        {result.created}
+                      </div>
+                      <div className="text-[10px] text-neutral-500">สร้างใหม่</div>
+                    </div>
+                    <div className="p-2 rounded bg-white dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700">
+                      <div className="text-base font-bold text-blue-600 dark:text-blue-400">
+                        {result.updated}
+                      </div>
+                      <div className="text-[10px] text-neutral-500">อัปเดต</div>
+                    </div>
+                    <div className="p-2 rounded bg-white dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-700">
+                      <div className="text-base font-bold text-neutral-500">
+                        0
+                      </div>
+                      <div className="text-[10px] text-neutral-500">ผิดพลาด</div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Error Rows Table if any */}
               {result.errors && result.errors.length > 0 && (
