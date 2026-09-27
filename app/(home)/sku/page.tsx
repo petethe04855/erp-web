@@ -4,12 +4,13 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import React, { useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, UploadCloud, Download } from "lucide-react";
 import { useSKU } from "@/features/sku/hooks/useSKU";
 import { SKUSearch } from "@/features/sku/components/SKUSearch";
 import { SKUTable } from "@/features/sku/components/SKUTable";
 import { SKUForm } from "@/features/sku/components/SKUForm";
 import { SKUStockAdjustmentModal } from "@/features/sku/components/SKUStockAdjustmentModal";
+import { SKUImportModal } from "@/features/sku/components/SKUImportModal";
 import {
   SKU,
   CreateSKUDTO,
@@ -28,6 +29,7 @@ export default function SKUPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingSKU, setEditingSKU] = useState<SKU | null>(null);
   const [adjustingSKU, setAdjustingSKU] = useState<SKU | null>(null);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   const {
     skus,
@@ -47,9 +49,12 @@ export default function SKUPage() {
     toggleSKUStatus,
     deleteSKU,
     adjustStock,
+    importSKU,
+    downloadTemplate,
     isCreating,
     isUpdating,
     isAdjusting,
+    isImporting,
   } = useSKU();
 
   const handleOpenCreate = () => {
@@ -88,7 +93,7 @@ export default function SKUPage() {
       />
 
       <div className="space-y-4">
-        {/* Horizontal Search & Filter Toolbar with New SKU button */}
+        {/* Horizontal Search & Filter Toolbar with Action buttons */}
         <SKUSearch
           filters={filters}
           onSearch={handleSearch}
@@ -96,14 +101,38 @@ export default function SKUPage() {
           onStatusChange={handleStatusChange}
           onReset={resetFilters}
         >
-          <Button
-            size="sm"
-            onClick={handleOpenCreate}
-            className="h-9 whitespace-nowrap"
-          >
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
-            New SKU
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={downloadTemplate}
+              className="h-9 whitespace-nowrap text-xs gap-1.5"
+              title="ดาวน์โหลดไฟล์แม่แบบ Excel สำหรับอัปโหลด SKU"
+            >
+              <Download className="h-3.5 w-3.5 text-neutral-500" />
+              ดาวน์โหลด Template
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsImportOpen(true)}
+              className="h-9 whitespace-nowrap text-xs gap-1.5 border-emerald-600/30 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
+              title="นำเข้า SKU จากไฟล์ Excel (.xlsx)"
+            >
+              <UploadCloud className="h-3.5 w-3.5" />
+              นำเข้า XLSX
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleOpenCreate}
+              className="h-9 whitespace-nowrap text-xs"
+            >
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              New SKU
+            </Button>
+          </div>
         </SKUSearch>
 
         {/* Content & Table Area */}
@@ -141,6 +170,16 @@ export default function SKUPage() {
         onSubmit={handleStockAdjustmentSubmit}
         isSubmitting={isAdjusting}
       />
+
+      {/* SKU Excel Import Modal */}
+      <SKUImportModal
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
+        onImport={importSKU}
+        onDownloadTemplate={downloadTemplate}
+        isImporting={isImporting}
+      />
     </PageContainer>
   );
 }
+

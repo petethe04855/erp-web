@@ -139,3 +139,17 @@ export interface StockAdjustmentDTO {
   quantity: number;
   reason: string;
 }
+
+export interface RowError {
+  row: number;
+  sku: string;
+  error: string;
+}
+
+export interface ImportXLSXResult {
+  totalRows: number;
+  created: number;
+  updated: number;
+  failed: number;
+  errors: RowError[];
+}

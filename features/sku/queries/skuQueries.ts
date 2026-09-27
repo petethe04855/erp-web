@@ -117,3 +117,15 @@ export function useAdjustSKUStockMutation() {
     },
   });
 }
+
+export function useImportSKUXLSMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => skuApi.importXLSX(file),
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+    },
+  });
+}
+

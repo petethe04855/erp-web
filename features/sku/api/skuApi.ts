@@ -209,4 +209,26 @@ export const skuApi = {
     });
     return { success: true, data: null };
   },
+  downloadTemplate: async (): Promise<Blob> => {
+    const res = await (await import("@/lib/axios")).default.get("/products/template/download", {
+      responseType: "blob",
+    });
+    return res.data;
+  },
+  importXLSX: async (file: File): Promise<import("../types/sku").ImportXLSXResult> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await (await import("@/lib/axios")).default.post<{
+      success: boolean;
+      data: import("../types/sku").ImportXLSXResult;
+      message?: string;
+    }>("/products/import", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    if (!res.data?.success) {
+      throw new Error(res.data?.message || "นำเข้าข้อมูลไม่สำเร็จ");
+    }
+    return res.data.data;
+  },
 };
+
