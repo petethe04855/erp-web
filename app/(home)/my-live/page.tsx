@@ -4,39 +4,17 @@ import React, { useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useAuthStore } from "@/stores/authStore";
-import {
-  useLiveSessions,
-  useContentItems,
-} from "@/features/tiktok/live/hooks/useLive";
+import { useLiveSessions } from "@/features/tiktok/live/hooks/useLive";
 import type { LiveSession } from "@/features/tiktok/live/types/live";
 import { LiveStats } from "@/features/tiktok/live/components/LiveStats";
-import { LiveReviewQueue } from "@/features/tiktok/live/components/LiveReviewQueue";
 import { LiveSessionTable } from "@/features/tiktok/live/components/LiveSessionTable";
 import { LiveCheckoutModal } from "@/features/tiktok/live/components/LiveCheckoutModal";
 import { LivePayrollTable } from "@/features/tiktok/live/components/LivePayrollTable";
-import { ContentScheduleTable } from "@/features/tiktok/live/components/ContentScheduleTable";
 import { Plus, Filter } from "lucide-react";
 
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-
-export default function TikTokLivePage() {
-  const router = useRouter();
+export default function MyLivePage() {
   const { user } = useAuthStore();
   const userRole = (user?.role || "sales").toLowerCase();
-  const isOwner = userRole === "owner";
-  const canReview = isOwner;
-  const canViewPayroll = isOwner || userRole === "accountant";
-
-  useEffect(() => {
-    if (userRole === "live") {
-      router.replace("/my-live");
-    }
-  }, [userRole, router]);
-
-  if (userRole === "live") {
-    return null;
-  }
 
   // Filter states
   const [selectedMonth, setSelectedMonth] = useState(() =>
@@ -49,14 +27,14 @@ export default function TikTokLivePage() {
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<LiveSession | null>(null);
 
-  // Queries
+  // Queries (filter sessions for current staff)
+  const currentStaffID = user?.id ? Number(user.id) : undefined;
   const { data: sessions = [], isLoading: isSessionsLoading } = useLiveSessions({
     month: selectedMonth,
     status: statusFilter !== "all" ? statusFilter : undefined,
     platform: platformFilter !== "all" ? platformFilter : undefined,
+    staff_id: currentStaffID,
   });
-
-  const { data: contentItems = [], isLoading: isContentLoading } = useContentItems();
 
   const handleOpenCheckout = () => {
     setEditingSession(null);
@@ -71,8 +49,8 @@ export default function TikTokLivePage() {
   return (
     <PageContainer>
       <PageHeader
-        title="Live & Content Management"
-        description="จัดการตารางไลฟ์ บันทึกผลยอดขาย ชั่วโมงการทำงานทีมไลฟ์ และคำนวณ Payroll ประจำเดือน"
+        title="บันทึกและรายได้ของฉัน (My Live & Earnings)"
+        description="บันทึกผลการขึ้นไลฟ์ ตรวจสอบประวัติรอบไลฟ์ และดูสรุปค่าจ้างรวมประจำเดือนของคุณ"
         actions={
           <div className="flex items-center gap-2">
             <button
@@ -86,7 +64,7 @@ export default function TikTokLivePage() {
       />
 
       <div className="space-y-6">
-        {/* KPI Stats */}
+        {/* KPI Stats for current streamer */}
         <LiveStats sessions={sessions} isLoading={isSessionsLoading} />
 
         {/* Filters Bar */}
@@ -137,37 +115,27 @@ export default function TikTokLivePage() {
           </div>
         </div>
 
-        {/* Review Queue (Pending Sessions) */}
-        <LiveReviewQueue sessions={sessions} canReview={canReview} />
+        {/* Live Payroll Summary (Personal Earnings Card & Breakdown) */}
+        <LivePayrollTable
+          canViewPayroll={true}
+          selectedMonth={selectedMonth}
+          onMonthChange={setSelectedMonth}
+          isOwner={false}
+        />
 
-        {/* Main Live Sessions Ledger */}
+        {/* Personal Live Sessions Table */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-neutral-900">
-              ตารางบันทึกการไลฟ์ (Live Sessions)
+              ประวัติรอบไลฟ์ของฉัน (My Live Sessions)
             </h2>
           </div>
           <LiveSessionTable
             sessions={sessions}
             isLoading={isSessionsLoading}
             onEdit={handleEditSession}
-            canEdit={isOwner || userRole === "sales" || userRole === "live"}
+            canEdit={true}
           />
-        </div>
-
-        {/* Role-gated Payroll Summary Table */}
-        {canViewPayroll && (
-          <LivePayrollTable
-            canViewPayroll={canViewPayroll}
-            selectedMonth={selectedMonth}
-            onMonthChange={setSelectedMonth}
-            isOwner={isOwner}
-          />
-        )}
-
-        {/* Content Schedules */}
-        <div className="pt-2">
-          <ContentScheduleTable items={contentItems} isLoading={isContentLoading} />
         </div>
       </div>
 
