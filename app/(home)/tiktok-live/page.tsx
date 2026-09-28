@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useAuthStore } from "@/stores/authStore";
@@ -16,7 +15,7 @@ import { LiveSessionTable } from "@/features/tiktok/live/components/LiveSessionT
 import { LiveCheckoutModal } from "@/features/tiktok/live/components/LiveCheckoutModal";
 import { LivePayrollTable } from "@/features/tiktok/live/components/LivePayrollTable";
 import { ContentScheduleTable } from "@/features/tiktok/live/components/ContentScheduleTable";
-import { Plus, Settings, Filter } from "lucide-react";
+import { Plus, Filter } from "lucide-react";
 
 export default function TikTokLivePage() {
   const { user } = useAuthStore();
@@ -62,14 +61,6 @@ export default function TikTokLivePage() {
         description="จัดการตารางไลฟ์ บันทึกผลยอดขาย ชั่วโมงการทำงานทีมไลฟ์ และคำนวณ Payroll ประจำเดือน"
         actions={
           <div className="flex items-center gap-2">
-            {isOwner && (
-              <Link
-                href="/settings"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 shadow-2xs hover:bg-neutral-50 transition-colors"
-              >
-                <Settings size={14} /> อัตราค่าจ้าง
-              </Link>
-            )}
             <button
               onClick={handleOpenCheckout}
               className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 px-3.5 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-neutral-800 transition-colors"

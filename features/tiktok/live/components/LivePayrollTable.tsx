@@ -373,37 +373,42 @@ export const LivePayrollTable: React.FC<LivePayrollTableProps> = ({
                 </p>
 
                 {(() => {
-                  // Merge staff from payroll with all active users (live, sales, owner, etc.)
+                  // Filter and show ONLY Live Streamer staff (role: "live")
                   const staffMap = new Map<string, { id: number; name: string; role?: string }>();
-                  
-                  // 1. Add from current payroll summary
-                  payroll?.staff_payroll?.forEach((s) => {
-                    staffMap.set(String(s.staff_id), {
-                      id: s.staff_id,
-                      name: s.staff_name,
-                    });
-                  });
 
-                  // 2. Add from allUsers (prioritizing live & sales roles)
                   allUsers
-                    .filter((u) => u.isActive !== false)
+                    .filter((u) => u.isActive !== false && u.role === "live")
                     .forEach((u) => {
                       const idStr = String(u.id);
-                      const existing = staffMap.get(idStr);
                       const displayName = u.name || `${u.firstname || ""} ${u.lastname || ""}`.trim() || u.email;
                       staffMap.set(idStr, {
                         id: Number(u.id),
-                        name: existing?.name || displayName,
+                        name: displayName,
                         role: u.role,
                       });
                     });
+
+                  // Also check if any staff with role 'live' in current payroll needs to be included
+                  payroll?.staff_payroll?.forEach((s) => {
+                    const idStr = String(s.staff_id);
+                    const matchingUser = allUsers.find((u) => String(u.id) === idStr);
+                    if (!matchingUser || matchingUser.role === "live") {
+                      if (!staffMap.has(idStr)) {
+                        staffMap.set(idStr, {
+                          id: s.staff_id,
+                          name: s.staff_name,
+                          role: matchingUser?.role || "live",
+                        });
+                      }
+                    }
+                  });
 
                   const staffList = Array.from(staffMap.values());
 
                   if (staffList.length === 0) {
                     return (
                       <div className="py-4 text-center text-xs text-neutral-400">
-                        ไม่พบรายชื่อพนักงานในระบบ
+                        ไม่พบรายชื่อพนักงานบทบาทพนักงานไลฟ์ (Live Streamer) ในระบบ
                       </div>
                     );
                   }
