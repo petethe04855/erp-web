@@ -94,8 +94,9 @@ const NAV_SECTIONS: NavSection[] = [
   {
     title: "TikTok Shop",
     items: [
+      { label: "บันทึกและรายได้ของฉัน", href: "/my-live", icon: Video, roles: ["live"] },
       { label: "TikTok Orders", href: "/tiktok-orders", icon: Store, roles: ["owner", "sales", "warehouse"] },
-      { label: "Live & Content", href: "/tiktok-live", icon: Video, roles: ["owner", "sales", "warehouse", "live"] },
+      { label: "Live & Content", href: "/tiktok-live", icon: Video, roles: ["owner", "sales", "warehouse"] },
       { label: "Fee Calculator", href: "/tiktok-calculator", icon: Calculator, roles: ["owner", "sales", "accountant"] },
       { label: "TikTok Setup", href: "/tiktok-setup", icon: Settings, roles: ["owner"] },
     ],

@@ -3,6 +3,7 @@ import type { LivePlatform, LiveSession, CreateLiveSessionDTO, UpdateLiveSession
 import { useCreateLiveSession, useUpdateLiveSession } from "../hooks/useLive";
 import { userApi } from "@/features/users/api/userApi";
 import type { AppUser } from "@/features/users/types/user";
+import { useAuthStore } from "@/stores/authStore";
 import { X, AlertCircle } from "lucide-react";
 
 interface LiveCheckoutModalProps {
@@ -16,6 +17,10 @@ export const LiveCheckoutModal: React.FC<LiveCheckoutModalProps> = ({
   onClose,
   sessionToEdit,
 }) => {
+  const { user: currentUser } = useAuthStore();
+  const userRole = (currentUser?.role || "sales").toLowerCase();
+  const isOwnerOrAdmin = userRole === "owner" || userRole === "admin";
+
   const [users, setUsers] = useState<AppUser[]>([]);
   const [staffId, setStaffId] = useState<number | "">("");
   const [platform, setPlatform] = useState<LivePlatform>("TIKTOK");
@@ -33,14 +38,20 @@ export const LiveCheckoutModal: React.FC<LiveCheckoutModalProps> = ({
   const updateMutation = useUpdateLiveSession();
 
   useEffect(() => {
-    userApi.getUsers().then((res) => {
-      // Filter sales or active staff
-      setUsers(res || []);
-      if (!sessionToEdit && res && res.length > 0 && staffId === "") {
-        setStaffId(Number(res[0].id));
-      }
-    }).catch(() => {});
-  }, [sessionToEdit]);
+    if (isOwnerOrAdmin) {
+      userApi
+        .getUsers()
+        .then((res) => {
+          setUsers(res || []);
+          if (!sessionToEdit && res && res.length > 0 && staffId === "") {
+            setStaffId(Number(res[0].id));
+          }
+        })
+        .catch(() => {});
+    } else if (currentUser?.id) {
+      setStaffId(Number(currentUser.id));
+    }
+  }, [sessionToEdit, isOwnerOrAdmin, currentUser?.id]);
 
   useEffect(() => {
     if (sessionToEdit) {
@@ -147,11 +158,11 @@ export const LiveCheckoutModal: React.FC<LiveCheckoutModalProps> = ({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block font-semibold text-neutral-700 mb-1">
-                คนไลฟ์ <span className="text-rose-500">*</span>
-              </label>
+          <div>
+            <label className="block font-semibold text-neutral-700 mb-1">
+              คนไลฟ์ <span className="text-rose-500">*</span>
+            </label>
+            {isOwnerOrAdmin ? (
               <select
                 value={staffId}
                 onChange={(e) => setStaffId(Number(e.target.value))}
@@ -162,24 +173,18 @@ export const LiveCheckoutModal: React.FC<LiveCheckoutModalProps> = ({
                 <option value="">-- เลือกคนไลฟ์ --</option>
                 {users.map((u) => (
                   <option key={u.id} value={u.id}>
-                    {u.name} ({u.role})
+                    {u.name || `${u.firstname || ""} ${u.lastname || ""}`.trim() || u.email} ({u.role})
                   </option>
                 ))}
               </select>
-            </div>
-
-            <div>
-              <label className="block font-semibold text-neutral-700 mb-1">แพลตฟอร์ม</label>
-              <select
-                value={platform}
-                onChange={(e) => setPlatform(e.target.value as LivePlatform)}
-                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-xs focus:border-neutral-900 focus:outline-hidden"
-              >
-                <option value="TIKTOK">TikTok Shop</option>
-                <option value="SHOPEE">Shopee Live</option>
-                <option value="LAZADA">Lazada Live</option>
-              </select>
-            </div>
+            ) : (
+              <input
+                type="text"
+                value={currentUser?.name || currentUser?.email || "พนักงานไลฟ์"}
+                disabled
+                className="w-full rounded-lg border border-neutral-200 bg-neutral-100 px-3 py-2 text-xs text-neutral-800 font-medium cursor-not-allowed"
+              />
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -198,14 +203,16 @@ export const LiveCheckoutModal: React.FC<LiveCheckoutModalProps> = ({
             </div>
 
             <div>
-              <label className="block font-semibold text-neutral-700 mb-1">ช่อง / แอคเคานต์</label>
-              <input
-                type="text"
-                value={tiktokAccount}
-                onChange={(e) => setTiktokAccount(e.target.value)}
-                placeholder="@chawy_official"
+              <label className="block font-semibold text-neutral-700 mb-1">แพลตฟอร์ม</label>
+              <select
+                value={platform}
+                onChange={(e) => setPlatform(e.target.value as LivePlatform)}
                 className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-xs focus:border-neutral-900 focus:outline-hidden"
-              />
+              >
+                <option value="TIKTOK">TikTok Shop</option>
+                <option value="SHOPEE">Shopee Live</option>
+                <option value="LAZADA">Lazada Live</option>
+              </select>
             </div>
           </div>
 
@@ -238,47 +245,6 @@ export const LiveCheckoutModal: React.FC<LiveCheckoutModalProps> = ({
           <p className="text-[11px] text-neutral-400">
             * รองรับไลฟ์ข้ามเที่ยงคืน เช่น 23:00 - 02:00 ระบบจะคำนวณชั่วโมงสุทธิให้อัตโนมัติ
           </p>
-
-          <div>
-            <label className="block font-semibold text-neutral-700 mb-1">ยอดขายที่เกิดจากไลฟ์ (บาท)</label>
-            <input
-              type="number"
-              min="0"
-              step="any"
-              value={revenue}
-              onChange={(e) => setRevenue(e.target.value === "" ? "" : Number(e.target.value))}
-              placeholder="0"
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-xs focus:border-neutral-900 focus:outline-hidden"
-            />
-          </div>
-
-          <div className="rounded-lg border border-neutral-200 bg-neutral-50/50 p-3 space-y-2">
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="hasClip"
-                checked={hasClip}
-                onChange={(e) => setHasClip(e.target.checked)}
-                className="h-4 w-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
-              />
-              <label htmlFor="hasClip" className="font-semibold text-neutral-800 select-none cursor-pointer">
-                มีคลิปสรุป / วิดีโอสั้นจากไลฟ์ (รับโบนัสคลิป)
-              </label>
-            </div>
-
-            {hasClip && (
-              <div>
-                <label className="block text-neutral-600 mb-1">ลิงก์คลิปสรุป</label>
-                <input
-                  type="url"
-                  value={clipLink}
-                  onChange={(e) => setClipLink(e.target.value)}
-                  placeholder="https://tiktok.com/@chawy/video/..."
-                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-xs focus:border-neutral-900 focus:outline-hidden"
-                />
-              </div>
-            )}
-          </div>
 
           <div className="pt-2 flex items-center justify-end gap-2 border-t border-neutral-200">
             <button

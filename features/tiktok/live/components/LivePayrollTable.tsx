@@ -6,6 +6,7 @@ import {
   type LivePayrollSettings,
 } from "@/features/settings/api/settingsApi";
 import { userApi } from "@/features/users/api/userApi";
+import { useAuthStore } from "@/stores/authStore";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   DollarSign,
@@ -19,6 +20,7 @@ import {
   UserCheck,
   FileSpreadsheet,
   X,
+  User,
 } from "lucide-react";
 
 interface LivePayrollTableProps {
@@ -35,6 +37,10 @@ export const LivePayrollTable: React.FC<LivePayrollTableProps> = ({
   isOwner = false,
 }) => {
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuthStore();
+  const userRole = (currentUser?.role || "sales").toLowerCase();
+  const isLiveStreamer = userRole === "live";
+
   const [roundingPolicy, setRoundingPolicy] =
     useState<RoundingPolicy>("quarter_up");
   const [rateModalOpen, setRateModalOpen] = useState(false);
@@ -54,7 +60,7 @@ export const LivePayrollTable: React.FC<LivePayrollTableProps> = ({
   const { data: settingsData } = useQuery({
     queryKey: ["settings"],
     queryFn: () => settingsApi.get(),
-    enabled: canViewPayroll,
+    enabled: canViewPayroll && isOwner,
   });
 
   // Fetch all users to allow configuring rates for any live streamer/staff
@@ -105,6 +111,23 @@ export const LivePayrollTable: React.FC<LivePayrollTableProps> = ({
     });
   };
 
+  const displayedRows = isLiveStreamer
+    ? (payroll?.staff_payroll || []).filter(
+        (r) => String(r.staff_id) === String(currentUser?.id)
+      )
+    : (payroll?.staff_payroll || []);
+
+  const personalRow = displayedRows[0];
+  const totalApprovedSessions = isLiveStreamer
+    ? personalRow?.approved_sessions_count || 0
+    : payroll?.staff_payroll?.length || 0;
+  const totalHoursDisplay = isLiveStreamer
+    ? personalRow?.decimal_hours || 0
+    : payroll?.total_hours || 0;
+  const totalPayDisplay = isLiveStreamer
+    ? personalRow?.total_pay || 0
+    : payroll?.total_pay || 0;
+
   if (!canViewPayroll) {
     return null;
   }
@@ -119,13 +142,15 @@ export const LivePayrollTable: React.FC<LivePayrollTableProps> = ({
               <DollarSign size={15} />
             </span>
             <h3 className="text-sm font-bold text-neutral-900">
-              สรุปชั่วโมงไลฟ์และประมาณการเงินเดือน/ค่าจ้างประจำเดือน (Live
-              Payroll)
+              {isLiveStreamer
+                ? "สรุปรายได้ค่าจ้างของฉันประจำเดือน (My Live Payroll)"
+                : "สรุปชั่วโมงไลฟ์และประมาณการเงินเดือน/ค่าจ้างประจำเดือน (Live Payroll)"}
             </h3>
           </div>
           <p className="text-xs text-neutral-500 mt-1">
-            สรุปชั่วโมงจริง, อัตราค่าไลฟ์ต่อชั่วโมง, โบนัสคลิป
-            และคำนวณยอดสุทธิที่พนักงานจะได้รับในเดือนนี้
+            {isLiveStreamer
+              ? `สรุปชั่วโมงทำงานและรายได้ค่าจ้างรวมของคุณประจำเดือน ${selectedMonth}`
+              : "สรุปชั่วโมงจริง, อัตราค่าไลฟ์ต่อชั่วโมง และคำนวณยอดสุทธิประจำเดือน"}
           </p>
         </div>
 
@@ -143,23 +168,25 @@ export const LivePayrollTable: React.FC<LivePayrollTableProps> = ({
             </div>
           )}
 
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-neutral-500 whitespace-nowrap">
-              ปัดเศษ:
-            </span>
-            <select
-              value={roundingPolicy}
-              onChange={(e) =>
-                setRoundingPolicy(e.target.value as RoundingPolicy)
-              }
-              className="rounded-lg border border-neutral-300 bg-white px-2.5 py-1.5 text-xs text-neutral-700 focus:border-neutral-900 focus:outline-hidden"
-            >
-              <option value="quarter_up">ปัดขึ้นทุก 15 นาที (+15m)</option>
-              <option value="up10">ปัดขึ้นทุก 10 นาที (+10m)</option>
-              <option value="up30">ปัดขึ้นทุก 30 นาที (+30m)</option>
-              <option value="actual">ตามจริง (Actual)</option>
-            </select>
-          </div>
+          {!isLiveStreamer && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-neutral-500 whitespace-nowrap">
+                ปัดเศษ:
+              </span>
+              <select
+                value={roundingPolicy}
+                onChange={(e) =>
+                  setRoundingPolicy(e.target.value as RoundingPolicy)
+                }
+                className="rounded-lg border border-neutral-300 bg-white px-2.5 py-1.5 text-xs text-neutral-700 focus:border-neutral-900 focus:outline-hidden"
+              >
+                <option value="quarter_up">ปัดขึ้นทุก 15 นาที (+15m)</option>
+                <option value="up10">ปัดขึ้นทุก 10 นาที (+10m)</option>
+                <option value="up30">ปัดขึ้นทุก 30 นาที (+30m)</option>
+                <option value="actual">ตามจริง (Actual)</option>
+              </select>
+            </div>
+          )}
 
           {isOwner && (
             <button
@@ -174,28 +201,31 @@ export const LivePayrollTable: React.FC<LivePayrollTableProps> = ({
 
       {isLoading ? (
         <div className="py-8 text-center text-xs text-neutral-400">
-          กำลังคำนวณชั่วโมงและยอดเงินเดือนทีมไลฟ์...
+          กำลังคำนวณชั่วโมงและยอดเงินเดือน...
         </div>
       ) : error ? (
         <div className="flex items-center gap-2 rounded-lg bg-rose-50 p-3 text-xs text-rose-700">
           <ShieldAlert size={15} />
           <span>ไม่สามารถดึงข้อมูล Payroll ได้ หรือไม่มีสิทธิ์เข้าถึง</span>
         </div>
-      ) : !payroll || payroll?.staff_payroll?.length === 0 ? (
+      ) : !payroll || displayedRows.length === 0 ? (
         <div className="py-8 text-center text-xs text-neutral-500">
-          ยังไม่มีเซสชันที่อนุมัติในเดือน {selectedMonth}{" "}
-          (ระบบจะคำนวณเฉพาะรอบที่ Owner กดอนุมัติแล้ว)
+          {isLiveStreamer
+            ? `คุณยังไม่มีรอบไลฟ์ที่อนุมัติในเดือน ${selectedMonth}`
+            : `ยังไม่มีเซสชันที่อนุมัติในเดือน ${selectedMonth} (ระบบจะคำนวณเฉพาะรอบที่ Owner กดอนุมัติแล้ว)`}
         </div>
       ) : (
         <>
-          {/* Summary Mini-cards (แบบสลิปสรุปภาพรวมรายเดือน) */}
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
+          {/* Summary Mini-cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
             <div className="rounded-lg bg-neutral-50 p-3 border border-neutral-200/60">
               <span className="text-[11px] text-neutral-500 font-medium">
-                จำนวนทีมไลฟ์ที่มีผลงาน
+                {isLiveStreamer ? "รอบไลฟ์ที่อนุมัติ" : "จำนวนทีมไลฟ์ที่มีผลงาน"}
               </span>
               <div className="text-base font-bold text-neutral-900 mt-0.5">
-                {payroll?.staff_payroll?.length} คน
+                {isLiveStreamer
+                  ? `${totalApprovedSessions} รอบ`
+                  : `${totalApprovedSessions} คน`}
               </div>
             </div>
             <div className="rounded-lg bg-neutral-50 p-3 border border-neutral-200/60">
@@ -203,23 +233,15 @@ export const LivePayrollTable: React.FC<LivePayrollTableProps> = ({
                 ชั่วโมงที่อนุมัติรวม
               </span>
               <div className="text-base font-bold text-neutral-900 mt-0.5">
-                {payroll.total_hours} ชม.
-              </div>
-            </div>
-            <div className="rounded-lg bg-neutral-50 p-3 border border-neutral-200/60">
-              <span className="text-[11px] text-neutral-500 font-medium">
-                คลิปสรุปที่ได้รับโบนัส
-              </span>
-              <div className="text-base font-bold text-purple-700 mt-0.5">
-                {payroll.total_clips} คลิป
+                {totalHoursDisplay} ชม.
               </div>
             </div>
             <div className="rounded-lg bg-emerald-50/60 p-3 border border-emerald-200/80">
               <span className="text-[11px] text-emerald-800 font-semibold">
-                ยอดจ่ายสุทธิรวม (เดือนนี้)
+                {isLiveStreamer ? "ค่าจ้างรวมของคุณ (เดือนนี้)" : "ยอดจ่ายสุทธิรวม (เดือนนี้)"}
               </span>
               <div className="text-lg font-extrabold text-emerald-700 mt-0.5">
-                ฿{payroll.total_pay.toLocaleString()}
+                ฿{totalPayDisplay.toLocaleString()}
               </div>
             </div>
           </div>
@@ -236,15 +258,13 @@ export const LivePayrollTable: React.FC<LivePayrollTableProps> = ({
                   <th className="px-3 py-2.5 text-right">เวลารวมสุทธิ</th>
                   <th className="px-3 py-2.5 text-right">ชั่วโมงคำนวณ</th>
                   <th className="px-3 py-2.5 text-right">เรทค่าไลฟ์ / ชม.</th>
-                  <th className="px-3 py-2.5 text-right">ค่าชั่วโมงรวม</th>
-                  <th className="px-3 py-2.5 text-right">โบนัสคลิป</th>
                   <th className="px-3 py-2.5 text-right font-bold text-neutral-900 bg-emerald-50/40">
-                    ยอดเงินเข้าสุทธิ (฿)
+                    {isLiveStreamer ? "ค่าจ้างรวมสุทธิ (฿)" : "ยอดจ่ายสุทธิ (฿)"}
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-100">
-                {payroll?.staff_payroll?.map((row) => (
+                {displayedRows.map((row) => (
                   <tr
                     key={row.staff_id}
                     className="hover:bg-neutral-50/60 transition-colors"
@@ -272,23 +292,6 @@ export const LivePayrollTable: React.FC<LivePayrollTableProps> = ({
                       <span className="inline-flex items-center rounded-md bg-neutral-100 px-1.5 py-0.5 font-semibold text-neutral-800">
                         ฿{row.hourly_rate}
                       </span>
-                    </td>
-                    <td className="px-3 py-2.5 text-right font-mono text-neutral-700">
-                      ฿
-                      {row.base_pay.toLocaleString(undefined, {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                      })}
-                    </td>
-                    <td className="px-3 py-2.5 text-right font-mono">
-                      {row.clip_bonus_count > 0 ? (
-                        <span className="text-purple-700 font-medium">
-                          +฿{row.clip_bonus_pay.toLocaleString()} (
-                          {row.clip_bonus_count} คลิป)
-                        </span>
-                      ) : (
-                        <span className="text-neutral-400">-</span>
-                      )}
                     </td>
                     <td className="px-3 py-2.5 text-right font-mono font-bold text-emerald-700 bg-emerald-50/30 text-sm">
                       ฿
@@ -373,37 +376,42 @@ export const LivePayrollTable: React.FC<LivePayrollTableProps> = ({
                 </p>
 
                 {(() => {
-                  // Merge staff from payroll with all active users (live, sales, owner, etc.)
+                  // Filter and show ONLY Live Streamer staff (role: "live")
                   const staffMap = new Map<string, { id: number; name: string; role?: string }>();
-                  
-                  // 1. Add from current payroll summary
-                  payroll?.staff_payroll?.forEach((s) => {
-                    staffMap.set(String(s.staff_id), {
-                      id: s.staff_id,
-                      name: s.staff_name,
-                    });
-                  });
 
-                  // 2. Add from allUsers (prioritizing live & sales roles)
                   allUsers
-                    .filter((u) => u.isActive !== false)
+                    .filter((u) => u.isActive !== false && u.role === "live")
                     .forEach((u) => {
                       const idStr = String(u.id);
-                      const existing = staffMap.get(idStr);
                       const displayName = u.name || `${u.firstname || ""} ${u.lastname || ""}`.trim() || u.email;
                       staffMap.set(idStr, {
                         id: Number(u.id),
-                        name: existing?.name || displayName,
+                        name: displayName,
                         role: u.role,
                       });
                     });
+
+                  // Also check if any staff with role 'live' in current payroll needs to be included
+                  payroll?.staff_payroll?.forEach((s) => {
+                    const idStr = String(s.staff_id);
+                    const matchingUser = allUsers.find((u) => String(u.id) === idStr);
+                    if (!matchingUser || matchingUser.role === "live") {
+                      if (!staffMap.has(idStr)) {
+                        staffMap.set(idStr, {
+                          id: s.staff_id,
+                          name: s.staff_name,
+                          role: matchingUser?.role || "live",
+                        });
+                      }
+                    }
+                  });
 
                   const staffList = Array.from(staffMap.values());
 
                   if (staffList.length === 0) {
                     return (
                       <div className="py-4 text-center text-xs text-neutral-400">
-                        ไม่พบรายชื่อพนักงานในระบบ
+                        ไม่พบรายชื่อพนักงานบทบาทพนักงานไลฟ์ (Live Streamer) ในระบบ
                       </div>
                     );
                   }
