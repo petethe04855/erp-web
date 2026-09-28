@@ -8,7 +8,9 @@ import {
   useUpdateSKUStatusMutation,
   useDeleteSKUMutation,
   useAdjustSKUStockMutation,
+  useImportSKUXLSMutation,
 } from "../queries/skuQueries";
+import { skuApi } from "../api/skuApi";
 import { SKUQueryParams, CreateSKUDTO, UpdateSKUDTO, StockAdjustmentDTO } from "../types/sku";
 
 export function useSKU() {
@@ -26,6 +28,7 @@ export function useSKU() {
   const updateStatusMutation = useUpdateSKUStatusMutation();
   const deleteMutation = useDeleteSKUMutation();
   const adjustMutation = useAdjustSKUStockMutation();
+  const importMutation = useImportSKUXLSMutation();
 
   const handleSearch = (search: string) => {
     setFilters((prev) => ({ ...prev, search, page: 1 }));
@@ -65,9 +68,8 @@ export function useSKU() {
     return updateMutation.mutateAsync({ sku, data: dto });
   };
 
-  const toggleSKUStatus = async (sku: string | number, currentStatus: string) => {
-    const nextStatus = currentStatus === "active" ? "inactive" : "active";
-    return updateStatusMutation.mutateAsync({ sku, status: nextStatus });
+  const toggleSKUStatus = async (sku: string | number, status: string) => {
+    return updateStatusMutation.mutateAsync({ sku, status: status });
   };
 
   const deleteSKU = async (sku: string | number) => {
@@ -76,6 +78,22 @@ export function useSKU() {
 
   const adjustStock = async (dto: StockAdjustmentDTO) => {
     return adjustMutation.mutateAsync(dto);
+  };
+
+  const importSKU = async (file: File) => {
+    return importMutation.mutateAsync(file);
+  };
+
+  const downloadTemplate = async () => {
+    const blob = await skuApi.downloadTemplate();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "sku_import_template.xlsx");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   };
 
   return {
@@ -96,10 +114,14 @@ export function useSKU() {
     toggleSKUStatus,
     deleteSKU,
     adjustStock,
+    importSKU,
+    downloadTemplate,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isUpdatingStatus: updateStatusMutation.isPending,
     isDeleting: deleteMutation.isPending,
     isAdjusting: adjustMutation.isPending,
+    isImporting: importMutation.isPending,
   };
 }
+

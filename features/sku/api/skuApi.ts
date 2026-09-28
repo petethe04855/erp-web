@@ -5,6 +5,7 @@ export const toSKU = (p: ProductRecord): SKU => ({
   id: p.id,
   sku: p.sku,
   name: p.name,
+  barcode: p.barcode,
   category: p.type,
   price: p.retailPrice,
   cost: p.cost,
@@ -99,6 +100,7 @@ export const skuApi = {
     const result = await writeRecord<ProductRecord>("/products", {
       sku: dto.sku,
       name: dto.name,
+      barcode: dto.barcode,
       type: dto.isBundle ? "Bundle" : "Finished Product",
       ...(dto.price !== undefined ? { retailPrice: dto.price, wholesalePrice: dto.price } : {}),
       cost: dto.cost,
@@ -148,6 +150,7 @@ export const skuApi = {
       {
         sku: dto.sku,
         name: dto.name,
+        barcode: dto.barcode,
         type: dto.category,
         ...(dto.price !== undefined ? { retailPrice: dto.price, wholesalePrice: dto.price } : {}),
         cost: dto.cost,
@@ -209,4 +212,26 @@ export const skuApi = {
     });
     return { success: true, data: null };
   },
+  downloadTemplate: async (): Promise<Blob> => {
+    const res = await (await import("@/lib/axios")).default.get("/products/template/download", {
+      responseType: "blob",
+    });
+    return res.data;
+  },
+  importXLSX: async (file: File): Promise<import("../types/sku").ImportXLSXResult> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await (await import("@/lib/axios")).default.post<{
+      success: boolean;
+      data: import("../types/sku").ImportXLSXResult;
+      message?: string;
+    }>("/products/import", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    if (!res.data?.success) {
+      throw new Error(res.data?.message || "นำเข้าข้อมูลไม่สำเร็จ");
+    }
+    return res.data.data;
+  },
 };
+

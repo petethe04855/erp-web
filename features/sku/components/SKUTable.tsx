@@ -28,6 +28,7 @@ import { formatThaiDateTime } from "@/lib/utils";
 import { SKUReceiptHistoryRow } from "./SKUReceiptHistoryRow";
 import type { SKU } from "../types/sku";
 import type { ApiPaginationMeta } from "@/types/api";
+import { Switch } from "@/components/ui/switch";
 
 interface SKUTableProps {
   skus: SKU[];
@@ -39,6 +40,7 @@ interface SKUTableProps {
   onRetry: () => void;
   onDelete?: (sku: string | number) => Promise<unknown>;
   onEdit?: (sku: SKU) => void;
+  onChangeStatus: (sku: string | number, status: string) => Promise<unknown>;
   onAdjustStock?: (sku: SKU) => void;
   onSelectSKU?: (sku: SKU) => void;
 }
@@ -53,6 +55,7 @@ export function SKUTable({
   onRetry,
   onDelete,
   onEdit,
+  onChangeStatus,
   onAdjustStock,
 }: SKUTableProps) {
   const [deletingSku, setDeletingSku] = useState<SKU | null>(null);
@@ -100,6 +103,17 @@ export function SKUTable({
     }
   };
 
+  const handleChangeStatus = async (sku: string | number, status: string) => {
+    try {
+      console.log(sku, status);
+
+      await onChangeStatus(sku, status);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      alert(errMsg);
+    }
+  };
+
   return (
     <>
       <section className="border border-neutral-200 bg-white rounded-xl overflow-hidden shadow-xs dark:border-neutral-800 dark:bg-neutral-900">
@@ -117,15 +131,26 @@ export function SKUTable({
             <TableHeader className="bg-neutral-50/80 dark:bg-neutral-900/50">
               <TableRow className="hover:bg-transparent">
                 <TableHead className="w-10 px-3 text-center"></TableHead>
-                <TableHead className="px-4 py-3 whitespace-nowrap">SKU</TableHead>
-                <TableHead className="px-4 py-3 whitespace-nowrap">ชื่อสินค้า</TableHead>
-                <TableHead className="px-4 py-3 whitespace-nowrap">วันที่สร้าง SKU</TableHead>
-                <TableHead className="px-4 py-3 whitespace-nowrap">รับเข้าล่าสุด</TableHead>
+                <TableHead className="px-4 py-3 whitespace-nowrap">
+                  SKU
+                </TableHead>
+                <TableHead className="px-4 py-3 whitespace-nowrap">
+                  ชื่อสินค้า
+                </TableHead>
+                <TableHead className="px-4 py-3 whitespace-nowrap">
+                  วันที่สร้าง SKU
+                </TableHead>
+                <TableHead className="px-4 py-3 whitespace-nowrap">
+                  รับเข้าล่าสุด
+                </TableHead>
                 <TableHead className="px-4 py-3 whitespace-nowrap w-48">
                   การใช้สต็อก (ใช้ไป / คงเหลือ)
                 </TableHead>
                 <TableHead className="px-4 py-3 whitespace-nowrap text-right">
                   คงเหลือพร้อมขาย
+                </TableHead>
+                <TableHead className="px-4 py-3 whitespace-nowrap text-center">
+                  สถานะ
                 </TableHead>
                 <TableHead className="px-4 py-3 whitespace-nowrap text-right">
                   จัดการ
@@ -138,7 +163,8 @@ export function SKUTable({
                 const onHandQty = item.onHand ?? item.stockQuantity ?? 0;
                 const reservedQty = item.reserved ?? item.reservedStock ?? 0;
                 const usedQty = item.usedQty ?? item.used ?? 0;
-                const availableQty = item.available ?? Math.max(0, onHandQty - reservedQty);
+                const availableQty =
+                  item.available ?? Math.max(0, onHandQty - reservedQty);
 
                 const totalCapacity = onHandQty + usedQty;
                 const usedPct =
@@ -159,7 +185,11 @@ export function SKUTable({
                       <TableCell className="w-10 px-2 py-3 text-center">
                         <button
                           type="button"
-                          aria-label={isExpanded ? "ย่อประวัติรับเข้า" : "ขยายประวัติรับเข้า"}
+                          aria-label={
+                            isExpanded
+                              ? "ย่อประวัติรับเข้า"
+                              : "ขยายประวัติรับเข้า"
+                          }
                           aria-expanded={isExpanded}
                           onClick={() => toggleRow(item.id)}
                           className="p-1 rounded-md text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 dark:hover:text-neutral-200 transition-colors cursor-pointer"
@@ -177,7 +207,10 @@ export function SKUTable({
                         <div className="flex items-center gap-1.5">
                           <span>{item.sku}</span>
                           {item.isBundle && (
-                            <Badge variant="secondary" className="text-[10px] px-1 py-0 font-normal">
+                            <Badge
+                              variant="secondary"
+                              className="text-[10px] px-1 py-0 font-normal"
+                            >
                               ชุด
                             </Badge>
                           )}
@@ -213,11 +246,12 @@ export function SKUTable({
                             <span className="font-mono text-neutral-800 dark:text-neutral-200 font-medium">
                               {formatThaiDateTime(item.lastReceivedAt)}
                             </span>
-                            {typeof item.receiptCount === "number" && item.receiptCount > 0 && (
-                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
-                                รับเข้า {item.receiptCount} ครั้ง
-                              </span>
-                            )}
+                            {typeof item.receiptCount === "number" &&
+                              item.receiptCount > 0 && (
+                                <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                                  รับเข้า {item.receiptCount} ครั้ง
+                                </span>
+                              )}
                           </div>
                         ) : (
                           <span className="text-neutral-400">-</span>
@@ -229,15 +263,16 @@ export function SKUTable({
                         <div className="flex flex-col gap-1 w-44">
                           <div className="flex items-center justify-between text-xs">
                             <span className="text-neutral-500 font-mono text-[11px]">
-                              ใช้ไป {usedQty.toLocaleString("th-TH")} / คงเหลือ {onHandQty.toLocaleString("th-TH")}
+                              ใช้ไป {usedQty.toLocaleString("th-TH")} / คงเหลือ{" "}
+                              {onHandQty.toLocaleString("th-TH")}
                             </span>
                             <span
                               className={`font-semibold font-mono text-[11px] ${
                                 usedPct >= 90
                                   ? "text-rose-600 dark:text-rose-400"
                                   : usedPct >= 50
-                                  ? "text-amber-600 dark:text-amber-400"
-                                  : "text-emerald-600 dark:text-emerald-400"
+                                    ? "text-amber-600 dark:text-amber-400"
+                                    : "text-emerald-600 dark:text-emerald-400"
                               }`}
                             >
                               {usedPct}%
@@ -249,8 +284,8 @@ export function SKUTable({
                                 usedPct >= 90
                                   ? "bg-rose-500"
                                   : usedPct >= 50
-                                  ? "bg-amber-500"
-                                  : "bg-emerald-500"
+                                    ? "bg-amber-500"
+                                    : "bg-emerald-500"
                               }`}
                               style={{ width: `${usedPct}%` }}
                             />
@@ -274,6 +309,19 @@ export function SKUTable({
                             (คงเหลือ {onHandQty.toLocaleString("th-TH")})
                           </span>
                         </div>
+                      </TableCell>
+
+                      {/* Status */}
+                      <TableCell className="px-4 py-3 whitespace-nowrap text-center">
+                        <Switch
+                          checked={item.status === "active" ? true : false}
+                          onCheckedChange={() =>
+                            handleChangeStatus(
+                              item.sku,
+                              item.status === "active" ? "inactive" : "active",
+                            )
+                          }
+                        />
                       </TableCell>
 
                       {/* Actions */}
@@ -400,7 +448,8 @@ export function SKUTable({
             </div>
 
             <p className="text-xs text-rose-600">
-              ⚠️ การลบ SKU จะลบรายการสินค้าและสต็อกคงเหลือที่เกี่ยวข้อง การกระทำนี้ไม่สามารถย้อนกลับได้
+              ⚠️ การลบ SKU จะลบรายการสินค้าและสต็อกคงเหลือที่เกี่ยวข้อง
+              การกระทำนี้ไม่สามารถย้อนกลับได้
             </p>
 
             <div className="flex justify-end gap-2 pt-2">

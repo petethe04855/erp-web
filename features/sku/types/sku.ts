@@ -19,6 +19,7 @@ export interface SKU {
   id: number;
   sku: string;
   name: string;
+  barcode?: string;
   category: string;
   price?: number;
   cost: number;
@@ -95,6 +96,7 @@ export interface SKUQueryParams {
 export interface CreateSKUDTO {
   sku: string;
   name: string;
+  barcode?: string;
   category: string;
   price?: number;
   cost: number;
@@ -115,6 +117,7 @@ export interface CreateSKUDTO {
 export interface UpdateSKUDTO {
   sku?: string;
   name: string;
+  barcode?: string;
   category?: string;
   price?: number;
   cost: number;
@@ -138,4 +141,18 @@ export interface StockAdjustmentDTO {
   type: string;
   quantity: number;
   reason: string;
+}
+
+export interface RowError {
+  row: number;
+  sku: string;
+  error: string;
+}
+
+export interface ImportXLSXResult {
+  totalRows: number;
+  created: number;
+  updated: number;
+  failed: number;
+  errors: RowError[];
 }

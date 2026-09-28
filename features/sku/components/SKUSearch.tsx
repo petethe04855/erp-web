@@ -38,19 +38,6 @@ export function SKUSearch(props: SKUSearchProps) {
         />
       </div>
 
-      {/* Category Select */}
-      <div className="w-full sm:w-48">
-        <Select
-          className="h-9 text-xs"
-          value={props.filters.category || "all"}
-          onChange={(e) => props.onCategoryChange(e.target.value)}
-        >
-          <option value="all">ประเภททั้งหมด</option>
-          <option value="Finished Product">Finished Product</option>
-          <option value="Raw Material">Raw Material</option>
-        </Select>
-      </div>
-
       {/* Status Select */}
       <div className="w-full sm:w-40">
         <Select
