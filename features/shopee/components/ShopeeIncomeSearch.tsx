@@ -53,11 +53,11 @@ export function ShopeeIncomeSearch({
       activeFilterCount={activeCount}
       actions={
         <div className="flex items-center gap-2">
-          {typeof totalItems === "number" && (
+          {/* {typeof totalItems === "number" && (
             <span className="font-mono text-xs text-neutral-500 mr-2 hidden sm:inline-block">
               {totalItems.toLocaleString()} รายการ
             </span>
-          )}
+          )} */}
           <Button
             variant="outline"
             size="sm"
@@ -140,7 +140,7 @@ export function ShopeeIncomeSearch({
       </div>
 
       {/* Items Per Page (Limit) Selector */}
-      {onLimitChange && (
+      {/* {onLimitChange && (
         <div className="flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-neutral-50/80 px-2.5 py-1 text-xs dark:border-neutral-700 dark:bg-neutral-800/80">
           <span className="text-[11px] text-neutral-500 font-medium whitespace-nowrap">
             แสดง:
@@ -156,7 +156,7 @@ export function ShopeeIncomeSearch({
             <option value={100}>100 รายการ</option>
           </select>
         </div>
-      )}
+      )} */}
     </FilterToolbar>
   );
 }
