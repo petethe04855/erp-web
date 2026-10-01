@@ -1,3 +1,10 @@
+export interface DuplicateDetail {
+  identifier: string;
+  row_index: number;
+  duplicate_type: "FILE_DUPLICATE" | "DB_EXISTING";
+  message: string;
+}
+
 export interface ShopeeOrderItem {
   id?: number;
   order_id: string;
@@ -39,6 +46,9 @@ export interface OrderPreviewResult {
   total_rows: number;
   total_orders: number;
   blank_sku_count: number;
+  duplicate_count?: number;
+  duplicate_orders?: string[];
+  duplicate_details?: DuplicateDetail[];
   sample_rows: ShopeeOrderItem[];
   sample_orders: ShopeeOrder[];
 }
@@ -47,11 +57,17 @@ export interface OrderImportResult {
   inserted_count: number;
   skipped_count: number;
   total_rows: number;
+  duplicate_count?: number;
+  duplicate_orders?: string[];
+  duplicate_details?: DuplicateDetail[];
 }
 
 export interface IncomePreviewResult {
   total_rows: number;
   total_net_amount: number;
+  duplicate_count?: number;
+  duplicate_orders?: string[];
+  duplicate_details?: DuplicateDetail[];
   sample_rows: ShopeeIncome[];
 }
 
@@ -60,6 +76,9 @@ export interface IncomeImportResult {
   skipped_count: number;
   total_rows: number;
   total_amount: number;
+  duplicate_count?: number;
+  duplicate_orders?: string[];
+  duplicate_details?: DuplicateDetail[];
 }
 
 export interface MatchingItemRow {

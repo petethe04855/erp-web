@@ -38,10 +38,16 @@ export const shopeeApi = {
     page?: number;
     limit?: number;
     search?: string;
+    province?: string;
+    provider?: string | number;
     start_date?: string;
     end_date?: string;
   }): Promise<{ data: ShopeeOrder[]; meta?: ApiPaginationMeta }> => {
     return readWithMeta<ShopeeOrder[]>("/shopee/orders", params);
+  },
+
+  getOrderProvinces: async (): Promise<string[]> => {
+    return read<string[]>("/shopee/orders/provinces");
   },
 
   getOrderByID: async (id: string): Promise<ShopeeOrder> => {

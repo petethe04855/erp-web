@@ -1,8 +1,18 @@
 "use client";
 
 import React, { useState } from "react";
-import { Upload, X, CheckCircle2, AlertCircle, FileText, Loader2 } from "lucide-react";
+import {
+  Upload,
+  X,
+  CheckCircle2,
+  AlertCircle,
+  FileText,
+  Loader2,
+  AlertTriangle,
+  Layers,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { shopeeApi } from "../api/shopee.api";
 import type { OrderPreviewResult } from "../types/shopee.types";
 
@@ -19,6 +29,7 @@ export function ShopeeOrderUploadModal({ isOpen, onClose, onSuccess }: Props) {
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [showDuplicateDetails, setShowDuplicateDetails] = useState(false);
 
   if (!isOpen) return null;
 
@@ -30,6 +41,7 @@ export function ShopeeOrderUploadModal({ isOpen, onClose, onSuccess }: Props) {
     setError(null);
     setSuccessMsg(null);
     setPreview(null);
+    setShowDuplicateDetails(false);
     setLoadingPreview(true);
 
     try {
@@ -49,9 +61,11 @@ export function ShopeeOrderUploadModal({ isOpen, onClose, onSuccess }: Props) {
     setError(null);
     try {
       const res = await shopeeApi.importOrders(file);
-      setSuccessMsg(
-        `นำเข้าสำเร็จ: ${res.inserted_count} รายการ (ข้ามรายการซ้ำ ${res.skipped_count} รายการ)`,
-      );
+      let msg = `นำเข้าสำเร็จ: ${res.inserted_count} รายการ`;
+      if (res.skipped_count > 0 || (res.duplicate_count && res.duplicate_count > 0)) {
+        msg += ` (ข้ามข้อมูลซ้ำ ${res.skipped_count || res.duplicate_count} รายการ)`;
+      }
+      setSuccessMsg(msg);
       setTimeout(() => {
         onSuccess();
         onClose();
@@ -74,12 +88,12 @@ export function ShopeeOrderUploadModal({ isOpen, onClose, onSuccess }: Props) {
               นำเข้าไฟล์คำสั่งซื้อ Shopee (Orders Export)
             </h2>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              รองรับไฟล์ .xlsx, .xls และ .csv จากระบบ Shopee Seller Centre
+              รองรับไฟล์ .xlsx, .xls และ .csv จากระบบ Shopee Seller Centre พร้อมระบบตรวจสอบข้อมูลซ้ำ
             </p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+            className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>
@@ -132,33 +146,88 @@ export function ShopeeOrderUploadModal({ isOpen, onClose, onSuccess }: Props) {
           {/* Preview Details */}
           {preview && (
             <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-4 gap-3">
                 <div className="rounded-lg border bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-800/50">
                   <div className="text-xs text-zinc-500">จำนวนแถวทั้งหมด</div>
-                  <div className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+                  <div className="text-base font-bold text-zinc-900 dark:text-zinc-100">
                     {preview.total_rows.toLocaleString()} แถว
                   </div>
                 </div>
                 <div className="rounded-lg border bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-800/50">
                   <div className="text-xs text-zinc-500">จำนวนคำสั่งซื้อ (Orders)</div>
-                  <div className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                  <div className="text-base font-bold text-orange-600 dark:text-orange-400">
                     {preview.total_orders.toLocaleString()} ออเดอร์
                   </div>
                 </div>
                 <div className="rounded-lg border bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-800/50">
                   <div className="text-xs text-zinc-500">รายการไม่มี SKU</div>
-                  <div className={`text-lg font-bold ${preview.blank_sku_count > 0 ? "text-amber-600" : "text-emerald-600"}`}>
+                  <div className={`text-base font-bold ${preview.blank_sku_count > 0 ? "text-amber-600" : "text-emerald-600"}`}>
                     {preview.blank_sku_count} รายการ
                   </div>
                 </div>
+                <div className="rounded-lg border bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-800/50">
+                  <div className="text-xs text-zinc-500">ข้อมูลซ้ำซ้อน (ตรวจพบ)</div>
+                  <div className={`text-base font-bold ${(preview.duplicate_count || 0) > 0 ? "text-rose-600" : "text-emerald-600"}`}>
+                    {(preview.duplicate_count || 0)} รายการ
+                  </div>
+                </div>
               </div>
+
+              {/* Duplicate Alert Card if duplicates found */}
+              {(preview.duplicate_count || 0) > 0 && (
+                <div className="rounded-lg border border-amber-300 bg-amber-50/80 p-3.5 dark:border-amber-900/50 dark:bg-amber-950/40 text-xs text-amber-900 dark:text-amber-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 font-semibold">
+                      <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      <span>
+                        พบข้อมูลซ้ำทั้งหมด {preview.duplicate_count} รายการ (ระบบจะข้ามรายการเหล่านี้อัตโนมัติ)
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-[11px] text-amber-800 hover:bg-amber-200/50 dark:text-amber-200"
+                      onClick={() => setShowDuplicateDetails(!showDuplicateDetails)}
+                    >
+                      {showDuplicateDetails ? "ซ่อนรายละเอียดข้อมูลซ้ำ" : "ดูชุดข้อมูลที่ซ้ำกัน"}
+                    </Button>
+                  </div>
+
+                  {showDuplicateDetails && preview.duplicate_details && (
+                    <div className="mt-2 max-h-48 overflow-y-auto rounded-md border border-amber-200 bg-white p-2 dark:border-amber-900 dark:bg-zinc-900/90 divide-y divide-zinc-100 dark:divide-zinc-800 text-xs">
+                      {preview.duplicate_details.map((dup, idx) => (
+                        <div key={idx} className="py-1.5 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-zinc-900 dark:text-zinc-100">
+                              {dup.identifier}
+                            </span>
+                            <span className="text-zinc-600 dark:text-zinc-400">
+                              {dup.message}
+                            </span>
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] whitespace-nowrap ${
+                              dup.duplicate_type === "DB_EXISTING"
+                                ? "border-amber-500 text-amber-700 bg-amber-50 dark:bg-amber-950"
+                                : "border-rose-500 text-rose-700 bg-rose-50 dark:bg-rose-950"
+                            }`}
+                          >
+                            {dup.duplicate_type === "DB_EXISTING" ? "มีในระบบแล้ว" : "ซ้ำในไฟล์"}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Sample Rows Table */}
               <div className="overflow-hidden rounded-lg border dark:border-zinc-800">
                 <div className="bg-zinc-100 px-3 py-2 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
                   ตัวอย่างข้อมูลที่ตรวจพบ (แสดงสูงสุด 50 รายการแรก)
                 </div>
-                <div className="max-h-60 overflow-y-auto">
+                <div className="max-h-56 overflow-y-auto">
                   <table className="w-full text-left text-xs">
                     <thead className="sticky top-0 bg-zinc-50 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
                       <tr className="border-b dark:border-zinc-800">
@@ -209,7 +278,7 @@ export function ShopeeOrderUploadModal({ isOpen, onClose, onSuccess }: Props) {
               <Button
                 onClick={handleConfirmImport}
                 disabled={importing}
-                className="bg-orange-600 text-white hover:bg-orange-700"
+                className="bg-orange-600 text-white hover:bg-orange-700 cursor-pointer"
               >
                 {importing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 ยืนยันนำเข้าข้อมูล

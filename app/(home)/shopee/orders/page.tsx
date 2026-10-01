@@ -20,6 +20,9 @@ export default function ShopeeOrdersPage() {
     setLimit,
     search,
     setSearch,
+    province,
+    setProvince,
+    provinces,
     startDate,
     setStartDate,
     endDate,
@@ -29,6 +32,7 @@ export default function ShopeeOrdersPage() {
 
   const handleReset = () => {
     setSearch("");
+    setProvince("");
     setStartDate("");
     setEndDate("");
     setPage(1);
@@ -54,6 +58,12 @@ export default function ShopeeOrdersPage() {
             setSearch(s);
             setPage(1);
           }}
+          province={province}
+          onProvinceChange={(e) => {
+            setProvince(e);
+            setPage(1);
+          }}
+          availableProvinces={provinces}
           startDate={startDate}
           onStartDateChange={(d) => {
             setStartDate(d);

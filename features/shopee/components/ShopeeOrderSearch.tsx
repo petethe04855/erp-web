@@ -1,10 +1,12 @@
 "use client";
 
-import React from "react";
-import { Search, Calendar, RefreshCw, Upload } from "lucide-react";
+import React, { useState } from "react";
+import { Search, Calendar, RefreshCw, Upload, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FilterToolbar } from "@/components/common/FilterToolbar";
+import { Combobox } from "@/components/ui/combobox";
+import { THAI_PROVINCE_OPTIONS } from "@/constants/provinces";
 
 interface ShopeeOrderSearchProps {
   search: string;
@@ -13,6 +15,9 @@ interface ShopeeOrderSearchProps {
   onStartDateChange: (date: string) => void;
   endDate: string;
   onEndDateChange: (date: string) => void;
+  province?: string;
+  onProvinceChange?: (province: string) => void;
+  availableProvinces?: string[];
   limit?: number;
   onLimitChange?: (limit: number) => void;
   onReset: () => void;
@@ -29,6 +34,9 @@ export function ShopeeOrderSearch({
   onStartDateChange,
   endDate,
   onEndDateChange,
+  province,
+  onProvinceChange,
+  availableProvinces,
   limit = 50,
   onLimitChange,
   onReset,
@@ -37,14 +45,29 @@ export function ShopeeOrderSearch({
   loading,
   totalItems,
 }: ShopeeOrderSearchProps) {
+  const [internalProvince, setInternalProvince] = useState(province || "");
+  const selectedProvince = province !== undefined ? province : internalProvince;
+
+  const provinceOptions =
+    availableProvinces && availableProvinces.length > 0
+      ? availableProvinces.map((p) => ({ label: p, value: p }))
+      : THAI_PROVINCE_OPTIONS;
+
+  const handleResetFilters = () => {
+    setInternalProvince("");
+    onProvinceChange?.("");
+    onReset();
+  };
+
   let activeCount = 0;
   if (search) activeCount++;
   if (startDate) activeCount++;
   if (endDate) activeCount++;
+  if (selectedProvince) activeCount++;
 
   return (
     <FilterToolbar
-      onReset={onReset}
+      onReset={handleResetFilters}
       activeFilterCount={activeCount}
       actions={
         <div className="flex items-center gap-2">
@@ -107,6 +130,25 @@ export function ShopeeOrderSearch({
           value={endDate}
           onChange={(e) => onEndDateChange(e.target.value)}
           className="h-7 w-32 border-none p-0 text-xs font-semibold focus-visible:ring-0"
+        />
+      </div>
+      {/* จังหวัด dropdown search */}
+      <div className="flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-neutral-50/80 px-2.5 py-1 text-xs dark:border-neutral-700 dark:bg-neutral-800/80">
+        <MapPin className="h-3.5 w-3.5 text-neutral-400" />
+        <span className="text-[11px] text-neutral-500 font-medium whitespace-nowrap">
+          จังหวัด:
+        </span>
+        <Combobox
+          value={selectedProvince}
+          onChange={(value) => {
+            setInternalProvince(value);
+            onProvinceChange?.(value);
+          }}
+          options={provinceOptions}
+          variant="inline"
+          placeholder="ทั้งหมด"
+          searchPlaceholder="ค้นหาจังหวัด..."
+          emptyText="ไม่พบจังหวัดที่ค้นหา"
         />
       </div>
 
