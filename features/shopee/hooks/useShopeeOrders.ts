@@ -16,7 +16,7 @@ export function useShopeeOrders(initialParams?: {
   const [error, setError] = useState<string | null>(null);
 
   const [page, setPage] = useState<number>(initialParams?.page || 1);
-  const [limit, setLimit] = useState<number>(initialParams?.limit || 50);
+  const [limit, setLimit] = useState<number>(initialParams?.limit || 10);
   const [search, setSearch] = useState<string>(initialParams?.search || "");
   const [startDate, setStartDate] = useState<string>(initialParams?.start_date || "");
   const [endDate, setEndDate] = useState<string>(initialParams?.end_date || "");

@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { Upload, RefreshCw } from "lucide-react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Button } from "@/components/ui/button";
+import { ShopeeOrderSearch } from "@/features/shopee/components/ShopeeOrderSearch";
 import { ShopeeOrdersTable } from "@/features/shopee/components/ShopeeOrdersTable";
 import { ShopeeOrderUploadModal } from "@/features/shopee/components/ShopeeOrderUploadModal";
 import { useShopeeOrders } from "@/features/shopee/hooks/useShopeeOrders";
@@ -17,6 +16,8 @@ export default function ShopeeOrdersPage() {
     loading,
     page,
     setPage,
+    limit,
+    setLimit,
     search,
     setSearch,
     startDate,
@@ -26,51 +27,71 @@ export default function ShopeeOrdersPage() {
     refetch,
   } = useShopeeOrders();
 
+  const handleReset = () => {
+    setSearch("");
+    setStartDate("");
+    setEndDate("");
+    setPage(1);
+  };
+
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    setPage(1);
+  };
+
   return (
     <PageContainer>
-      <div className="space-y-6">
-        <PageHeader
-          title="Shopee Orders"
-          description="รายการคำสั่งซื้อจาก Shopee Seller Centre ตรวจสอบและแก้ไข SKU"
-          actions={
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
-                <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                รีเฟรช
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => setIsUploadOpen(true)}
-                className="bg-orange-600 text-white hover:bg-orange-700"
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                นำเข้าไฟล์ Order
-              </Button>
-            </div>
-          }
+      <PageHeader
+        title="Shopee Orders"
+        description="รายการคำสั่งซื้อจาก Shopee Seller Centre ตรวจสอบและแก้ไข SKU"
+      />
+
+      <div className="space-y-4">
+        {/* Dedicated Order Search & Filter Toolbar */}
+        <ShopeeOrderSearch
+          search={search}
+          onSearchChange={(s) => {
+            setSearch(s);
+            setPage(1);
+          }}
+          startDate={startDate}
+          onStartDateChange={(d) => {
+            setStartDate(d);
+            setPage(1);
+          }}
+          endDate={endDate}
+          onEndDateChange={(d) => {
+            setEndDate(d);
+            setPage(1);
+          }}
+          limit={limit}
+          onLimitChange={handleLimitChange}
+          onReset={handleReset}
+          onRefresh={refetch}
+          onOpenUpload={() => setIsUploadOpen(true)}
+          loading={loading}
+          totalItems={meta?.total}
         />
 
+        {/* Orders Table Area */}
         <ShopeeOrdersTable
           orders={orders}
           meta={meta}
           loading={loading}
           page={page}
           setPage={setPage}
-          search={search}
-          setSearch={setSearch}
-          startDate={startDate}
-          setStartDate={setStartDate}
-          endDate={endDate}
-          setEndDate={setEndDate}
+          limit={limit}
+          onLimitChange={handleLimitChange}
           onRefresh={refetch}
         />
-
-        <ShopeeOrderUploadModal
-          isOpen={isUploadOpen}
-          onClose={() => setIsUploadOpen(false)}
-          onSuccess={refetch}
-        />
       </div>
+
+      {/* Upload Modal */}
+      <ShopeeOrderUploadModal
+        isOpen={isUploadOpen}
+        onClose={() => setIsUploadOpen(false)}
+        onSuccess={refetch}
+      />
     </PageContainer>
   );
 }

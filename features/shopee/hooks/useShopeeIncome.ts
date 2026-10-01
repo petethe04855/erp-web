@@ -17,7 +17,7 @@ export function useShopeeIncome(initialParams?: {
   const [error, setError] = useState<string | null>(null);
 
   const [page, setPage] = useState<number>(initialParams?.page || 1);
-  const [limit, setLimit] = useState<number>(initialParams?.limit || 50);
+  const [limit, setLimit] = useState<number>(initialParams?.limit || 10);
   const [search, setSearch] = useState<string>(initialParams?.search || "");
   const [status, setStatus] = useState<string>(initialParams?.status || "all");
   const [startDate, setStartDate] = useState<string>(initialParams?.start_date || "");
