@@ -32,6 +32,7 @@ import {
   BookOpen,
   PieChart,
   Video,
+  DollarSign,
 } from "lucide-react";
 
 interface NavItem {
@@ -99,6 +100,15 @@ const NAV_SECTIONS: NavSection[] = [
       { label: "Live & Content", href: "/tiktok-live", icon: Video, roles: ["owner", "sales", "warehouse"] },
       { label: "Fee Calculator", href: "/tiktok-calculator", icon: Calculator, roles: ["owner", "sales", "accountant"] },
       { label: "TikTok Setup", href: "/tiktok-setup", icon: Settings, roles: ["owner"] },
+    ],
+  },
+  {
+    title: "Shopee",
+    items: [
+      { label: "Shopee Dashboard", href: "/shopee/dashboard", icon: BarChart3, roles: ["owner", "sales", "accountant"] },
+      { label: "Shopee Orders", href: "/shopee/orders", icon: ShoppingBag, roles: ["owner", "sales", "warehouse", "accountant"] },
+      { label: "Shopee Income", href: "/shopee/income", icon: DollarSign, roles: ["owner", "accountant"] },
+      { label: "Payout Matching", href: "/shopee/matching", icon: Calculator, roles: ["owner", "accountant", "sales"] },
     ],
   },
   {

@@ -23,9 +23,11 @@ import {
   ChevronRight,
   ChevronDown,
   Calendar,
+  Coins,
 } from "lucide-react";
 import { formatThaiDateTime } from "@/lib/utils";
 import { SKUReceiptHistoryRow } from "./SKUReceiptHistoryRow";
+import { SKUCostHistoryModal } from "./SKUCostHistoryModal";
 import type { SKU } from "../types/sku";
 import type { ApiPaginationMeta } from "@/types/api";
 import { Switch } from "@/components/ui/switch";
@@ -61,6 +63,7 @@ export function SKUTable({
   const [deletingSku, setDeletingSku] = useState<SKU | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const [costHistorySku, setCostHistorySku] = useState<SKU | null>(null);
 
   const toggleRow = (skuId: number) => {
     setExpandedRows((prev) => {
@@ -345,6 +348,18 @@ export function SKUTable({
                               <span>ปรับยอด</span>
                             </Button>
                           )}
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7 text-amber-600 hover:text-amber-700 hover:bg-amber-50 border-amber-200 dark:border-amber-800 dark:text-amber-400"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCostHistorySku(item);
+                            }}
+                            title="ประวัติต้นทุนสินค้าตามช่วงเวลา (Shopee Cost History)"
+                          >
+                            <Coins className="h-3 w-3" />
+                          </Button>
                           {onEdit && (
                             <Button
                               variant="outline"
@@ -480,6 +495,14 @@ export function SKUTable({
           </div>
         </div>
       )}
+
+      {/* SKU Cost History Modal */}
+      <SKUCostHistoryModal
+        isOpen={Boolean(costHistorySku)}
+        sku={costHistorySku?.sku || ""}
+        skuName={costHistorySku?.name}
+        onClose={() => setCostHistorySku(null)}
+      />
     </>
   );
 }
