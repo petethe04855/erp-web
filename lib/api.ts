@@ -68,3 +68,26 @@ export async function list<A, B>(
     },
   };
 }
+
+export async function searchList<A, B>(
+  path: string,
+  body: object | undefined,
+  map: (row: A) => B,
+): Promise<ApiListResponse<B>> {
+  const response = await api.post<ApiListResponse<A>>(
+    path,
+    cleanParams(body),
+  );
+  const resBody = response.data;
+  if (resBody.success !== true || !Array.isArray(resBody.data) || !resBody.meta)
+    throw new Error("ERP API contract mismatch: paginated response required");
+  return {
+    ...resBody,
+    data: resBody.data.map(map),
+    meta: {
+      ...resBody.meta,
+      totalPages: Math.max(1, Math.ceil(resBody.meta.total / resBody.meta.limit)),
+    },
+  };
+}
+

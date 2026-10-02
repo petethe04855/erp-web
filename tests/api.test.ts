@@ -35,7 +35,7 @@ beforeEach(() => {
 
 describe("orderApi.getOrders", () => {
   it("maps invRef to the real invoice payment status", async () => {
-    mockedGet.mockResolvedValueOnce(
+    mockedPost.mockResolvedValueOnce(
       listResponse([
         {
           id: 1,
@@ -56,26 +56,26 @@ describe("orderApi.getOrders", () => {
   });
 
   it("sends the paymentStatus filter to the backend", async () => {
-    mockedGet.mockResolvedValueOnce(listResponse([]));
+    mockedPost.mockResolvedValueOnce(listResponse([]));
 
     await orderApi.getOrders({ paymentStatus: "paid" } as never);
-    const call = mockedGet.mock.calls[0];
-    expect(call[0]).toBe("/workspace/orders");
-    expect((call[1] as { params: Record<string, unknown> }).params.paymentStatus).toBe("paid");
+    const call = mockedPost.mock.calls[0];
+    expect(call[0]).toBe("/workspace/orders/search");
+    expect((call[1] as Record<string, unknown>).paymentStatus).toBe("paid");
   });
 
   it("drops the filter when set to all", async () => {
-    mockedGet.mockResolvedValueOnce(listResponse([]));
+    mockedPost.mockResolvedValueOnce(listResponse([]));
 
     await orderApi.getOrders({ paymentStatus: "all" } as never);
-    const params = (mockedGet.mock.calls[0][1] as { params: Record<string, unknown> }).params;
-    expect(params.paymentStatus).toBeUndefined();
+    const body = mockedPost.mock.calls[0][1] as Record<string, unknown>;
+    expect(body.paymentStatus).toBeUndefined();
   });
 });
 
 describe("inventoryApi.getStocks", () => {
   it("derives the percent from the backend reorder point, not a fake baseline", async () => {
-    mockedGet.mockResolvedValueOnce(
+    mockedPost.mockResolvedValueOnce(
       listResponse([
         {
           id: 1,
@@ -99,19 +99,21 @@ describe("inventoryApi.getStocks", () => {
 
 describe("warehouseApi", () => {
   it("forwards the search filter for goods receives", async () => {
-    mockedGet.mockResolvedValueOnce(listResponse([]));
+    mockedPost.mockResolvedValueOnce(listResponse([]));
 
     await warehouseApi.getGoodsReceives({ search: "GR-1", page: 1 });
-    const params = (mockedGet.mock.calls[0][1] as { params: Record<string, unknown> }).params;
-    expect(params.search).toBe("GR-1");
+    expect(mockedPost.mock.calls[0][0]).toBe("/workspace/goods-receives/search");
+    const body = mockedPost.mock.calls[0][1] as Record<string, unknown>;
+    expect(body.search).toBe("GR-1");
   });
 
   it("forwards the search filter for goods issues", async () => {
-    mockedGet.mockResolvedValueOnce(listResponse([]));
+    mockedPost.mockResolvedValueOnce(listResponse([]));
 
     await warehouseApi.getGoodsIssues({ search: "SKU-9" });
-    const params = (mockedGet.mock.calls[0][1] as { params: Record<string, unknown> }).params;
-    expect(params.search).toBe("SKU-9");
+    expect(mockedPost.mock.calls[0][0]).toBe("/workspace/goods-issues/search");
+    const body = mockedPost.mock.calls[0][1] as Record<string, unknown>;
+    expect(body.search).toBe("SKU-9");
   });
 });
 

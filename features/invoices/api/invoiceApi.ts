@@ -1,4 +1,4 @@
-import { list, read, writeRecord } from "@/lib/api";
+import { list, searchList, read, writeRecord } from "@/lib/api";
 import type { InvoiceRecord } from "@/types/records";
 import type {
   Invoice,
@@ -23,7 +23,7 @@ const map = (i: InvoiceRecord): Invoice => ({
 });
 export const invoiceApi = {
   getInvoices: (params?: InvoiceQueryParams) =>
-    list<InvoiceRecord, Invoice>("/workspace/invoices", params, map),
+    searchList<InvoiceRecord, Invoice>("/workspace/invoices/search", params, map),
   getInvoiceByID: (id: string | number) =>
     read<InvoiceDetail>("/invoices/" + encodeURIComponent(id)),
   payInvoice: (id: string | number, amount: number) =>

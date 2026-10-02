@@ -1,4 +1,4 @@
-import { list, writeRecord } from "@/lib/api";
+import { list, searchList, writeRecord } from "@/lib/api";
 import type { ProductRecord } from "@/types/records";
 import type {
   InventoryStock,
@@ -7,8 +7,8 @@ import type {
 } from "../types/inventory";
 export const inventoryApi = {
   getStocks: (params?: InventoryQueryParams) =>
-    list<ProductRecord, InventoryStock>(
-      "/workspace/products",
+    searchList<ProductRecord, InventoryStock>(
+      "/workspace/products/search",
       {
         search: params?.search,
         page: params?.page,

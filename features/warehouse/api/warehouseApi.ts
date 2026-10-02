@@ -1,4 +1,4 @@
-import { list, writeRecord } from "@/lib/api";
+import { list, searchList, writeRecord } from "@/lib/api";
 import type { ReceiptRecord, IssueRecord } from "@/types/records";
 import type {
   GoodsReceiveRecord,
@@ -40,8 +40,8 @@ const issue = (r: IssueRecord): GoodsIssueRecord => ({
 });
 export const warehouseApi = {
   getGoodsReceives: (params?: GoodsReceiveQueryParams) =>
-    list<ReceiptRecord, GoodsReceiveRecord>(
-      "/workspace/goods-receives",
+    searchList<ReceiptRecord, GoodsReceiveRecord>(
+      "/workspace/goods-receives/search",
       {
         ...params,
         search: params?.search,
@@ -49,8 +49,8 @@ export const warehouseApi = {
       receipt,
     ),
   getGoodsIssues: (params?: GoodsIssueQueryParams) =>
-    list<IssueRecord, GoodsIssueRecord>(
-      "/workspace/goods-issues",
+    searchList<IssueRecord, GoodsIssueRecord>(
+      "/workspace/goods-issues/search",
       {
         ...params,
         search: params?.search,

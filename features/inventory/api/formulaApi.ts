@@ -7,12 +7,10 @@ import type {
 
 export const formulaApi = {
   getFormulas: async (search?: string, status?: string): Promise<InventoryFormula[]> => {
-    const res = await axios.get<{
+    const res = await axios.post<{
       success: boolean;
       data: InventoryFormula[];
-    }>("/inventory-formulas", {
-      params: { search, status },
-    });
+    }>("/inventory-formulas/search", { search, status });
     return res.data.data || [];
   },
 
