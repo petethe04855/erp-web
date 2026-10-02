@@ -23,6 +23,7 @@ export default function TikTokOrdersPage() {
   const {
     orders,
     meta,
+
     isLoading,
     isError,
     refetch,
@@ -65,14 +66,26 @@ export default function TikTokOrdersPage() {
       <div className="space-y-4">
         <TikTokOrderSearch
           filters={filters}
-          onSearchChange={(search) => setFilters((f) => ({ ...f, search, page: 1 }))}
-          onStatusChange={(status) => setFilters((f) => ({ ...f, status, page: 1 }))}
+          onSearchChange={(search) =>
+            setFilters((f) => ({ ...f, search, page: 1 }))
+          }
+          onStatusChange={(status) =>
+            setFilters((f) => ({ ...f, status, page: 1 }))
+          }
           onStockStatusChange={(stockStatus) =>
             setFilters((f) => ({ ...f, stockStatus, page: 1 }))
           }
-          onLimitChange={(limit) => setFilters((f) => ({ ...f, limit, page: 1 }))}
+          onLimitChange={(limit) =>
+            setFilters((f) => ({ ...f, limit, page: 1 }))
+          }
           onReset={() =>
-            setFilters({ search: "", status: "ALL", stockStatus: "all", page: 1, limit: filters.limit || 50 })
+            setFilters({
+              search: "",
+              status: "ALL",
+              stockStatus: "all",
+              page: 1,
+              limit: filters.limit || 50,
+            })
           }
           onSync={(days) => syncOrders(days)}
           isSyncing={isSyncing}
@@ -80,12 +93,15 @@ export default function TikTokOrdersPage() {
         />
 
         <TikTokOrderTable
+          page={filters.page || 1}
           orders={orders}
           meta={meta}
           isLoading={isLoading}
           isError={isError}
-          onPageChange={(page) => setFilters((f) => ({ ...f, page }))}
-          onLimitChange={(limit) => setFilters((f) => ({ ...f, limit, page: 1 }))}
+          onPageChange={(p) => setFilters((f) => ({ ...f, page: p }))}
+          onLimitChange={(limit) =>
+            setFilters((f) => ({ ...f, limit, page: 1 }))
+          }
           onRetry={refetch}
         />
       </div>

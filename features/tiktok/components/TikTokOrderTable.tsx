@@ -5,7 +5,13 @@ import { Loading } from "@/components/common/Loading";
 import { ErrorState } from "@/components/common/ErrorState";
 import { Pagination } from "@/components/common/Pagination";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle, Clock, AlertTriangle, Package } from "lucide-react";
+import {
+  CheckCircle2,
+  XCircle,
+  Clock,
+  AlertTriangle,
+  Package,
+} from "lucide-react";
 import type { TikTokOrder } from "../types/tiktok";
 import type { ApiPaginationMeta } from "@/types/api";
 
@@ -14,12 +20,20 @@ interface TikTokOrderTableProps {
   meta?: ApiPaginationMeta;
   isLoading: boolean;
   isError: boolean;
-  onPageChange?: (page: number) => void;
+  page: number;
+  limit?: number;
+  onPageChange: (page: number) => void;
   onLimitChange?: (limit: number) => void;
   onRetry: () => void;
 }
 
-const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+const STATUS_LABELS: Record<
+  string,
+  {
+    label: string;
+    variant: "default" | "secondary" | "destructive" | "outline";
+  }
+> = {
   AWAITING_SHIPMENT: { label: "รอจัดส่ง", variant: "secondary" },
   AWAITING_COLLECTION: { label: "รอขนส่งรับ", variant: "secondary" },
   IN_TRANSIT: { label: "กำลังจัดส่ง", variant: "outline" },
@@ -34,6 +48,9 @@ export function TikTokOrderTable({
   meta,
   isLoading,
   isError,
+  page,
+  limit,
+
   onPageChange,
   onLimitChange,
   onRetry,
@@ -64,20 +81,24 @@ export function TikTokOrderTable({
         });
   };
 
-  const total = meta?.total ?? orders.length;
-  const page = meta?.page ?? 1;
-  const limit = meta?.limit ?? 50;
-  const totalPages =
-    meta?.totalPages && meta.totalPages > 0
-      ? meta.totalPages
-      : Math.max(1, Math.ceil(total / limit));
+  // const total = meta?.total ?? orders.length;
+  // const page = meta?.page ?? 1;
+  // const limit = meta?.limit ?? 50;
+  // const totalPages =
+  //   meta?.totalPages && meta.totalPages > 0
+  //     ? meta.totalPages
+  //     : Math.max(1, Math.ceil(total / limit));
+
+  const totalPages = meta
+    ? meta.totalPages || Math.ceil(meta.total / (meta.limit || limit || 50))
+    : 1;
 
   return (
     <section className="border border-neutral-200 bg-white rounded-xl overflow-hidden shadow-sm">
       <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100 bg-neutral-50/50">
         <div>
           <span className="text-sm font-semibold text-neutral-800">
-            คำสั่งซื้อทั้งหมด ({total.toLocaleString("th-TH")})
+            คำสั่งซื้อทั้งหมด ({totalPages.toLocaleString("th-TH")})
           </span>
           <p className="text-xs text-neutral-500 mt-0.5">
             ข้อมูลออเดอร์พร้อมสถานะการตัดสต็อกสินค้าในคลัง ERP
@@ -105,7 +126,10 @@ export function TikTokOrderTable({
               };
 
               return (
-                <tr key={order.id} className="hover:bg-neutral-50/80 transition-colors">
+                <tr
+                  key={order.id}
+                  className="hover:bg-neutral-50/80 transition-colors"
+                >
                   {/* Order ID & Time */}
                   <td className="px-5 py-4 align-top whitespace-nowrap">
                     <div className="font-mono text-xs font-semibold text-neutral-900">
@@ -133,14 +157,20 @@ export function TikTokOrderTable({
                     {order.items && order.items.length > 0 ? (
                       <div className="space-y-1.5">
                         {order.items.map((it, idx) => (
-                          <div key={idx} className="flex items-start gap-2 text-xs">
+                          <div
+                            key={idx}
+                            className="flex items-start gap-2 text-xs"
+                          >
                             <Package className="h-3.5 w-3.5 text-neutral-400 shrink-0 mt-0.5" />
                             <div>
                               <span className="font-medium text-neutral-800">
-                                {it.productName || it.sellerSku || "สินค้า TikTok"}
+                                {it.productName ||
+                                  it.sellerSku ||
+                                  "สินค้า TikTok"}
                               </span>
                               <div className="text-[11px] text-neutral-400 font-mono">
-                                SKU: {it.erpSku || it.sellerSku || "—"} × {it.quantity}
+                                SKU: {it.erpSku || it.sellerSku || "—"} ×{" "}
+                                {it.quantity}
                               </div>
                             </div>
                           </div>
@@ -160,7 +190,8 @@ export function TikTokOrderTable({
 
                   {/* Stock Deduction Status */}
                   <td className="px-5 py-4 align-top text-center whitespace-nowrap">
-                    {order.stockDeducted || order.stockDeductionStatus === "DEDUCTED" ? (
+                    {order.stockDeducted ||
+                    order.stockDeductionStatus === "DEDUCTED" ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
                         <CheckCircle2 className="h-3 w-3" />
                         ตัดสต็อกแล้ว
@@ -168,7 +199,9 @@ export function TikTokOrderTable({
                     ) : order.stockDeductionStatus === "FAILED" ? (
                       <span
                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-rose-50 text-rose-700 border border-rose-200"
-                        title={order.stockDeductionError || "สินค้าไม่พอตัดสต็อก"}
+                        title={
+                          order.stockDeductionError || "สินค้าไม่พอตัดสต็อก"
+                        }
                       >
                         <XCircle className="h-3 w-3" />
                         ตัดสต็อกไม่สำเร็จ
@@ -200,16 +233,19 @@ export function TikTokOrderTable({
         )}
       </div>
 
-      {onPageChange && totalPages > 1 && (
+      {meta && meta.total > 0 && (
         <div className="border-t border-neutral-200 bg-neutral-50/50">
           <Pagination
             currentPage={page}
             totalPages={totalPages}
-            totalItems={total}
+            totalItems={meta.total}
             limit={limit}
-            limitOptions={[20, 50, 100]}
+            limitOptions={[10, 20, 50, 100]}
             onPageChange={onPageChange}
-            onLimitChange={onLimitChange}
+            onLimitChange={(newLimit) => {
+              onLimitChange?.(newLimit);
+              onPageChange?.(1);
+            }}
           />
         </div>
       )}
