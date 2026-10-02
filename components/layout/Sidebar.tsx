@@ -75,10 +75,30 @@ const NAV_SECTIONS: NavSection[] = [
   {
     title: "การขายและลูกค้า",
     items: [
-      { label: "คำสั่งซื้อ (Orders)", href: "/orders", icon: ShoppingCart, roles: ["owner", "sales", "accountant"] },
-      { label: "ใบแจ้งหนี้ (Invoices)", href: "/invoices", icon: Receipt, roles: ["owner", "accountant", "sales"] },
-      { label: "รับคืนสินค้า (Returns)", href: "/returns", icon: RotateCcw, roles: ["owner", "sales", "accountant", "warehouse"] },
-      { label: "ลูกค้า (Customers)", href: "/customers", icon: Users, roles: ["owner", "sales"] },
+      {
+        label: "คำสั่งซื้อ (Orders)",
+        href: "/orders",
+        icon: ShoppingCart,
+        roles: ["owner", "sales", "accountant"],
+      },
+      {
+        label: "ใบแจ้งหนี้ (Invoices)",
+        href: "/invoices",
+        icon: Receipt,
+        roles: ["owner", "accountant", "sales"],
+      },
+      {
+        label: "รับคืนสินค้า (Returns)",
+        href: "/returns",
+        icon: RotateCcw,
+        roles: ["owner", "sales", "accountant", "warehouse"],
+      },
+      {
+        label: "ลูกค้า (Customers)",
+        href: "/customers",
+        icon: Users,
+        roles: ["owner", "sales"],
+      },
     ],
   },
   {
@@ -95,36 +115,106 @@ const NAV_SECTIONS: NavSection[] = [
   {
     title: "TikTok Shop",
     items: [
-      { label: "บันทึกและรายได้ของฉัน", href: "/my-live", icon: Video, roles: ["live"] },
-      { label: "TikTok Orders", href: "/tiktok-orders", icon: Store, roles: ["owner", "sales", "warehouse"] },
-      { label: "Live & Content", href: "/tiktok-live", icon: Video, roles: ["owner", "sales", "warehouse"] },
-      { label: "Fee Calculator", href: "/tiktok-calculator", icon: Calculator, roles: ["owner", "sales", "accountant"] },
-      { label: "TikTok Setup", href: "/tiktok-setup", icon: Settings, roles: ["owner"] },
+      {
+        label: "บันทึกและรายได้ของฉัน",
+        href: "/my-live",
+        icon: Video,
+        roles: ["live"],
+      },
+      {
+        label: "TikTok Orders",
+        href: "/tiktok-orders",
+        icon: Store,
+        roles: ["owner", "sales", "warehouse"],
+      },
+      {
+        label: "Live & Content",
+        href: "/tiktok-live",
+        icon: Video,
+        roles: ["owner", "sales", "warehouse"],
+      },
+      {
+        label: "Fee Calculator",
+        href: "/tiktok-calculator",
+        icon: Calculator,
+        roles: ["owner", "sales", "accountant"],
+      },
+      {
+        label: "TikTok Setup",
+        href: "/tiktok-setup",
+        icon: Settings,
+        roles: ["owner"],
+      },
     ],
   },
   {
     title: "Shopee",
     items: [
-      { label: "Shopee Dashboard", href: "/shopee/dashboard", icon: BarChart3, roles: ["owner", "sales", "accountant"] },
-      { label: "Shopee Orders", href: "/shopee/orders", icon: ShoppingBag, roles: ["owner", "sales", "warehouse", "accountant"] },
-      { label: "Shopee Income", href: "/shopee/income", icon: DollarSign, roles: ["owner", "accountant"] },
-      { label: "Payout Matching", href: "/shopee/matching", icon: Calculator, roles: ["owner", "accountant", "sales"] },
+      // { label: "Shopee Dashboard", href: "/shopee/dashboard", icon: BarChart3, roles: ["owner", "sales", "accountant"] },
+      {
+        label: "Shopee Orders",
+        href: "/shopee/orders",
+        icon: ShoppingBag,
+        roles: ["owner", "sales", "warehouse", "accountant"],
+      },
+      {
+        label: "Shopee Income",
+        href: "/shopee/income",
+        icon: DollarSign,
+        roles: ["owner", "accountant"],
+      },
+      {
+        label: "Payout Matching",
+        href: "/shopee/matching",
+        icon: Calculator,
+        roles: ["owner", "accountant", "sales"],
+      },
     ],
   },
   {
     title: "การเงินและบัญชี",
     items: [
-      { label: "สมุดรายวัน (Journal)", href: "/finance/journal", icon: BookOpen, roles: ["owner", "accountant"] },
-      { label: "ค่าใช้จ่าย (Expenses)", href: "/finance/expenses", icon: Receipt, roles: ["owner", "accountant"] },
-      { label: "รายงานการเงิน (Reports)", href: "/finance/reports", icon: PieChart, roles: ["owner", "accountant"] },
+      {
+        label: "สมุดรายวัน (Journal)",
+        href: "/finance/journal",
+        icon: BookOpen,
+        roles: ["owner", "accountant"],
+      },
+      {
+        label: "ค่าใช้จ่าย (Expenses)",
+        href: "/finance/expenses",
+        icon: Receipt,
+        roles: ["owner", "accountant"],
+      },
+      {
+        label: "รายงานการเงิน (Reports)",
+        href: "/finance/reports",
+        icon: PieChart,
+        roles: ["owner", "accountant"],
+      },
     ],
   },
   {
     title: "รายงานและระบบ",
     items: [
-      { label: "รายงานเดิม (Legacy Reports)", href: "/reports", icon: BarChart3, roles: ["owner", "accountant"] },
-      { label: "จัดการผู้ใช้งาน (Users)", href: "/users", icon: UserCog, roles: ["owner"] },
-      { label: "ตั้งค่าระบบ (Settings)", href: "/settings", icon: Settings, roles: ["owner"] },
+      {
+        label: "รายงานเดิม (Legacy Reports)",
+        href: "/reports",
+        icon: BarChart3,
+        roles: ["owner", "accountant"],
+      },
+      {
+        label: "จัดการผู้ใช้งาน (Users)",
+        href: "/users",
+        icon: UserCog,
+        roles: ["owner"],
+      },
+      {
+        label: "ตั้งค่าระบบ (Settings)",
+        href: "/settings",
+        icon: Settings,
+        roles: ["owner"],
+      },
     ],
   },
 ];
@@ -163,7 +253,10 @@ export function Sidebar() {
           ) : (
             /* Expanded: Brand Logo + Titles on left, Collapse button on right */
             <>
-              <Link href="/dashboard" className="flex items-center gap-2.5 min-w-0">
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-2.5 min-w-0"
+              >
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-neutral-900 text-white font-bold text-sm tracking-wider">
                   C
                 </div>
