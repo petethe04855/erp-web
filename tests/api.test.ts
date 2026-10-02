@@ -18,6 +18,7 @@ import { quotationApi } from "@/features/quotation/api/quotationApi";
 import { recordApi } from "@/features/erp/api/recordApi";
 import { purchaseApi } from "@/features/purchase/api/purchaseApi";
 import { tiktokApi } from "@/features/tiktok/api/tiktokApi";
+import { shopeeApi } from "@/features/shopee/api/shopee.api";
 
 const mockedGet = vi.mocked(apiClient.get);
 const mockedPost = vi.mocked(apiClient.post);
@@ -268,4 +269,56 @@ describe("tiktokApi.getOrders", () => {
     expect(res.orders[0].tiktokOrderId).toBe("TT-12345");
   });
 });
+
+describe("shopeeApi.getOrders", () => {
+  it("calls POST /shopee/orders/search with filter body", async () => {
+    mockedPost.mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: [
+          {
+            id: "SP-9999",
+            province: "Bangkok",
+          },
+        ],
+        meta: { page: 1, limit: 50, total: 1 },
+      },
+    });
+
+    const res = await shopeeApi.getOrders({ search: "SP-9999", province: "Bangkok" });
+    expect(mockedPost).toHaveBeenCalledTimes(1);
+    expect(mockedPost.mock.calls[0][0]).toBe("/shopee/orders/search");
+    const body = mockedPost.mock.calls[0][1] as Record<string, unknown>;
+    expect(body.search).toBe("SP-9999");
+    expect(body.province).toBe("Bangkok");
+    expect(res.data[0].id).toBe("SP-9999");
+  });
+});
+
+describe("shopeeApi.getIncomes", () => {
+  it("calls POST /shopee/income/search with filter body", async () => {
+    mockedPost.mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: [
+          {
+            id: 1,
+            order_id: "SP-9999",
+            status: "Completed",
+          },
+        ],
+        meta: { page: 1, limit: 10, total: 1 },
+      },
+    });
+
+    const res = await shopeeApi.getIncomes({ search: "SP-9999", status: "Completed" });
+    expect(mockedPost).toHaveBeenCalledTimes(1);
+    expect(mockedPost.mock.calls[0][0]).toBe("/shopee/income/search");
+    const body = mockedPost.mock.calls[0][1] as Record<string, unknown>;
+    expect(body.search).toBe("SP-9999");
+    expect(body.status).toBe("Completed");
+    expect(res.data[0].order_id).toBe("SP-9999");
+  });
+});
+
 
