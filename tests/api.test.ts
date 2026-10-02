@@ -17,6 +17,8 @@ import { warehouseApi } from "@/features/warehouse/api/warehouseApi";
 import { quotationApi } from "@/features/quotation/api/quotationApi";
 import { recordApi } from "@/features/erp/api/recordApi";
 import { purchaseApi } from "@/features/purchase/api/purchaseApi";
+import { tiktokApi } from "@/features/tiktok/api/tiktokApi";
+import { shopeeApi } from "@/features/shopee/api/shopee.api";
 
 const mockedGet = vi.mocked(apiClient.get);
 const mockedPost = vi.mocked(apiClient.post);
@@ -35,7 +37,7 @@ beforeEach(() => {
 
 describe("orderApi.getOrders", () => {
   it("maps invRef to the real invoice payment status", async () => {
-    mockedGet.mockResolvedValueOnce(
+    mockedPost.mockResolvedValueOnce(
       listResponse([
         {
           id: 1,
@@ -56,26 +58,26 @@ describe("orderApi.getOrders", () => {
   });
 
   it("sends the paymentStatus filter to the backend", async () => {
-    mockedGet.mockResolvedValueOnce(listResponse([]));
+    mockedPost.mockResolvedValueOnce(listResponse([]));
 
     await orderApi.getOrders({ paymentStatus: "paid" } as never);
-    const call = mockedGet.mock.calls[0];
-    expect(call[0]).toBe("/workspace/orders");
-    expect((call[1] as { params: Record<string, unknown> }).params.paymentStatus).toBe("paid");
+    const call = mockedPost.mock.calls[0];
+    expect(call[0]).toBe("/workspace/orders/search");
+    expect((call[1] as Record<string, unknown>).paymentStatus).toBe("paid");
   });
 
   it("drops the filter when set to all", async () => {
-    mockedGet.mockResolvedValueOnce(listResponse([]));
+    mockedPost.mockResolvedValueOnce(listResponse([]));
 
     await orderApi.getOrders({ paymentStatus: "all" } as never);
-    const params = (mockedGet.mock.calls[0][1] as { params: Record<string, unknown> }).params;
-    expect(params.paymentStatus).toBeUndefined();
+    const body = mockedPost.mock.calls[0][1] as Record<string, unknown>;
+    expect(body.paymentStatus).toBeUndefined();
   });
 });
 
 describe("inventoryApi.getStocks", () => {
   it("derives the percent from the backend reorder point, not a fake baseline", async () => {
-    mockedGet.mockResolvedValueOnce(
+    mockedPost.mockResolvedValueOnce(
       listResponse([
         {
           id: 1,
@@ -99,19 +101,21 @@ describe("inventoryApi.getStocks", () => {
 
 describe("warehouseApi", () => {
   it("forwards the search filter for goods receives", async () => {
-    mockedGet.mockResolvedValueOnce(listResponse([]));
+    mockedPost.mockResolvedValueOnce(listResponse([]));
 
     await warehouseApi.getGoodsReceives({ search: "GR-1", page: 1 });
-    const params = (mockedGet.mock.calls[0][1] as { params: Record<string, unknown> }).params;
-    expect(params.search).toBe("GR-1");
+    expect(mockedPost.mock.calls[0][0]).toBe("/workspace/goods-receives/search");
+    const body = mockedPost.mock.calls[0][1] as Record<string, unknown>;
+    expect(body.search).toBe("GR-1");
   });
 
   it("forwards the search filter for goods issues", async () => {
-    mockedGet.mockResolvedValueOnce(listResponse([]));
+    mockedPost.mockResolvedValueOnce(listResponse([]));
 
     await warehouseApi.getGoodsIssues({ search: "SKU-9" });
-    const params = (mockedGet.mock.calls[0][1] as { params: Record<string, unknown> }).params;
-    expect(params.search).toBe("SKU-9");
+    expect(mockedPost.mock.calls[0][0]).toBe("/workspace/goods-issues/search");
+    const body = mockedPost.mock.calls[0][1] as Record<string, unknown>;
+    expect(body.search).toBe("SKU-9");
   });
 });
 
@@ -213,3 +217,108 @@ describe("purchaseApi.createPurchaseOrder", () => {
     expect(body.etaDate).toBeUndefined();
   });
 });
+
+describe("purchaseApi.getPurchaseOrders", () => {
+  it("calls POST /workspace/purchase-orders/search with query parameters", async () => {
+    mockedPost.mockResolvedValueOnce(
+      listResponse([
+        {
+          id: 1,
+          code: "PO-100",
+          supplier: "Supplier A",
+          date: "2026-01-01",
+          etaDate: "2026-01-08",
+          totalCost: 500,
+          status: "APPROVED",
+        },
+      ]),
+    );
+
+    const res = await purchaseApi.getPurchaseOrders({ search: "PO-100", status: "APPROVED" });
+    expect(mockedPost).toHaveBeenCalledTimes(1);
+    expect(mockedPost.mock.calls[0][0]).toBe("/workspace/purchase-orders/search");
+    const body = mockedPost.mock.calls[0][1] as Record<string, unknown>;
+    expect(body.search).toBe("PO-100");
+    expect(body.status).toBe("APPROVED");
+    expect(res.data[0].poNumber).toBe("PO-100");
+  });
+});
+
+describe("tiktokApi.getOrders", () => {
+  it("calls POST /integrations/tiktok/orders/search with filter body", async () => {
+    mockedPost.mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: [
+          {
+            id: 101,
+            tiktokOrderId: "TT-12345",
+            orderStatus: "AWAITING_SHIPMENT",
+          },
+        ],
+        meta: { page: 1, limit: 50, total: 1 },
+      },
+    });
+
+    const res = await tiktokApi.getOrders({ search: "TT-12345", status: "AWAITING_SHIPMENT" });
+    expect(mockedPost).toHaveBeenCalledTimes(1);
+    expect(mockedPost.mock.calls[0][0]).toBe("/integrations/tiktok/orders/search");
+    const body = mockedPost.mock.calls[0][1] as Record<string, unknown>;
+    expect(body.search).toBe("TT-12345");
+    expect(body.status).toBe("AWAITING_SHIPMENT");
+    expect(res.orders[0].tiktokOrderId).toBe("TT-12345");
+  });
+});
+
+describe("shopeeApi.getOrders", () => {
+  it("calls POST /shopee/orders/search with filter body", async () => {
+    mockedPost.mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: [
+          {
+            id: "SP-9999",
+            province: "Bangkok",
+          },
+        ],
+        meta: { page: 1, limit: 50, total: 1 },
+      },
+    });
+
+    const res = await shopeeApi.getOrders({ search: "SP-9999", province: "Bangkok" });
+    expect(mockedPost).toHaveBeenCalledTimes(1);
+    expect(mockedPost.mock.calls[0][0]).toBe("/shopee/orders/search");
+    const body = mockedPost.mock.calls[0][1] as Record<string, unknown>;
+    expect(body.search).toBe("SP-9999");
+    expect(body.province).toBe("Bangkok");
+    expect(res.data[0].id).toBe("SP-9999");
+  });
+});
+
+describe("shopeeApi.getIncomes", () => {
+  it("calls POST /shopee/income/search with filter body", async () => {
+    mockedPost.mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: [
+          {
+            id: 1,
+            order_id: "SP-9999",
+            status: "Completed",
+          },
+        ],
+        meta: { page: 1, limit: 10, total: 1 },
+      },
+    });
+
+    const res = await shopeeApi.getIncomes({ search: "SP-9999", status: "Completed" });
+    expect(mockedPost).toHaveBeenCalledTimes(1);
+    expect(mockedPost.mock.calls[0][0]).toBe("/shopee/income/search");
+    const body = mockedPost.mock.calls[0][1] as Record<string, unknown>;
+    expect(body.search).toBe("SP-9999");
+    expect(body.status).toBe("Completed");
+    expect(res.data[0].order_id).toBe("SP-9999");
+  });
+});
+
+

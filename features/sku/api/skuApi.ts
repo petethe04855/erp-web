@@ -1,4 +1,4 @@
-import { list, read, writeRecord, deleteRecord } from "@/lib/api";
+import { list, searchList, read, writeRecord, deleteRecord } from "@/lib/api";
 import type { ProductRecord } from "@/types/records";
 import type { SKU, SKUQueryParams, CreateSKUDTO } from "../types/sku";
 export const toSKU = (p: ProductRecord): SKU => ({
@@ -35,8 +35,8 @@ export const toSKU = (p: ProductRecord): SKU => ({
 });
 export const skuApi = {
   getSKUs: (params?: SKUQueryParams) =>
-    list<ProductRecord, SKU>(
-      "/workspace/products",
+    searchList<ProductRecord, SKU>(
+      "/workspace/products/search",
       {
         ...params,
         type: params?.category,

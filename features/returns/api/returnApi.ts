@@ -1,4 +1,4 @@
-import { read, list, writeRecord } from "@/lib/api";
+import { read, list, searchList, writeRecord } from "@/lib/api";
 import type { ApiListResponse } from "@/types/api";
 
 /** อัปโหลดรูปยืนยันสภาพสินค้า (ใช้ endpoint กลางเดียวกับรูป SKU) */
@@ -34,7 +34,7 @@ export const returnApi = {
     page?: number;
     limit?: number;
   }): Promise<ApiListResponse<SalesReturn>> => {
-    return list<SalesReturn, SalesReturn>("/returns", params, (r) => r);
+    return searchList<SalesReturn, SalesReturn>("/returns/search", params, (r) => r);
   },
 
   getReturnByID: (id: number | string): Promise<SalesReturn> => {

@@ -1,4 +1,4 @@
-import { read, writeRecord, deleteRecord } from "@/lib/api";
+import { read, search, writeRecord, deleteRecord } from "@/lib/api";
 import type {
   LiveSession,
   PayrollSummary,
@@ -21,7 +21,7 @@ export const liveApi = {
     page?: number;
     limit?: number;
   }) => {
-    return read<LiveSession[]>("/live/sessions", params);
+    return search<LiveSession[]>("/live/sessions/search", params);
   },
 
   getSessionByID: (id: number) => {
@@ -51,7 +51,7 @@ export const liveApi = {
 
   // Content Items
   getContentItems: (params?: { kind?: string; platform?: string; page?: number; limit?: number }) => {
-    return read<ContentItem[]>("/live/content", params);
+    return search<ContentItem[]>("/live/content/search", params);
   },
 
   createContentItem: (dto: CreateContentItemDTO) => {

@@ -4,10 +4,7 @@ import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
 import { FilterToolbar } from "@/components/common/FilterToolbar";
-import type {
-  TikTokOrderQueryParams,
-  TikTokSyncResult,
-} from "../types/tiktok";
+import type { TikTokOrderQueryParams, TikTokSyncResult } from "../types/tiktok";
 
 interface TikTokOrderSearchProps {
   filters: TikTokOrderQueryParams;
@@ -124,7 +121,7 @@ export function TikTokOrderSearch({
         )}
 
         {/* Page Limit */}
-        {onLimitChange && (
+        {/* {onLimitChange && (
           <div className="w-full sm:w-32">
             <Select
               value={String(filters.limit || 50)}
@@ -136,7 +133,7 @@ export function TikTokOrderSearch({
               <option value="100">100 / หน้า</option>
             </Select>
           </div>
-        )}
+        )} */}
       </FilterToolbar>
 
       {/* Sync Result Banner if exists */}
@@ -146,14 +143,20 @@ export function TikTokOrderSearch({
             <CheckCircle2 className="h-4 w-4" />
             <span>ซิงค์สำเร็จ {syncResult.synced} รายการ</span>
             <span className="text-neutral-400">·</span>
-            <span className="text-neutral-600 dark:text-neutral-300">ตัดสต็อก ERP: {syncResult.stockDeducted} รายการ</span>
+            <span className="text-neutral-600 dark:text-neutral-300">
+              ตัดสต็อก ERP: {syncResult.stockDeducted} รายการ
+            </span>
           </div>
-          {syncResult.stockDeductionErrors && syncResult.stockDeductionErrors.length > 0 && (
-            <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
-              <AlertCircle className="h-4 w-4" />
-              <span>ตัดสต็อกไม่สำเร็จ {syncResult.stockDeductionErrors.length} รายการ</span>
-            </div>
-          )}
+          {syncResult.stockDeductionErrors &&
+            syncResult.stockDeductionErrors.length > 0 && (
+              <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                <AlertCircle className="h-4 w-4" />
+                <span>
+                  ตัดสต็อกไม่สำเร็จ {syncResult.stockDeductionErrors.length}{" "}
+                  รายการ
+                </span>
+              </div>
+            )}
         </div>
       )}
     </div>

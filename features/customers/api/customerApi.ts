@@ -1,4 +1,4 @@
-import { read, list, writeRecord, deleteRecord } from "@/lib/api";
+import { read, list, searchList, writeRecord, deleteRecord } from "@/lib/api";
 import type { CustomerRecord } from "@/types/records";
 import type {
   Customer,
@@ -20,7 +20,7 @@ type CustomerResponse = Customer & {
 
 export const customerApi = {
   getCustomers: (params?: CustomerQueryParams) =>
-    list<CustomerRecord, Customer>("/workspace/customers", params, map),
+    searchList<CustomerRecord, Customer>("/workspace/customers/search", params, map),
   getCustomerById: (id: string | number) =>
     read<CustomerResponse>(`/customers/${id}`),
   uploadImage: async (file: File): Promise<string> => {

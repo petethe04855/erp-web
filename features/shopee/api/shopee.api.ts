@@ -1,5 +1,5 @@
 import api from "@/lib/axios";
-import { read, readWithMeta, deleteRecord } from "@/lib/api";
+import { read, readWithMeta, searchWithMeta, deleteRecord } from "@/lib/api";
 import type {
   ShopeeOrder,
   ShopeeIncome,
@@ -43,7 +43,7 @@ export const shopeeApi = {
     start_date?: string;
     end_date?: string;
   }): Promise<{ data: ShopeeOrder[]; meta?: ApiPaginationMeta }> => {
-    return readWithMeta<ShopeeOrder[]>("/shopee/orders", params);
+    return searchWithMeta<ShopeeOrder[]>("/shopee/orders/search", params);
   },
 
   getOrderProvinces: async (): Promise<string[]> => {
@@ -89,7 +89,7 @@ export const shopeeApi = {
     start_date?: string;
     end_date?: string;
   }): Promise<{ data: ShopeeIncome[]; meta?: ApiPaginationMeta }> => {
-    return readWithMeta<ShopeeIncome[]>("/shopee/income", params);
+    return searchWithMeta<ShopeeIncome[]>("/shopee/income/search", params);
   },
 
   deleteIncome: async (id: number): Promise<void> => {

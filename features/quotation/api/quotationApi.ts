@@ -1,4 +1,4 @@
-import { list, read, writeRecord } from "@/lib/api";
+import { list, searchList, read, writeRecord } from "@/lib/api";
 import type { QuotationRecord } from "@/types/records";
 import type {
   Quotation,
@@ -19,7 +19,7 @@ const map = (q: QuotationRecord): Quotation => ({
 });
 export const quotationApi = {
   getQuotations: (params?: QuotationQueryParams) =>
-    list<QuotationRecord, Quotation>("/workspace/quotations", params, map),
+    searchList<QuotationRecord, Quotation>("/workspace/quotations/search", params, map),
   getQuotationByID: (id: string | number) =>
     read<QuotationDetail>("/quotations/" + encodeURIComponent(id)),
   updateStatus: (id: string | number, status: string) =>

@@ -23,6 +23,26 @@ export async function readWithMeta<T>(
     throw new Error("API returned an unsuccessful response");
   return { data: response.data.data, meta: response.data.meta };
 }
+
+export async function search<T>(path: string, body?: object): Promise<T> {
+  const response = await api.post<ApiResponse<T>>(path, cleanParams(body));
+  if (response.data.success !== true)
+    throw new Error("API returned an unsuccessful response");
+  return response.data.data;
+}
+
+export async function searchWithMeta<T>(
+  path: string,
+  body?: object,
+): Promise<{ data: T; meta?: ApiPaginationMeta }> {
+  const response = await api.post<ApiResponse<T> & { meta?: ApiPaginationMeta }>(
+    path,
+    cleanParams(body),
+  );
+  if (response.data.success !== true)
+    throw new Error("API returned an unsuccessful response");
+  return { data: response.data.data, meta: response.data.meta };
+}
 export async function writeRecord<T>(
   path: string,
   body: unknown,
@@ -68,3 +88,26 @@ export async function list<A, B>(
     },
   };
 }
+
+export async function searchList<A, B>(
+  path: string,
+  body: object | undefined,
+  map: (row: A) => B,
+): Promise<ApiListResponse<B>> {
+  const response = await api.post<ApiListResponse<A>>(
+    path,
+    cleanParams(body),
+  );
+  const resBody = response.data;
+  if (resBody.success !== true || !Array.isArray(resBody.data) || !resBody.meta)
+    throw new Error("ERP API contract mismatch: paginated response required");
+  return {
+    ...resBody,
+    data: resBody.data.map(map),
+    meta: {
+      ...resBody.meta,
+      totalPages: Math.max(1, Math.ceil(resBody.meta.total / resBody.meta.limit)),
+    },
+  };
+}
+

@@ -1,4 +1,4 @@
-import { read, readWithMeta, writeRecord } from "@/lib/api";
+import { read, readWithMeta, searchWithMeta, writeRecord } from "@/lib/api";
 import type { ApiPaginationMeta } from "@/types/api";
 import type {
   TikTokConnection,
@@ -67,9 +67,9 @@ export const tiktokApi = {
   getOrders: async (
     params?: TikTokOrderQueryParams,
   ): Promise<{ orders: TikTokOrder[]; total: number; meta: ApiPaginationMeta }> => {
-    const raw = await readWithMeta<
+    const raw = await searchWithMeta<
       RawTikTokOrder[]
-    >("/integrations/tiktok/orders", params);
+    >("/integrations/tiktok/orders/search", params);
 
     const rawOrders = raw.data || [];
     const orders: TikTokOrder[] = rawOrders.map((raw) => {

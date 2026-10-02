@@ -1,4 +1,4 @@
-import { list, read, writeRecord } from "@/lib/api";
+import { list, searchList, read, writeRecord } from "@/lib/api";
 import type { OrderRecord } from "@/types/records";
 import type { Order, OrderDetail, OrderQueryParams, CreateOrderDTO } from "../types/order";
 const map = (o: OrderRecord): Order => ({
@@ -14,8 +14,8 @@ const map = (o: OrderRecord): Order => ({
 });
 export const orderApi = {
   getOrders: (params?: OrderQueryParams) =>
-    list<OrderRecord, Order>(
-      "/workspace/orders",
+    searchList<OrderRecord, Order>(
+      "/workspace/orders/search",
       {
         ...params,
         status: params?.fulfillmentStatus && params?.fulfillmentStatus !== "all" ? params.fulfillmentStatus : undefined,
