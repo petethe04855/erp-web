@@ -23,6 +23,26 @@ export async function readWithMeta<T>(
     throw new Error("API returned an unsuccessful response");
   return { data: response.data.data, meta: response.data.meta };
 }
+
+export async function search<T>(path: string, body?: object): Promise<T> {
+  const response = await api.post<ApiResponse<T>>(path, cleanParams(body));
+  if (response.data.success !== true)
+    throw new Error("API returned an unsuccessful response");
+  return response.data.data;
+}
+
+export async function searchWithMeta<T>(
+  path: string,
+  body?: object,
+): Promise<{ data: T; meta?: ApiPaginationMeta }> {
+  const response = await api.post<ApiResponse<T> & { meta?: ApiPaginationMeta }>(
+    path,
+    cleanParams(body),
+  );
+  if (response.data.success !== true)
+    throw new Error("API returned an unsuccessful response");
+  return { data: response.data.data, meta: response.data.meta };
+}
 export async function writeRecord<T>(
   path: string,
   body: unknown,

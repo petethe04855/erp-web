@@ -17,6 +17,7 @@ import { warehouseApi } from "@/features/warehouse/api/warehouseApi";
 import { quotationApi } from "@/features/quotation/api/quotationApi";
 import { recordApi } from "@/features/erp/api/recordApi";
 import { purchaseApi } from "@/features/purchase/api/purchaseApi";
+import { tiktokApi } from "@/features/tiktok/api/tiktokApi";
 
 const mockedGet = vi.mocked(apiClient.get);
 const mockedPost = vi.mocked(apiClient.post);
@@ -215,3 +216,56 @@ describe("purchaseApi.createPurchaseOrder", () => {
     expect(body.etaDate).toBeUndefined();
   });
 });
+
+describe("purchaseApi.getPurchaseOrders", () => {
+  it("calls POST /workspace/purchase-orders/search with query parameters", async () => {
+    mockedPost.mockResolvedValueOnce(
+      listResponse([
+        {
+          id: 1,
+          code: "PO-100",
+          supplier: "Supplier A",
+          date: "2026-01-01",
+          etaDate: "2026-01-08",
+          totalCost: 500,
+          status: "APPROVED",
+        },
+      ]),
+    );
+
+    const res = await purchaseApi.getPurchaseOrders({ search: "PO-100", status: "APPROVED" });
+    expect(mockedPost).toHaveBeenCalledTimes(1);
+    expect(mockedPost.mock.calls[0][0]).toBe("/workspace/purchase-orders/search");
+    const body = mockedPost.mock.calls[0][1] as Record<string, unknown>;
+    expect(body.search).toBe("PO-100");
+    expect(body.status).toBe("APPROVED");
+    expect(res.data[0].poNumber).toBe("PO-100");
+  });
+});
+
+describe("tiktokApi.getOrders", () => {
+  it("calls POST /integrations/tiktok/orders/search with filter body", async () => {
+    mockedPost.mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: [
+          {
+            id: 101,
+            tiktokOrderId: "TT-12345",
+            orderStatus: "AWAITING_SHIPMENT",
+          },
+        ],
+        meta: { page: 1, limit: 50, total: 1 },
+      },
+    });
+
+    const res = await tiktokApi.getOrders({ search: "TT-12345", status: "AWAITING_SHIPMENT" });
+    expect(mockedPost).toHaveBeenCalledTimes(1);
+    expect(mockedPost.mock.calls[0][0]).toBe("/integrations/tiktok/orders/search");
+    const body = mockedPost.mock.calls[0][1] as Record<string, unknown>;
+    expect(body.search).toBe("TT-12345");
+    expect(body.status).toBe("AWAITING_SHIPMENT");
+    expect(res.orders[0].tiktokOrderId).toBe("TT-12345");
+  });
+});
+

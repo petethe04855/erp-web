@@ -1,4 +1,4 @@
-import { list, writeRecord } from "@/lib/api";
+import { list, searchList, writeRecord } from "@/lib/api";
 import type { PurchaseRecord } from "@/types/records";
 import type {
   PurchaseOrder,
@@ -16,8 +16,8 @@ const map = (p: PurchaseRecord): PurchaseOrder => ({
 });
 export const purchaseApi = {
   getPurchaseOrders: (params?: PurchaseQueryParams) =>
-    list<PurchaseRecord, PurchaseOrder>(
-      "/workspace/purchase-orders",
+    searchList<PurchaseRecord, PurchaseOrder>(
+      "/workspace/purchase-orders/search",
       params,
       map,
     ),
