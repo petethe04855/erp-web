@@ -34,10 +34,6 @@ export default function TikTokLivePage() {
     }
   }, [userRole, router]);
 
-  if (userRole === "live") {
-    return null;
-  }
-
   // Filter states
   const [selectedMonth, setSelectedMonth] = useState(() =>
     new Date().toISOString().slice(0, 7)
@@ -67,6 +63,10 @@ export default function TikTokLivePage() {
     setEditingSession(session);
     setCheckoutModalOpen(true);
   };
+
+  if (userRole === "live") {
+    return null;
+  }
 
   return (
     <PageContainer>
