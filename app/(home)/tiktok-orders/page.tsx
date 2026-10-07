@@ -5,7 +5,7 @@ import Link from "next/link";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Settings, RefreshCw, Calculator } from "lucide-react";
+import { Settings, RefreshCw, Calculator, MapPin } from "lucide-react";
 import { useTikTokOrders } from "@/features/tiktok/hooks/useTikTok";
 import { TikTokOrderSearch } from "@/features/tiktok/components/TikTokOrderSearch";
 import { TikTokOrderTable } from "@/features/tiktok/components/TikTokOrderTable";
@@ -30,6 +30,9 @@ export default function TikTokOrdersPage() {
     syncOrders,
     isSyncing,
     syncResult,
+    backfillProvinces,
+    isBackfilling,
+    backfillResult,
   } = useTikTokOrders(filters);
 
   return (
@@ -46,6 +49,16 @@ export default function TikTokOrdersPage() {
               title="รีเฟรชข้อมูล"
             >
               <RefreshCw className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => backfillProvinces(500)}
+              disabled={isBackfilling}
+              title="ดึงจังหวัดผู้รับสำหรับออเดอร์เก่าที่ยังไม่มีข้อมูลจังหวัด"
+            >
+              <MapPin className={`mr-1.5 h-3.5 w-3.5 ${isBackfilling ? "animate-pulse" : ""}`} />
+              {isBackfilling ? "กำลังดึงจังหวัด..." : "เติมจังหวัดออเดอร์เก่า"}
             </Button>
             <Link href="/tiktok-calculator">
               <Button variant="outline" size="sm">
@@ -104,6 +117,14 @@ export default function TikTokOrdersPage() {
           }
           onRetry={refetch}
         />
+
+        {backfillResult && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-400">
+            เติมจังหวัดเสร็จแล้ว: สแกน {backfillResult.scanned} ออเดอร์ ·
+            ระบุจังหวัดได้ {backfillResult.resolved} · ระบุไม่ได้{" "}
+            {backfillResult.unknown}
+          </div>
+        )}
       </div>
     </PageContainer>
   );

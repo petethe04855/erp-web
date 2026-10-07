@@ -20,6 +20,9 @@ interface RawTikTokOrder {
   amount?: number;
   stockDeducted?: boolean;
   date?: string;
+  recipientProvince?: string;
+  recipientProvinceRaw?: string;
+  recipientPostalCode?: string;
   items?: Array<{
     id?: number;
     lineItemId?: string;
@@ -61,6 +64,17 @@ export const tiktokApi = {
       `/integrations/tiktok/orders/sync?days=${days}`,
       {},
     );
+    return res.data;
+  },
+
+  backfillProvinces: async (
+    limit: number = 500,
+  ): Promise<{ scanned: number; resolved: number; unknown: number }> => {
+    const res = await writeRecord<{
+      scanned: number;
+      resolved: number;
+      unknown: number;
+    }>(`/integrations/tiktok/orders/provinces/backfill?limit=${limit}`, {});
     return res.data;
   },
 
@@ -116,8 +130,8 @@ export const tiktokApi = {
         recipientPhone: "",
         recipientAddress: "",
         recipientCity: "",
-        recipientProvince: "",
-        recipientPostalCode: "",
+        recipientProvince: raw.recipientProvince || "",
+        recipientPostalCode: raw.recipientPostalCode || "",
         totalAmount: raw.amount || 0,
         shippingFee: 0,
         paymentMethod: "TikTok Shop",

@@ -68,6 +68,7 @@ export function CustomerTable(props: CustomerTableProps) {
         { key: "contactPerson", label: "ผู้ติดต่อ" },
         { key: "email", label: "อีเมล" },
         { key: "phone", label: "โทรศัพท์" },
+        { key: "province", label: "จังหวัดที่ส่ง" },
         { key: "taxId", label: "เลขผู้เสียภาษี" },
       ]}
       actions={(row) => (

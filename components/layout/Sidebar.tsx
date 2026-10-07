@@ -33,6 +33,7 @@ import {
   PieChart,
   Video,
   DollarSign,
+  MapPin,
 } from "lucide-react";
 
 interface NavItem {
@@ -97,6 +98,12 @@ const NAV_SECTIONS: NavSection[] = [
         label: "ลูกค้า (Customers)",
         href: "/customers",
         icon: Users,
+        roles: ["owner", "sales"],
+      },
+      {
+        label: "ลูกค้าตามจังหวัด (CRM)",
+        href: "/crm/tiktok-provinces",
+        icon: MapPin,
         roles: ["owner", "sales"],
       },
     ],

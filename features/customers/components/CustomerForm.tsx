@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { FormDialog } from "@/components/form/FormDialog";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { THAI_PROVINCES } from "@/constants/provinces";
 import type { CreateCustomerDTO, Customer } from "../types/customer";
 
 interface Props {
@@ -21,6 +23,7 @@ export function CustomerForm(props: Props) {
   const [phone, setPhone] = useState("");
   const [tax, setTax] = useState("");
   const [address, setAddress] = useState("");
+  const [province, setProvince] = useState("");
 
   const isEditing = Boolean(props.initialData);
 
@@ -33,6 +36,7 @@ export function CustomerForm(props: Props) {
         setPhone(props.initialData.phone || "");
         setTax(props.initialData.taxId || "");
         setAddress(props.initialData.address || "");
+        setProvince(props.initialData.province || "");
       } else {
         setName("");
         setContact("");
@@ -40,6 +44,7 @@ export function CustomerForm(props: Props) {
         setPhone("");
         setTax("");
         setAddress("");
+        setProvince("");
       }
     }
   }, [props.open, props.initialData]);
@@ -52,6 +57,7 @@ export function CustomerForm(props: Props) {
       phone,
       taxId: tax,
       address,
+      province,
       logo: props.initialData?.logo || "",
     });
   };
@@ -126,6 +132,21 @@ export function CustomerForm(props: Props) {
           onChange={(e) => setAddress(e.target.value)}
           placeholder="ที่อยู่สำนักงานใหญ่ หรือสถานที่จัดส่ง"
         />
+      </label>
+      <label className="block text-xs font-medium">
+        จังหวัดที่ส่ง
+        <Select
+          className="mt-2"
+          value={province}
+          onChange={(e) => setProvince(e.target.value)}
+        >
+          <option value="">-- ไม่ระบุ (ตรวจสอบจากที่อยู่อัตโนมัติ) --</option>
+          {THAI_PROVINCES.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </Select>
       </label>
     </FormDialog>
   );

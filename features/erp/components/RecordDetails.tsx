@@ -54,6 +54,7 @@ const fieldLabels: Record<string, string> = {
   orderRef: "อ้างอิงคำสั่งซื้อ",
   image: "รูปภาพสินค้า",
   logo: "รูปภาพบริษัท / โลโก้",
+  province: "จังหวัดที่ส่ง",
   customerLogo: "โลโก้ลูกค้า",
   poRef: "อ้างอิงใบสั่งซื้อ (PO Ref)",
   receiveDate: "วันที่รับสินค้า",

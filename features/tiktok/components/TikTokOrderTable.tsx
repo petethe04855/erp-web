@@ -11,6 +11,7 @@ import {
   Clock,
   AlertTriangle,
   Package,
+  MapPin,
 } from "lucide-react";
 import type { TikTokOrder } from "../types/tiktok";
 import type { ApiPaginationMeta } from "@/types/api";
@@ -150,6 +151,12 @@ export function TikTokOrderTable({
                         {order.recipientPhone}
                       </div>
                     )}
+                    <div className="flex items-center gap-1 text-[11px] text-neutral-500 mt-0.5">
+                      <MapPin className="h-3 w-3 shrink-0" />
+                      {order.recipientProvince || (
+                        <span className="text-neutral-400">ไม่ระบุจังหวัด</span>
+                      )}
+                    </div>
                   </td>
 
                   {/* Items */}

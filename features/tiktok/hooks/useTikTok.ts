@@ -33,6 +33,14 @@ export function useTikTokOrders(filters?: TikTokOrderQueryParams) {
     },
   });
 
+  const backfillMutation = useMutation({
+    mutationFn: (limit?: number) => tiktokApi.backfillProvinces(limit),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tiktok-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["tiktok-provinces-crm"] });
+    },
+  });
+
   return {
     orders: data?.orders || [],
     total: data?.total || 0,
@@ -44,6 +52,11 @@ export function useTikTokOrders(filters?: TikTokOrderQueryParams) {
     syncOrders: (days?: number) => syncMutation.mutateAsync(days ?? 30),
     isSyncing: syncMutation.isPending,
     syncResult,
+    backfillProvinces: (limit?: number) =>
+      backfillMutation.mutateAsync(limit ?? 500),
+    isBackfilling: backfillMutation.isPending,
+    backfillResult: backfillMutation.data ?? null,
+    backfillError: backfillMutation.error,
   };
 }
 
