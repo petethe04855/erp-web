@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { crmApi } from "../api/crmApi";
-import type { ProvinceQueryParams, TiktokProvinceReport } from "../types/crm";
+import type { ProvinceQueryParams, ProvinceSearchRequest, TiktokProvinceReport } from "../types/crm";
 
 export function useTiktokProvinces(filters?: ProvinceQueryParams) {
   const {
@@ -29,3 +29,30 @@ export function useTiktokProvinces(filters?: ProvinceQueryParams) {
     refetch,
   };
 }
+
+export function useTiktokProvinceSearch(filters: ProvinceSearchRequest) {
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetching,
+  } = useQuery<TiktokProvinceReport>({
+    queryKey: ["tiktok-province-search", filters],
+    queryFn: () => crmApi.searchTiktokProvince(filters),
+    staleTime: 60000,
+  });
+
+  return {
+    report: data,
+    summary: data?.summary,
+    provinces: data?.provinces || [],
+    isLoading,
+    isFetching,
+    isError,
+    error,
+    refetch,
+  };
+}
+

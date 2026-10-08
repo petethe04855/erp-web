@@ -28,3 +28,13 @@ export interface ProvinceQueryParams {
   /** "all" (default) | "tiktok" | "shopee" */
   channel?: string;
 }
+
+export interface ProvinceSearchRequest {
+  province?: string[];
+  channel?: string;
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  limit?: number;
+}

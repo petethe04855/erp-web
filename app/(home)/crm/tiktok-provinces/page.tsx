@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { RefreshCw, MapPin, X } from "lucide-react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -9,8 +9,8 @@ import { ProvinceSearch } from "@/features/crm/components/ProvinceSearch";
 import { ProvinceSummaryCards } from "@/features/crm/components/ProvinceSummaryCards";
 import { ProvinceBarChart } from "@/features/crm/components/ProvinceBarChart";
 import { ProvinceTable } from "@/features/crm/components/ProvinceTable";
-import { useTiktokProvinces } from "@/features/crm/hooks/useTiktokProvinces";
-import type { ProvinceQueryParams, TiktokProvinceRow } from "@/features/crm/types/crm";
+import { useTiktokProvinceSearch } from "@/features/crm/hooks/useTiktokProvinces";
+import type { ProvinceQueryParams } from "@/features/crm/types/crm";
 
 export default function TiktokProvincesPage() {
   const [filters, setFilters] = useState<ProvinceQueryParams>(() => {
@@ -26,24 +26,26 @@ export default function TiktokProvincesPage() {
     };
   });
 
-  const {
-    summary,
-    provinces,
-    isLoading,
-    isFetching,
-    refetch,
-  } = useTiktokProvinces(filters);
+  // Always query by channel, status, and dates so that the Top 10 bar chart,
+  // ranking list, and search dropdown accurately reflect the selected platform.
+  const searchParams = useMemo(
+    () => ({
+      channel: filters.channel || "all",
+      status: filters.status || "fulfilled",
+      dateFrom: filters.dateFrom,
+      dateTo: filters.dateTo,
+    }),
+    [filters.channel, filters.status, filters.dateFrom, filters.dateTo],
+  );
 
-  // Cache the full list of provinces with their order counts when no single province filter is active
-  const [cachedProvinces, setCachedProvinces] = useState<TiktokProvinceRow[]>([]);
+  const { summary, provinces, isLoading, isFetching, refetch } =
+    useTiktokProvinceSearch(searchParams);
 
-  useEffect(() => {
-    if (!filters.province && provinces.length > 0) {
-      setCachedProvinces(provinces);
-    }
-  }, [filters.province, provinces]);
-
-  const allAvailableProvinces = cachedProvinces.length > 0 ? cachedProvinces : provinces;
+  // Table filters to selected province if one is chosen in the search or chart
+  const displayedTableProvinces = useMemo(() => {
+    if (!filters.province) return provinces;
+    return provinces.filter((p) => p.province === filters.province);
+  }, [provinces, filters.province]);
 
   return (
     <PageContainer>
@@ -74,7 +76,7 @@ export default function TiktokProvincesPage() {
           filters={filters}
           onChange={setFilters}
           provinces={provinces}
-          availableProvinces={allAvailableProvinces}
+          availableProvinces={provinces}
           isFetching={isFetching}
           onRefresh={() => refetch()}
         />
@@ -105,7 +107,7 @@ export default function TiktokProvincesPage() {
         <ProvinceSummaryCards summary={summary} isLoading={isLoading} />
 
         <ProvinceBarChart
-          provinces={allAvailableProvinces}
+          provinces={provinces}
           isLoading={isLoading}
           selectedProvince={filters.province}
           onSelectProvince={(prov) =>
@@ -114,7 +116,7 @@ export default function TiktokProvincesPage() {
         />
 
         <ProvinceTable
-          provinces={provinces}
+          provinces={displayedTableProvinces}
           isLoading={isLoading}
           selectedProvince={filters.province}
           onSelectProvince={(prov) =>
