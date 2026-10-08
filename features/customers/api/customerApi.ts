@@ -46,6 +46,7 @@ export const customerApi = {
       phone: dto.phone,
       taxId: dto.taxId,
       address: dto.address,
+      province: dto.province,
       logo: dto.logo,
       channel: dto.channel,
     });

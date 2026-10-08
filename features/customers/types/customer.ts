@@ -7,6 +7,7 @@ export interface Customer {
   phone: string;
   taxId: string;
   address?: string;
+  province?: string;
   logo?: string;
   channel?: string;
   status?: string;
@@ -27,6 +28,7 @@ export interface CreateCustomerDTO {
   phone: string;
   taxId: string;
   address?: string;
+  province?: string;
   logo?: string;
   channel?: string;
 }
@@ -38,6 +40,7 @@ export interface UpdateCustomerDTO {
   phone?: string;
   taxId?: string;
   address?: string;
+  province?: string;
   logo?: string;
   channel?: string;
   status?: string;

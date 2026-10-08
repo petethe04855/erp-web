@@ -67,6 +67,7 @@ export interface CustomerRecord {
   phone: string;
   taxId: string;
   address: string;
+  province?: string;
   logo?: string;
 }
 
