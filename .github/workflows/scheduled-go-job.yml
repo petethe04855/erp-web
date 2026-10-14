@@ -1,38 +1,42 @@
-
-name: Scheduled Go Job
+name: Scheduled Go + Next.js Task
 
 on:
   schedule:
-    - cron: '17 8 * * *'
-      timezone: 'Asia/Bangkok'
-  workflow_dispatch:
-
-permissions:
-  contents: read
-
-concurrency:
-  group: scheduled-go-job
-  cancel-in-progress: false
+    # ตั้งเวลาแบบ Cron (เวลาเป็น UTC เสมอ)
+    # เช่น '0 19 * * *' คือ 19:00 UTC = 02:00 น. ตามเวลาไทย (UTC+7)
+    - cron: '0 19 * * *'
+  workflow_dispatch: # อนุญาตให้กดสั่งรันด้วยมือ (Manual trigger) จากหน้า GitHub ได้ด้วย
 
 jobs:
-  run-job:
+  run-scheduled-task:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Go
+      - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: apps/api/go.mod
-          cache-dependency-path: apps/api/go.sum
+          go-version: '1.22'
+          cache-dependency-path: erp-api-v2/go.sum
 
-      - name: Download dependencies
-        working-directory: apps/api
-        run: go mod download
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: erp-web-v2/package-lock.json
 
-      - name: Run scheduled job
-        working-directory: apps/api
-        run: go run ./cmd/job
+      - name: Install Frontend Dependencies
+        working-directory: erp-web-v2
+        run: npm ci
+
+      - name: Run Backend Batch / Command
+        working-directory: erp-api-v2
+        env:
+          # ส่งค่า Config ผ่าน GitHub Repository Secrets (ห้าม Hardcode)
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          APP_ENV: production
+        run: |
+          go run cmd/cron/main.go
