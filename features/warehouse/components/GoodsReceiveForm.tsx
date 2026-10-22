@@ -24,7 +24,9 @@ const calculateDefaultExpiry = (receiveDateStr: string) => {
 export function GoodsReceiveForm(props: Props) {
   const todayStr = new Date().toLocaleDateString("en-CA");
   const [po, setPo] = useState("");
-  const [selectedPoData, setSelectedPoData] = useState<PurchaseOrder | null>(null);
+  const [selectedPoData, setSelectedPoData] = useState<PurchaseOrder | null>(
+    null,
+  );
   const [sku, setSku] = useState("");
   const [qty, setQty] = useState("1");
   const [unitCost, setUnitCost] = useState("");
@@ -56,17 +58,26 @@ export function GoodsReceiveForm(props: Props) {
     setPrevOpen(true);
   }
 
-  const handlePOChange = (poNumber: string, poData?: PurchaseOrder, poDetail?: any) => {
+  const handlePOChange = (
+    poNumber: string,
+    poData?: PurchaseOrder,
+    poDetail?: any,
+  ) => {
     setPo(poNumber);
     setSelectedPoData(poData || null);
 
     // Auto-fill SKU and quantity from PO items if available and current sku is empty
-    if (poDetail?.lines && Array.isArray(poDetail.lines) && poDetail.lines.length > 0) {
+    if (
+      poDetail?.lines &&
+      Array.isArray(poDetail.lines) &&
+      poDetail.lines.length > 0
+    ) {
       // Find first item with pending balance
-      const pendingItem = poDetail.lines.find((line: any) => {
-        const remaining = (line.qty || 0) - (line.receivedQty || 0);
-        return remaining > 0;
-      }) || poDetail.lines[0];
+      const pendingItem =
+        poDetail.lines.find((line: any) => {
+          const remaining = (line.qty || 0) - (line.receivedQty || 0);
+          return remaining > 0;
+        }) || poDetail.lines[0];
 
       if (pendingItem?.sku) {
         setSku(pendingItem.sku);
@@ -120,17 +131,20 @@ export function GoodsReceiveForm(props: Props) {
     >
       <div>
         <label className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
-          อ้างอิง PO <span className="text-[11px] font-normal text-neutral-500">(พิมพ์ค้นหา หรือเลือกจาก Dropdown / เว้นว่างสำหรับรับโดยตรง)</span>
+          อ้างอิง PO{" "}
+          <span className="text-[11px] font-normal text-neutral-500">
+            (พิมพ์ค้นหา หรือเลือกจาก Dropdown / เว้นว่างสำหรับรับโดยตรง)
+          </span>
         </label>
-        <POSelect
-          value={po}
-          onChange={handlePOChange}
-        />
+        <POSelect value={po} onChange={handlePOChange} />
         {selectedPoData && (
           <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-neutral-600 bg-neutral-50 dark:bg-neutral-800/60 p-2 rounded border border-neutral-200 dark:border-neutral-700">
             <Info className="h-3.5 w-3.5 text-blue-500 shrink-0" />
             <span>
-              ผู้จัดจำหน่าย: <strong>{selectedPoData.supplierName || "-"}</strong> · กำหนดรับ: {selectedPoData.expectedDeliveryDate || "-"} · สถานะ: {selectedPoData.status}
+              ผู้จัดจำหน่าย:{" "}
+              <strong>{selectedPoData.supplierName || "-"}</strong> · กำหนดรับ:{" "}
+              {selectedPoData.expectedDeliveryDate || "-"} · สถานะ:{" "}
+              {selectedPoData.status}
             </span>
           </div>
         )}
@@ -172,22 +186,6 @@ export function GoodsReceiveForm(props: Props) {
             ต้นทุนเฉพาะล็อตนี้ (ดึงจาก PO อัตโนมัติถ้ามี)
           </span>
         </label>
-
-        <label className="block text-xs font-medium text-neutral-800 dark:text-neutral-200">
-          ราคาขายปลีกรอบนี้ (บาท)
-          <Input
-            className="mt-1.5 bg-white dark:bg-neutral-900"
-            type="number"
-            placeholder="เช่น 290.00"
-            value={retailPrice}
-            onChange={(e) => setRetailPrice(e.target.value)}
-            min="0"
-            step="0.01"
-          />
-          <span className="text-[11px] text-neutral-400 mt-1 block">
-            ราคาขายที่ต้องการอัปเดตให้ SKU สำหรับล็อตนี้
-          </span>
-        </label>
       </div>
 
       <label className="block text-xs font-medium">
@@ -226,7 +224,8 @@ export function GoodsReceiveForm(props: Props) {
         />
       </label>
       <p className="text-xs text-neutral-500">
-        ระบบบันทึกราคาต้นทุนและราคาขายไปยังล็อตสินค้า และอัปเดตราคาล่าสุดให้ SKU อัตโนมัติ
+        ระบบบันทึกราคาต้นทุนและราคาขายไปยังล็อตสินค้า และอัปเดตราคาล่าสุดให้ SKU
+        อัตโนมัติ
       </p>
     </FormDialog>
   );
