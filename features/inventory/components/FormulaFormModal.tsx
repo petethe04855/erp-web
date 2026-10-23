@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { FormDialog } from "@/components/form/FormDialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Loader2, X, Image as ImageIcon } from "lucide-react";
+import { Plus, Trash2, Loader2, X, Image as ImageIcon, AlertCircle } from "lucide-react";
 import { getImageUrl } from "@/lib/utils";
 import { formulaApi } from "../api/formulaApi";
 import { skuApi } from "@/features/sku/api/skuApi";
@@ -44,6 +44,7 @@ export function FormulaFormModal({
   const [isLoadingSKUs, setIsLoadingSKUs] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -92,6 +93,7 @@ export function FormulaFormModal({
         setItems([{ componentSku: "", qty: 1 }]);
       }
       setErrorMessage("");
+      setHasAttemptedSubmit(false);
     }
   }, [open, initialData]);
 
@@ -148,37 +150,72 @@ export function FormulaFormModal({
   };
 
   const handleSubmit = async () => {
+    setHasAttemptedSubmit(true);
     setErrorMessage("");
+
     if (!code.trim()) {
-      setErrorMessage("กรุณาระบุรหัส Inventory (Inventory Code)");
-      return;
+      const msg = "กรุณาระบุรหัส Inventory (Inventory Code)";
+      setErrorMessage(msg);
+      throw new Error(msg);
     }
     if (!name.trim()) {
-      setErrorMessage("กรุณาระบุชื่อชุด Inventory");
-      return;
+      const msg = "กรุณาระบุชื่อชุด Inventory";
+      setErrorMessage(msg);
+      throw new Error(msg);
     }
 
-    const cleanItems = items
-      .filter((it) => it.componentSku.trim().length > 0)
-      .map((it) => ({
-        componentSku: it.componentSku.trim().toUpperCase(),
-        qty: Number(it.qty) || 1,
-      }));
+    if (items.length === 0) {
+      const msg = "กรุณาเพิ่มและเลือกข้อมูล SKU วัตถุดิบอย่างน้อย 1 รายการ";
+      setErrorMessage(msg);
+      throw new Error(msg);
+    }
 
-    if (cleanItems.length === 0) {
-      setErrorMessage("กรุณาเลือกวัตถุดิบอย่างน้อย 1 รายการ");
-      return;
+    // Check if any row has not selected a SKU
+    const emptySkuIndex = items.findIndex((it) => !it.componentSku.trim());
+    if (emptySkuIndex !== -1) {
+      const msg =
+        items.length === 1
+          ? "กรุณาเลือกข้อมูล SKU วัตถุดิบ"
+          : `กรุณาเลือกข้อมูล SKU วัตถุดิบในแถวที่ ${emptySkuIndex + 1} (หรือลบแถวที่ไม่ต้องการออก)`;
+      setErrorMessage(msg);
+      throw new Error(msg);
+    }
+
+    // Check for duplicate SKUs
+    const seenSKUs = new Set<string>();
+    for (let i = 0; i < items.length; i++) {
+      const skuUpper = items[i].componentSku.trim().toUpperCase();
+      if (seenSKUs.has(skuUpper)) {
+        const msg = `พบข้อมูล SKU วัตถุดิบ '${skuUpper}' ซ้ำกันในรายการ กรุณารวมจำนวนในแถวเดียวกัน`;
+        setErrorMessage(msg);
+        throw new Error(msg);
+      }
+      seenSKUs.add(skuUpper);
     }
 
     // Check for self-reference
     if (
-      cleanItems.some(
-        (it) => it.componentSku.toUpperCase() === code.trim().toUpperCase(),
+      items.some(
+        (it) => it.componentSku.trim().toUpperCase() === code.trim().toUpperCase(),
       )
     ) {
-      setErrorMessage("รหัสวัตถุดิบต้องไม่ซ้ำกับรหัส Inventory (ห้ามตัดสต็อกตัวเอง)");
-      return;
+      const msg = "รหัสวัตถุดิบต้องไม่ซ้ำกับรหัส Inventory (ห้ามตัดสต็อกตัวเอง)";
+      setErrorMessage(msg);
+      throw new Error(msg);
     }
+
+    // Check for invalid quantity
+    const invalidQtyIndex = items.findIndex((it) => !it.qty || Number(it.qty) <= 0);
+    if (invalidQtyIndex !== -1) {
+      const msg = `จำนวนวัตถุดิบในแถวที่ ${invalidQtyIndex + 1} ต้องมากกว่า 0`;
+      setErrorMessage(msg);
+      throw new Error(msg);
+    }
+
+    const cleanItems = items.map((it) => ({
+      componentSku: it.componentSku.trim().toUpperCase(),
+      qty: Number(it.qty) || 1,
+    }));
 
     try {
       setIsSubmitting(true);
@@ -226,6 +263,7 @@ export function FormulaFormModal({
             ? err.message
             : "บันทึกข้อมูล Inventory ไม่สำเร็จ";
       setErrorMessage(msg || "บันทึกข้อมูล Inventory ไม่สำเร็จ");
+      throw new Error(msg || "บันทึกข้อมูล Inventory ไม่สำเร็จ");
     } finally {
       setIsSubmitting(false);
       setIsUploading(false);
@@ -243,8 +281,12 @@ export function FormulaFormModal({
     >
       <div className="space-y-4">
         {errorMessage && (
-          <div className="rounded-lg bg-rose-50 p-3 text-xs text-rose-600 border border-rose-200 dark:bg-rose-950/40 dark:border-rose-900 dark:text-rose-300">
-            ⚠️ {errorMessage}
+          <div
+            role="alert"
+            className="rounded-lg bg-rose-50 p-3 text-xs text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:border-rose-900 dark:text-rose-300 flex items-start gap-2"
+          >
+            <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400 mt-0.5" />
+            <div className="font-medium leading-relaxed">{errorMessage}</div>
           </div>
         )}
 
@@ -314,13 +356,26 @@ export function FormulaFormModal({
           <label className="block text-xs font-medium">
             รหัส Inventory (Inventory Code)
             <Input
-              className="mt-1 font-mono uppercase"
+              className={`mt-1 font-mono uppercase ${
+                hasAttemptedSubmit && !code.trim()
+                  ? "border-rose-500 focus-visible:ring-rose-500"
+                  : ""
+              }`}
               placeholder="เช่น SET-A หรือ INV-01"
               value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              onChange={(e) => {
+                setCode(e.target.value.toUpperCase());
+                if (errorMessage) setErrorMessage("");
+              }}
               disabled={isEditing}
               required
             />
+            {hasAttemptedSubmit && !code.trim() && (
+              <span className="text-[11px] text-rose-500 font-medium flex items-center gap-1 mt-1">
+                <AlertCircle className="h-3 w-3 shrink-0" />
+                กรุณาระบุรหัส Inventory
+              </span>
+            )}
             {isEditing && (
               <span className="text-[11px] text-neutral-400">
                 รหัส Inventory ไม่สามารถแก้ไขได้หลังสร้าง
@@ -331,12 +386,25 @@ export function FormulaFormModal({
           <label className="block text-xs font-medium">
             ชื่อชุด Inventory
             <Input
-              className="mt-1"
+              className={`mt-1 ${
+                hasAttemptedSubmit && !name.trim()
+                  ? "border-rose-500 focus-visible:ring-rose-500"
+                  : ""
+              }`}
               placeholder="เช่น ชุดทำความสะอาดพร้อมใช้งาน"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (errorMessage) setErrorMessage("");
+              }}
               required
             />
+            {hasAttemptedSubmit && !name.trim() && (
+              <span className="text-[11px] text-rose-500 font-medium flex items-center gap-1 mt-1">
+                <AlertCircle className="h-3 w-3 shrink-0" />
+                กรุณาระบุชื่อชุด Inventory
+              </span>
+            )}
           </label>
         </div>
 
@@ -384,6 +452,7 @@ export function FormulaFormModal({
                 const selectedSKU = skuList.find(
                   (s) => s.sku.toUpperCase() === it.componentSku.toUpperCase(),
                 );
+                const isSkuEmpty = hasAttemptedSubmit && !it.componentSku.trim();
                 return (
                   <div key={idx} className="flex flex-col gap-1 border-b border-neutral-100 dark:border-neutral-800 pb-2 last:border-b-0 last:pb-0">
                     <div className="flex items-center gap-2">
@@ -391,10 +460,15 @@ export function FormulaFormModal({
                         <div className="relative">
                           <select
                             value={it.componentSku}
-                            onChange={(e) =>
-                              handleItemChange(idx, "componentSku", e.target.value)
-                            }
-                            className="flex h-8 w-full rounded-md border border-input bg-white dark:bg-neutral-800 px-2.5 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono"
+                            onChange={(e) => {
+                              handleItemChange(idx, "componentSku", e.target.value);
+                              if (errorMessage) setErrorMessage("");
+                            }}
+                            className={`flex h-8 w-full rounded-md border bg-white dark:bg-neutral-800 px-2.5 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 font-mono ${
+                              isSkuEmpty
+                                ? "border-rose-500 bg-rose-50/20 text-rose-700 dark:border-rose-600 dark:bg-rose-950/20 focus-visible:ring-rose-500"
+                                : "border-input focus-visible:ring-ring"
+                            }`}
                           >
                             <option value="">-- เลือก SKU วัตถุดิบ --</option>
                             {skuList.map((s) => (
@@ -414,6 +488,12 @@ export function FormulaFormModal({
                               )}
                           </select>
                         </div>
+                        {isSkuEmpty && (
+                          <span className="text-[11px] text-rose-600 dark:text-rose-400 font-medium flex items-center gap-1 mt-1">
+                            <AlertCircle className="h-3 w-3 shrink-0" />
+                            กรุณาเลือกข้อมูล SKU วัตถุดิบ
+                          </span>
+                        )}
                       </div>
                       <div className="w-28">
                         <Input

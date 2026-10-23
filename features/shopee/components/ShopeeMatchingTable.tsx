@@ -108,7 +108,6 @@ export function ShopeeMatchingTable({
               <th className="px-3 py-3">วันที่โอน / Order ID</th>
               <th className="px-3 py-3">SKU & ชื่อสินค้า</th>
               <th className="px-3 py-3 text-center">จำนวน</th>
-              <th className="px-3 py-3 text-right">ยอดขายรวม (Line Sale)</th>
               <th className="px-3 py-3 text-right">ต้นทุนรวม (Cost)</th>
               <th className="px-3 py-3 text-right">ค่าธรรมเนียมจัดสรร</th>
               <th className="px-3 py-3 text-right">ยอดโอนจัดสรร (Net)</th>
@@ -120,7 +119,7 @@ export function ShopeeMatchingTable({
           <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
             {loading && (
               <tr>
-                <td colSpan={10} className="py-12 text-center">
+                <td colSpan={9} className="py-12 text-center">
                   <div className="flex flex-col items-center justify-center gap-2 text-neutral-500">
                     <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
                     <span>กำลังคำนวณและประมวลผลการจับคู่...</span>
@@ -131,7 +130,7 @@ export function ShopeeMatchingTable({
 
             {!loading && items.length === 0 && (
               <tr>
-                <td colSpan={10} className="py-12 text-center text-neutral-500">
+                <td colSpan={9} className="py-12 text-center text-neutral-500">
                   <span>
                     ไม่พบข้อมูลการโอนเงินของเดือน {formatThaiMonth(month)}
                   </span>
@@ -176,10 +175,6 @@ export function ShopeeMatchingTable({
 
                   <td className="px-3 py-2.5 text-center font-medium">
                     {row.qty || 1}
-                  </td>
-
-                  <td className="px-3 py-2.5 text-right font-mono font-semibold text-neutral-800 dark:text-neutral-200">
-                    {row.line_sale.toFixed(2)}
                   </td>
 
                   <td className="px-3 py-2.5 text-right font-mono text-neutral-600 dark:text-neutral-400">
