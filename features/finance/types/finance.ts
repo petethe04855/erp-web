@@ -57,6 +57,9 @@ export interface Expense {
   category: ExpenseCategory;
   channel: ExpenseChannel;
   amount: number;
+  product_name?: string;
+  purchase_url?: string;
+  slip_url?: string;
   vendor: string;
   invoice_ref: string;
   description: string;
@@ -66,10 +69,13 @@ export interface Expense {
 
 export interface CreateExpenseDTO {
   date: string;
-  category: ExpenseCategory;
-  channel: ExpenseChannel;
+  category?: ExpenseCategory;
+  channel?: ExpenseChannel;
   amount: number;
-  vendor: string;
+  product_name?: string;
+  purchase_url?: string;
+  slip_url?: string;
+  vendor?: string;
   invoice_ref?: string;
   description?: string;
 }

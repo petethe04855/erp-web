@@ -139,7 +139,7 @@ export default function ExpensesPage() {
             <Search className="absolute left-3 top-2.5 text-neutral-400" size={16} />
             <input
               type="text"
-              placeholder="ค้นหารหัส, ผู้รับเงิน, เลขที่บิล..."
+              placeholder="ค้นหารหัส, สินค้า, ผู้รับเงิน, เลขที่บิล..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-lg border border-neutral-300 pl-9 pr-3 py-1.5 text-xs focus:border-neutral-900 focus:outline-none focus:ring-1 focus:ring-neutral-900"
@@ -211,6 +211,7 @@ export default function ExpensesPage() {
           await deleteExpense(id);
         }}
       />
+      </div>
 
       {/* Modal */}
       <ExpenseModal
@@ -223,7 +224,6 @@ export default function ExpensesPage() {
         initialData={editingExpense}
         isLoading={isCreating || isUpdating}
       />
-      </div>
     </PageContainer>
   );
 }

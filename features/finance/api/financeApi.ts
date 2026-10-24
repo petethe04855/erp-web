@@ -49,6 +49,22 @@ export const financeApi = {
     await deleteRecord(`/finance/expenses/${id}`);
   },
 
+  uploadSlip: async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append("image", file);
+    const res = await api.post<{
+      success: boolean;
+      data: { url: string };
+      message?: string;
+    }>("/upload/image?folder=expenses", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    if (!res.data?.success || !res.data?.data?.url) {
+      throw new Error(res.data?.message || "อัปโหลดสลิปไม่สำเร็จ");
+    }
+    return res.data.data.url;
+  },
+
   // Reports
   getGeneralLedger: async (params?: { from?: string; to?: string; account_id?: number }): Promise<GeneralLedgerRow[]> => {
     return read<GeneralLedgerRow[]>("/finance/reports/general-ledger", cleanParams(params));
