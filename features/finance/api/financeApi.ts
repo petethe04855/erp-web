@@ -8,6 +8,7 @@ import type {
   ExpenseQueryParams,
   CreateExpenseDTO,
   UpdateExpenseDTO,
+  ReceiptScanResult,
   GeneralLedgerRow,
   TrialBalanceRow,
   ProfitAndLossReport,
@@ -47,6 +48,39 @@ export const financeApi = {
 
   deleteExpense: async (id: number): Promise<void> => {
     await deleteRecord(`/finance/expenses/${id}`);
+  },
+
+  uploadSlip: async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append("image", file);
+    const res = await api.post<{
+      success: boolean;
+      data: { url: string };
+      message?: string;
+    }>("/upload/image?folder=expenses", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    if (!res.data?.success || !res.data?.data?.url) {
+      throw new Error(res.data?.message || "อัปโหลดสลิปไม่สำเร็จ");
+    }
+    return res.data.data.url;
+  },
+
+  scanReceipt: async (file: File): Promise<ReceiptScanResult> => {
+    const formData = new FormData();
+    formData.append("image", file);
+    const res = await api.post<{
+      success: boolean;
+      data: ReceiptScanResult;
+      message?: string;
+    }>("/finance/expenses/scan-receipt", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+      timeout: 90000, // 90 seconds for AI image processing
+    });
+    if (!res.data?.success || !res.data?.data) {
+      throw new Error(res.data?.message || "สแกนใบเสร็จไม่สำเร็จ");
+    }
+    return res.data.data;
   },
 
   // Reports

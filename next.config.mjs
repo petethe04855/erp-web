@@ -30,6 +30,16 @@ const nextConfig = {
       },
     ];
   },
+  async rewrites() {
+    const rawApi = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+    const origin = rawApi.replace(/\/api(?:\/v1)?\/?$/, "").replace(/\/$/, "");
+    return [
+      {
+        source: "/uploads/:path*",
+        destination: `${origin}/uploads/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
