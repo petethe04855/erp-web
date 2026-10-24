@@ -22,6 +22,8 @@ import {
   Calendar,
   DollarSign,
   FileText,
+  Sparkles,
+  CheckCircle2,
 } from "lucide-react";
 
 interface ExpenseModalProps {
@@ -72,6 +74,8 @@ export function ExpenseModal({
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isUploadingSlip, setIsUploadingSlip] = useState(false);
+  const [isScanningSlip, setIsScanningSlip] = useState(false);
+  const [aiSuccessMessage, setAiSuccessMessage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [localPreview, setLocalPreview] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
@@ -117,6 +121,7 @@ export function ExpenseModal({
       setShowAdvanced(false);
     }
     setError(null);
+    setAiSuccessMessage(null);
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
@@ -129,13 +134,13 @@ export function ExpenseModal({
       return;
     }
 
-    // Validate size <= 5MB
-    if (file.size > 5 * 1024 * 1024) {
-      setError("ขนาดไฟล์รูปภาพต้องไม่เกิน 5 MB");
+    // Validate size <= 10MB
+    if (file.size > 10 * 1024 * 1024) {
+      setError("ขนาดไฟล์รูปภาพต้องไม่เกิน 10 MB");
       return;
     }
 
-    // Create instant local preview - DO NOT upload until user clicks submit
+    // Create instant local preview
     if (localPreview && localPreview.startsWith("blob:")) {
       URL.revokeObjectURL(localPreview);
     }
@@ -143,6 +148,7 @@ export function ExpenseModal({
     setLocalPreview(localUrl);
     setSelectedFile(file);
     setError(null);
+    setAiSuccessMessage(null);
   };
 
   const handleRemoveSlip = () => {
@@ -151,9 +157,48 @@ export function ExpenseModal({
     }
     setLocalPreview("");
     setSelectedFile(null);
+    setAiSuccessMessage(null);
     setFormData((prev) => ({ ...prev, slip_url: "" }));
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
+    }
+  };
+
+  const handleScanReceipt = async () => {
+    if (!selectedFile) {
+      setError("กรุณาเลือกไฟล์รูปภาพก่อนทำการสแกน");
+      return;
+    }
+
+    try {
+      setIsScanningSlip(true);
+      setError(null);
+      setAiSuccessMessage(null);
+
+      const result = await financeApi.scanReceipt(selectedFile);
+
+      setFormData((prev) => ({
+        ...prev,
+        amount: result.amount > 0 ? result.amount : prev.amount,
+        date: result.date || prev.date,
+        product_name: result.product_name || prev.product_name,
+        category: (result.category as ExpenseCategory) || prev.category,
+        channel: (result.channel as ExpenseChannel) || prev.channel,
+        vendor: result.vendor || prev.vendor,
+        invoice_ref: result.invoice_ref || prev.invoice_ref,
+        description: result.description || prev.description,
+        slip_url: result.slip_url || prev.slip_url,
+      }));
+
+      if (result.vendor || result.invoice_ref) {
+        setShowAdvanced(true);
+      }
+
+      setAiSuccessMessage("✨ AI สกัดข้อมูลจากใบเสร็จสำเร็จ! กรุณาตรวจทานก่อนกดบันทึก");
+    } catch (err: any) {
+      setError(err?.message || "ไม่สามารถสแกนข้อมูลจากใบเสร็จได้");
+    } finally {
+      setIsScanningSlip(false);
     }
   };
 
@@ -168,6 +213,7 @@ export function ExpenseModal({
     if (localPreview && localPreview.startsWith("blob:")) {
       URL.revokeObjectURL(localPreview);
     }
+    setAiSuccessMessage(null);
     onClose();
   };
 
@@ -187,8 +233,8 @@ export function ExpenseModal({
       setError(null);
 
       let finalSlipUrl = formData.slip_url || "";
-      // Upload file to server ONLY when user clicks save
-      if (selectedFile) {
+      // Upload file to server if not already uploaded via AI scan
+      if (selectedFile && !finalSlipUrl) {
         finalSlipUrl = await financeApi.uploadSlip(selectedFile);
       }
 
@@ -360,49 +406,97 @@ export function ExpenseModal({
             </label>
 
             {activePreview ? (
-              <div className="relative flex items-center gap-4 rounded-xl border border-neutral-200 bg-neutral-50/70 p-3">
-                <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-white">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={activePreview}
-                    alt="Slip preview"
-                    className="h-full w-full object-cover"
-                  />
-                  {isUploadingSlip && (
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                      <Loader2 size={18} className="animate-spin text-white" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-xs font-medium text-neutral-900 truncate">
-                      {isUploadingSlip
-                        ? "กำลังอัปโหลดรูปภาพ..."
-                        : selectedFile
-                          ? selectedFile.name
-                          : "แนบรูปภาพสลิปแล้ว"}
-                    </p>
+              <div className="space-y-2">
+                <div className="relative flex items-center gap-4 rounded-xl border border-neutral-200 bg-neutral-50/70 p-3">
+                  <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-white">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={activePreview}
+                      alt="Slip preview"
+                      className="h-full w-full object-cover"
+                    />
+                    {(isUploadingSlip || isScanningSlip) && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <Loader2 size={18} className="animate-spin text-white" />
+                      </div>
+                    )}
                   </div>
-                  <a
-                    href={activePreview}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] text-emerald-600 hover:underline mt-0.5"
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-medium text-neutral-900 truncate">
+                        {isScanningSlip
+                          ? "กำลังให้ AI อ่านข้อมูลใบเสร็จ..."
+                          : isUploadingSlip
+                            ? "กำลังอัปโหลดรูปภาพ..."
+                            : selectedFile
+                              ? selectedFile.name
+                              : "แนบรูปภาพสลิปแล้ว"}
+                      </p>
+                    </div>
+                    <a
+                      href={activePreview}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] text-emerald-600 hover:underline mt-0.5"
+                    >
+                      <ExternalLink size={12} />
+                      ดูรูปภาพขนาดเต็ม
+                    </a>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveSlip}
+                    disabled={isUploadingSlip || isScanningSlip}
+                    className="rounded-lg p-2 text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors disabled:opacity-50"
+                    title="ลบรูปภาพสลิป"
                   >
-                    <ExternalLink size={12} />
-                    ดูรูปภาพขนาดเต็ม
-                  </a>
+                    <Trash2 size={16} />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleRemoveSlip}
-                  disabled={isUploadingSlip}
-                  className="rounded-lg p-2 text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors disabled:opacity-50"
-                  title="ลบรูปภาพสลิป"
-                >
-                  <Trash2 size={16} />
-                </button>
+
+                {/* AI Scan Banner */}
+                {selectedFile && (
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50/90 via-teal-50/60 to-white p-2.5 shadow-xs">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-xs">
+                        <Sparkles size={16} className={isScanningSlip ? "animate-spin" : ""} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-neutral-900">
+                          สแกนข้อมูลด้วย AI
+                        </p>
+                        <p className="text-[11px] text-neutral-500">
+                          ให้อ่านยอดเงิน วันที่ ร้านค้า และหมวดหมู่ลงฟอร์ม
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleScanReceipt}
+                      disabled={isScanningSlip || isUploadingSlip}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white px-3 py-1.5 text-xs font-semibold shadow-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isScanningSlip ? (
+                        <>
+                          <Loader2 size={13} className="animate-spin" />
+                          กำลังสแกน...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={13} />
+                          สแกนทันที
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {aiSuccessMessage && (
+                  <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200/90 px-3 py-2 text-xs text-emerald-800 font-medium">
+                    <CheckCircle2 size={16} className="text-emerald-600 flex-shrink-0" />
+                    <span>{aiSuccessMessage}</span>
+                  </div>
+                )}
               </div>
             ) : (
               <div
@@ -443,7 +537,7 @@ export function ExpenseModal({
                       คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวางที่นี่
                     </p>
                     <p className="text-[11px] text-neutral-400 mt-0.5">
-                      รองรับไฟล์ภาพ .PNG, .JPG (ไม่เกิน 5 MB)
+                      รองรับไฟล์ภาพ .PNG, .JPG (พร้อมระบบสแกนข้อมูลด้วย AI)
                     </p>
                   </>
                 )}

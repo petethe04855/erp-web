@@ -82,6 +82,18 @@ export interface CreateExpenseDTO {
 
 export type UpdateExpenseDTO = CreateExpenseDTO;
 
+export interface ReceiptScanResult {
+  amount: number;
+  date: string;
+  vendor?: string;
+  invoice_ref?: string;
+  product_name?: string;
+  category?: ExpenseCategory;
+  channel?: ExpenseChannel;
+  description?: string;
+  slip_url: string;
+}
+
 export interface JournalQueryParams {
   from?: string;
   to?: string;
