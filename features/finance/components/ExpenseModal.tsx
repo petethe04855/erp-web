@@ -358,13 +358,13 @@ export function ExpenseModal({
               รายละเอียด
             </label>
             <textarea
-              rows={2}
+              rows={3}
               placeholder="รายละเอียดเพิ่มเติมของค่าใช้จ่าย..."
               value={formData.description || ""}
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none focus:ring-1 focus:ring-neutral-900"
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none focus:ring-1 focus:ring-neutral-900 leading-relaxed"
             />
           </div>
 
