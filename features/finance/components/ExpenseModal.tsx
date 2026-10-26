@@ -9,6 +9,7 @@ import type {
 } from "../types/finance";
 import { financeApi } from "../api/financeApi";
 import { getImageUrl } from "@/lib/utils";
+import { useAuthStore } from "@/stores/authStore";
 import {
   X,
   Loader2,
@@ -24,6 +25,7 @@ import {
   FileText,
   Sparkles,
   CheckCircle2,
+  User,
 } from "lucide-react";
 
 interface ExpenseModalProps {
@@ -59,6 +61,7 @@ export function ExpenseModal({
   initialData,
   isLoading = false,
 }: ExpenseModalProps) {
+  const currentUser = useAuthStore((s) => s.user);
   const [formData, setFormData] = useState<CreateExpenseDTO>({
     date: new Date().toISOString().split("T")[0],
     category: "ค่าใช้จ่ายในการบริหาร",
@@ -70,6 +73,7 @@ export function ExpenseModal({
     vendor: "",
     invoice_ref: "",
     description: "",
+    created_by: "",
   });
 
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -94,6 +98,7 @@ export function ExpenseModal({
         vendor: initialData.vendor || "",
         invoice_ref: initialData.invoice_ref || "",
         description: initialData.description || "",
+        created_by: initialData.created_by || "",
       });
       setSelectedFile(null);
       setLocalPreview(
@@ -115,6 +120,7 @@ export function ExpenseModal({
         vendor: "",
         invoice_ref: "",
         description: "",
+        created_by: currentUser?.name || currentUser?.email || "",
       });
       setSelectedFile(null);
       setLocalPreview("");
@@ -122,7 +128,7 @@ export function ExpenseModal({
     }
     setError(null);
     setAiSuccessMessage(null);
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, currentUser]);
 
   if (!isOpen) return null;
 
@@ -333,22 +339,40 @@ export function ExpenseModal({
             </div>
           </div>
 
-          {/* 2. Product Name */}
-          <div>
-            <label className="flex items-center gap-1.5 text-xs font-semibold text-neutral-700 mb-1">
-              <Package size={14} className="text-neutral-500" />
-              สินค้า / รายการสิ่งของ <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              placeholder="เช่น กล่องพัสดุ เบอร์ 2A (100 กล่อง), สก็อตเทปใส, ค่าบริการอินเทอร์เน็ต"
-              value={formData.product_name || ""}
-              onChange={(e) =>
-                setFormData({ ...formData, product_name: e.target.value })
-              }
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none focus:ring-1 focus:ring-neutral-900"
-            />
+          {/* 2. Product Name & Recorder */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-neutral-700 mb-1">
+                <Package size={14} className="text-neutral-500" />
+                สินค้า / รายการสิ่งของ <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="เช่น กล่องพัสดุ เบอร์ 2A (100 กล่อง), สก็อตเทปใส, ค่าบริการอินเทอร์เน็ต"
+                value={formData.product_name || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, product_name: e.target.value })
+                }
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none focus:ring-1 focus:ring-neutral-900"
+              />
+            </div>
+
+            <div>
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-neutral-700 mb-1">
+                <User size={14} className="text-neutral-500" />
+                ผู้ลงบันทึก / ผู้ทำรายการ
+              </label>
+              <input
+                type="text"
+                placeholder="ระบุชื่อผู้ลงบันทึกค่าใช้จ่าย"
+                value={formData.created_by || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, created_by: e.target.value })
+                }
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-900 focus:outline-none focus:ring-1 focus:ring-neutral-900"
+              />
+            </div>
           </div>
 
           {/* 3. Description */}

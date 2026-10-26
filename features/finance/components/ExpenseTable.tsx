@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import type { Expense } from "../types/finance";
-import { Edit2, Trash2, Tag, Store, ExternalLink, Image as ImageIcon, Package } from "lucide-react";
+import { Edit2, Trash2, Tag, Store, ExternalLink, Image as ImageIcon, Package, User as UserIcon } from "lucide-react";
 import { SlipPreviewModal } from "./SlipPreviewModal";
 import { getImageUrl } from "@/lib/utils";
 
@@ -53,6 +53,7 @@ export function ExpenseTable({ expenses, isLoading, onEdit, onDelete }: ExpenseT
                 <th className="px-4 py-3 text-center">สลิป</th>
                 <th className="px-4 py-3">หมวดหมู่</th>
                 <th className="px-4 py-3">ช่องทาง</th>
+                <th className="px-4 py-3">ผู้บันทึก</th>
                 <th className="px-4 py-3 text-right">จำนวนเงิน</th>
                 <th className="px-4 py-3 text-center">การจัดการ</th>
               </tr>
@@ -135,6 +136,14 @@ export function ExpenseTable({ expenses, isLoading, onEdit, onDelete }: ExpenseT
                       <Store size={12} />
                       {exp.channel}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <div className="flex items-center gap-1.5 text-xs text-neutral-700">
+                      <UserIcon size={13} className="text-neutral-400 flex-shrink-0" />
+                      <span className="truncate max-w-[120px]" title={exp.created_by || "-"}>
+                        {exp.created_by || "-"}
+                      </span>
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-right font-mono text-xs font-bold text-neutral-900 whitespace-nowrap">
                     ฿{exp.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
