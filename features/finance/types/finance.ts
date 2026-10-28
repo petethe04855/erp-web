@@ -78,6 +78,7 @@ export interface CreateExpenseDTO {
   vendor?: string;
   invoice_ref?: string;
   description?: string;
+  created_by?: string;
 }
 
 export type UpdateExpenseDTO = CreateExpenseDTO;
