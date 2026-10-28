@@ -53,12 +53,12 @@ const NAV_SECTIONS: NavSection[] = [
     title: "ภาพรวม",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      {
-        label: "ลูกค้าตามจังหวัด (CRM)",
-        href: "/crm/tiktok-provinces",
-        icon: MapPin,
-        roles: ["owner", "sales"],
-      },
+      // {
+      //   label: "ลูกค้าตามจังหวัด (CRM)",
+      //   href: "/crm/tiktok-provinces",
+      //   icon: MapPin,
+      //   roles: ["owner", "sales"],
+      // },
     ],
   },
   {
