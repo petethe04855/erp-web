@@ -115,11 +115,15 @@ export function GoodsReceiveForm(props: Props) {
         if (!sku) {
           throw new Error("กรุณาเลือก SKU สินค้า");
         }
+        const cost = Number(unitCost);
+        if (!unitCost || unitCost.trim() === "" || isNaN(cost) || cost <= 0) {
+          throw new Error("กรุณากรอกราคาต้นทุนต่อหน่วย (ต้องมากกว่า 0)");
+        }
         await props.onSubmit({
           poNumber: po,
           sku,
           quantity: Number(qty),
-          unitCost: unitCost ? Number(unitCost) : undefined,
+          unitCost: Number(unitCost),
           retailPrice: retailPrice ? Number(retailPrice) : undefined,
           warehouse: "",
           lotNumber: supplierLot,
@@ -172,20 +176,37 @@ export function GoodsReceiveForm(props: Props) {
       {/* ราคาต้นทุน และ ราคาขาย ของสินค้ารอบที่นำเข้า */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded-lg border border-neutral-200 dark:border-neutral-700">
         <label className="block text-xs font-medium text-neutral-800 dark:text-neutral-200">
-          ราคาต้นทุนต่อหน่วย (บาท)
+          ราคาต้นทุนต่อหน่วย (บาท) <span className="text-red-500">*</span>
           <Input
             className="mt-1.5 bg-white dark:bg-neutral-900"
             type="number"
             placeholder="เช่น 150.00"
             value={unitCost}
             onChange={(e) => setUnitCost(e.target.value)}
-            min="0"
+            min="0.01"
             step="0.01"
+            required
           />
           <span className="text-[11px] text-neutral-400 mt-1 block">
             ต้นทุนเฉพาะล็อตนี้ (ดึงจาก PO อัตโนมัติถ้ามี)
           </span>
         </label>
+
+        {/* <label className="block text-xs font-medium text-neutral-800 dark:text-neutral-200">
+          ราคาขายปลีกรอบนี้ (บาท)
+          <Input
+            className="mt-1.5 bg-white dark:bg-neutral-900"
+            type="number"
+            placeholder="เช่น 290.00"
+            value={retailPrice}
+            onChange={(e) => setRetailPrice(e.target.value)}
+            min="0"
+            step="0.01"
+          />
+          <span className="text-[11px] text-neutral-400 mt-1 block">
+            ราคาขายที่ต้องการอัปเดตให้ SKU สำหรับล็อตนี้ (ไม่บังคับ)
+          </span>
+        </label> */}
       </div>
 
       <label className="block text-xs font-medium">

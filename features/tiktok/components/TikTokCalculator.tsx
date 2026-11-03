@@ -46,7 +46,9 @@ export function TikTokCalculator() {
               min={0}
               value={salePrice}
               onChange={(e) =>
-                setSalePrice(e.target.value === "" ? "" : Number(e.target.value))
+                setSalePrice(
+                  e.target.value === "" ? "" : Number(e.target.value),
+                )
               }
               className="font-mono text-sm"
             />
@@ -147,17 +149,23 @@ export function TikTokCalculator() {
 
             <div className="flex justify-between py-1.5 border-b border-neutral-100 text-rose-600">
               <span>หัก Platform Fee ({platformFee}%)</span>
-              <span className="font-mono font-medium">-{formatBaht(platformCut)}</span>
+              <span className="font-mono font-medium">
+                -{formatBaht(platformCut)}
+              </span>
             </div>
 
             <div className="flex justify-between py-1.5 border-b border-neutral-100 text-rose-600">
               <span>หัก Affiliate Fee ({affiliateFee}%)</span>
-              <span className="font-mono font-medium">-{formatBaht(affiliateCut)}</span>
+              <span className="font-mono font-medium">
+                -{formatBaht(affiliateCut)}
+              </span>
             </div>
 
             <div className="flex justify-between py-1.5 border-b border-neutral-100 text-rose-600">
               <span>หัก ค่าส่ง / คูปองช่วย</span>
-              <span className="font-mono font-medium">-{formatBaht(shippingNum)}</span>
+              <span className="font-mono font-medium">
+                -{formatBaht(shippingNum)}
+              </span>
             </div>
 
             <div className="flex justify-between py-2 border-b border-neutral-200 font-semibold text-neutral-800">
@@ -167,7 +175,9 @@ export function TikTokCalculator() {
 
             <div className="flex justify-between py-1.5 border-b border-neutral-100 text-neutral-500">
               <span>หัก ต้นทุนสินค้า</span>
-              <span className="font-mono font-medium">-{formatBaht(costNum)}</span>
+              <span className="font-mono font-medium">
+                -{formatBaht(costNum)}
+              </span>
             </div>
           </div>
         </div>

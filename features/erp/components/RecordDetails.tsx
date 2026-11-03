@@ -17,6 +17,9 @@ const actions: Partial<Record<Resource, string[]>> = {
   quotations: ["Sent", "Approved", "Rejected"],
   "purchase-orders": ["Sent", "Cancelled"],
 };
+
+const HIDDEN_FIELDS = new Set(["id", "retailPrice"]);
+
 const fieldLabels: Record<string, string> = {
   id: "ID",
   sku: "รหัสสินค้า (SKU)",
@@ -26,7 +29,7 @@ const fieldLabels: Record<string, string> = {
   barcode: "บาร์โค้ด",
   baseUnit: "หน่วยนับ",
   unit: "หน่วยนับ",
-  retailPrice: "ราคาขายปลีก",
+  // retailPrice: "ราคาขายปลีก", // ซ่อนการแสดงผลตามที่กำหนด
   wholesalePrice: "ราคาขายส่ง",
   price: "ราคาขาย",
   cost: "ต้นทุนมาตรฐาน",
@@ -74,7 +77,10 @@ function formatValue(key: string, val: unknown): React.ReactNode {
   if (Array.isArray(val) || (typeof val === "object" && val !== null)) {
     return <Value value={val} />;
   }
-  if ((key === "image" || key === "logo" || key === "customerLogo") && typeof val === "string") {
+  if (
+    (key === "image" || key === "logo" || key === "customerLogo") &&
+    typeof val === "string"
+  ) {
     return (
       <div className="my-1">
         <div className="h-24 w-24 rounded-lg overflow-hidden border border-border bg-muted/40 flex items-center justify-center p-1">
@@ -122,10 +128,11 @@ function formatValue(key: string, val: unknown): React.ReactNode {
     const isAct = val === true || val === "active" || val === "Active";
     return (
       <span
-        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${isAct
-          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-          : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-          }`}
+        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+          isAct
+            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+            : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+        }`}
       >
         {String(val)}
       </span>
@@ -133,9 +140,24 @@ function formatValue(key: string, val: unknown): React.ReactNode {
   }
   if (key === "channel") {
     const s = String(val).toUpperCase().trim();
-    if (s.includes("TIKTOK")) return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-neutral-900 text-white dark:bg-white dark:text-neutral-900">TikTok</span>;
-    if (s.includes("SHOPEE")) return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300">Shopee</span>;
-    if (s.includes("MANUAL") || s === "ORDER") return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">Manual</span>;
+    if (s.includes("TIKTOK"))
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-neutral-900 text-white dark:bg-white dark:text-neutral-900">
+          TikTok
+        </span>
+      );
+    if (s.includes("SHOPEE"))
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300">
+          Shopee
+        </span>
+      );
+    if (s.includes("MANUAL") || s === "ORDER")
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+          Manual
+        </span>
+      );
     return <span className="text-foreground font-medium">{String(val)}</span>;
   }
   return <span className="text-foreground font-medium">{String(val)}</span>;
@@ -148,9 +170,7 @@ function Value({ value }: { value: unknown }) {
   if (Array.isArray(value)) {
     if (value.length === 0) {
       return (
-        <p className="text-muted-foreground italic text-xs">
-          ไม่มีรายการย่อย
-        </p>
+        <p className="text-muted-foreground italic text-xs">ไม่มีรายการย่อย</p>
       );
     }
     return (
@@ -163,7 +183,7 @@ function Value({ value }: { value: unknown }) {
             {typeof item === "object" && item !== null ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
                 {Object.entries(item)
-                  .filter(([ik]) => ik !== "id")
+                  .filter(([ik]) => !HIDDEN_FIELDS.has(ik))
                   .map(([ik, iv]) => (
                     <div key={ik} className="flex flex-col">
                       <span className="text-muted-foreground text-[11px]">
@@ -185,7 +205,7 @@ function Value({ value }: { value: unknown }) {
   if (typeof value === "object" && value !== null) {
     const entries = Object.entries(value);
     const regularEntries = entries.filter(
-      ([k]) => k !== "components" && k !== "lines" && k !== "id"
+      ([k]) => k !== "components" && k !== "lines" && !HIDDEN_FIELDS.has(k),
     );
     const componentsEntry = entries.find(([k]) => k === "components");
     const linesEntry = entries.find(([k]) => k === "lines");
@@ -269,73 +289,100 @@ export function RecordDetails({
           )}
           {query.data && (
             <div className="space-y-3 border-t pt-4">
-              {resource === "sales-orders" && ["COMPLETED", "SHIPPED"].includes(String(query.data?.status || "").toUpperCase()) && (
-                <div className="flex items-center gap-2 mb-2">
-                  <Button
-                    className="bg-primary text-primary-foreground font-medium shadow-sm hover:bg-primary/90"
-                    disabled={exporting}
-                    onClick={async () => {
-                      if (exporting) return;
-                      setExporting(true);
-                      try {
-                        await downloadBackendPdf("sales-orders", query.data?.id, `${query.data?.code || "sales-order"}.pdf`);
-                      } catch (err) {
-                        alert("Export PDF ไม่สำเร็จ: " + pdfErrorMessage(err));
-                      } finally {
-                        setExporting(false);
-                      }
-                    }}
-                  >
-                    📄 Export PDF (ใบสั่งขาย)
-                  </Button>
-                </div>
-              )}
+              {resource === "sales-orders" &&
+                ["COMPLETED", "SHIPPED"].includes(
+                  String(query.data?.status || "").toUpperCase(),
+                ) && (
+                  <div className="flex items-center gap-2 mb-2">
+                    <Button
+                      className="bg-primary text-primary-foreground font-medium shadow-sm hover:bg-primary/90"
+                      disabled={exporting}
+                      onClick={async () => {
+                        if (exporting) return;
+                        setExporting(true);
+                        try {
+                          await downloadBackendPdf(
+                            "sales-orders",
+                            query.data?.id,
+                            `${query.data?.code || "sales-order"}.pdf`,
+                          );
+                        } catch (err) {
+                          alert(
+                            "Export PDF ไม่สำเร็จ: " + pdfErrorMessage(err),
+                          );
+                        } finally {
+                          setExporting(false);
+                        }
+                      }}
+                    >
+                      📄 Export PDF (ใบสั่งขาย)
+                    </Button>
+                  </div>
+                )}
               {(() => {
                 let availableStatuses = actions[resource] || [];
-                  if (resource === "quotations") {
-                    const currentStatus = String(query.data?.status || "Draft").toUpperCase();
-                    if (currentStatus === "DRAFT" || !currentStatus) {
-                      // ตอนเริ่มต้นแสดงเฉพาะปุ่ม Sent
-                      availableStatuses = ["Sent"];
-                    } else if (currentStatus === "SENT") {
-                      // เมื่อกด Sent แล้ว จึงแสดงปุ่ม Approved และ Rejected
-                      availableStatuses = ["Approved", "Rejected"];
-                    } else {
-                      // Approved หรือสถานะอื่น ไม่ต้องแสดงปุ่มเปลี่ยนสถานะเพิ่มเติม
-                      availableStatuses = [];
-                    }
-                  } else if (resource === "sales-orders") {
-                    const currentStatus = String(query.data?.status || "PENDING").toUpperCase();
-                    if (currentStatus === "PENDING") {
-                      availableStatuses = ["Confirmed", "Cancelled"];
-                    } else if (currentStatus === "CONFIRMED") {
-                      availableStatuses = ["Completed", "Cancelled"];
-                    } else {
-                      availableStatuses = [];
-                    }
+                if (resource === "quotations") {
+                  const currentStatus = String(
+                    query.data?.status || "Draft",
+                  ).toUpperCase();
+                  if (currentStatus === "DRAFT" || !currentStatus) {
+                    // ตอนเริ่มต้นแสดงเฉพาะปุ่ม Sent
+                    availableStatuses = ["Sent"];
+                  } else if (currentStatus === "SENT") {
+                    // เมื่อกด Sent แล้ว จึงแสดงปุ่ม Approved และ Rejected
+                    availableStatuses = ["Approved", "Rejected"];
+                  } else {
+                    // Approved หรือสถานะอื่น ไม่ต้องแสดงปุ่มเปลี่ยนสถานะเพิ่มเติม
+                    availableStatuses = [];
                   }
-                  return availableStatuses
-                    .filter((s) => s.toUpperCase() !== String(query.data?.status || "").toUpperCase() && (s.toUpperCase() !== "COMPLETED" || String(query.data?.status || "").toUpperCase() !== "SHIPPED"))
-                    .map((status) => (
-                      <Button
-                        key={status}
-                        className="mr-2"
-                        variant="outline"
-                        disabled={mutation.isPending}
-                        onClick={() => {
-                          if (
-                            window.confirm("ยืนยันเปลี่ยนสถานะเป็น " + status + "?")
+                } else if (resource === "sales-orders") {
+                  const currentStatus = String(
+                    query.data?.status || "PENDING",
+                  ).toUpperCase();
+                  if (currentStatus === "PENDING") {
+                    availableStatuses = ["Confirmed", "Cancelled"];
+                  } else if (currentStatus === "CONFIRMED") {
+                    availableStatuses = ["Completed", "Cancelled"];
+                  } else {
+                    availableStatuses = [];
+                  }
+                }
+                return availableStatuses
+                  .filter(
+                    (s) =>
+                      s.toUpperCase() !==
+                        String(query.data?.status || "").toUpperCase() &&
+                      (s.toUpperCase() !== "COMPLETED" ||
+                        String(query.data?.status || "").toUpperCase() !==
+                          "SHIPPED"),
+                  )
+                  .map((status) => (
+                    <Button
+                      key={status}
+                      className="mr-2"
+                      variant="outline"
+                      disabled={mutation.isPending}
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            "ยืนยันเปลี่ยนสถานะเป็น " + status + "?",
                           )
-                            mutation.mutate({ status });
-                        }}
-                      >
-                        {status}
-                      </Button>
-                    ));
-                })()}
+                        )
+                          mutation.mutate({ status });
+                      }}
+                    >
+                      {status}
+                    </Button>
+                  ));
+              })()}
               {mutation.isError && (
-                <p className="text-sm text-destructive font-medium mt-2" role="alert">
-                  {mutation.error instanceof Error ? mutation.error.message : "เกิดข้อผิดพลาดในการอัปเดต"}
+                <p
+                  className="text-sm text-destructive font-medium mt-2"
+                  role="alert"
+                >
+                  {mutation.error instanceof Error
+                    ? mutation.error.message
+                    : "เกิดข้อผิดพลาดในการอัปเดต"}
                 </p>
               )}
               {resource === "quotations" && (
@@ -346,7 +393,11 @@ export function RecordDetails({
                     if (exporting) return;
                     setExporting(true);
                     try {
-                      await downloadBackendPdf("quotations", query.data?.id, `${query.data?.code || "quotation"}.pdf`);
+                      await downloadBackendPdf(
+                        "quotations",
+                        query.data?.id,
+                        `${query.data?.code || "quotation"}.pdf`,
+                      );
                     } catch (err) {
                       alert("Export PDF ไม่สำเร็จ: " + pdfErrorMessage(err));
                     } finally {
@@ -376,7 +427,11 @@ export function RecordDetails({
                       if (exporting) return;
                       setExporting(true);
                       try {
-                        await downloadBackendPdf("invoices", query.data?.id, `${query.data?.code || query.data?.invoiceNo || "invoice"}.pdf`);
+                        await downloadBackendPdf(
+                          "invoices",
+                          query.data?.id,
+                          `${query.data?.code || query.data?.invoiceNo || "invoice"}.pdf`,
+                        );
                       } catch (err) {
                         alert("Export PDF ไม่สำเร็จ: " + pdfErrorMessage(err));
                       } finally {
@@ -393,15 +448,20 @@ export function RecordDetails({
                         disabled={mutation.isPending}
                         onClick={() => {
                           const payAmount =
-                            query.data?.balance !== undefined && Number(query.data.balance) > 0
+                            query.data?.balance !== undefined &&
+                            Number(query.data.balance) > 0
                               ? Number(query.data.balance)
-                              : Number(query.data?.amount || query.data?.totalAmount || 0);
+                              : Number(
+                                  query.data?.amount ||
+                                    query.data?.totalAmount ||
+                                    0,
+                                );
 
                           if (
                             window.confirm(
                               `ยืนยันการบันทึกชำระเงินสำหรับใบแจ้งหนี้ ${
                                 query.data?.code || query.data?.invoiceNo || id
-                              }?`
+                              }?`,
                             )
                           ) {
                             mutation.mutate({ amount: payAmount });
