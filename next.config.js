@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  output: "standalone",
+  // "standalone" is for self-hosted Docker/VPS deployments only.
+  // Vercel uses its own serverless build pipeline and does not support it.
+  ...(process.env.VERCEL ? {} : { output: "standalone" }),
   async redirects() {
     return [
       {
