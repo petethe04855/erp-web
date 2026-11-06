@@ -27,6 +27,12 @@ apiClient.interceptors.response.use(
     )
       useAuthStore.getState().logout();
     const detail = error.response?.data?.error;
+    // Timeout (request aborted, no response) is not the same as "API down".
+    if (!error.response && error.code === "ECONNABORTED") {
+      return Promise.reject(
+        new Error("การเชื่อมต่อใช้เวลานานเกินไป (timeout) กรุณาลองใหม่อีกครั้ง"),
+      );
+    }
     return Promise.reject(
       new Error(
         typeof detail === "string"

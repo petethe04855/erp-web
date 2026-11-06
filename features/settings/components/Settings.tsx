@@ -31,8 +31,9 @@ export function Settings() {
       setIsUploading(true);
       setUploadError("");
       const url = await settingsApi.uploadLogo(file);
-      setDraft({ ...company, logoUrl: url });
-      mutation.reset();
+      const updated = { ...company, logoUrl: url };
+      setDraft(updated);
+      mutation.mutate(updated);
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "อัปโหลดโลโก้ไม่สำเร็จ");
     } finally {
@@ -43,8 +44,9 @@ export function Settings() {
 
   const handleRemoveLogo = () => {
     if (!company) return;
-    setDraft({ ...company, logoUrl: "" });
-    mutation.reset();
+    const updated = { ...company, logoUrl: "" };
+    setDraft(updated);
+    mutation.mutate(updated);
   };
   return (
     <PageContainer>

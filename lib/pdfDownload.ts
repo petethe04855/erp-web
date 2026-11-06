@@ -18,6 +18,8 @@ export async function downloadBackendPdf(
   try {
     const response = await apiClient.get(`/${resource}/${id}/pdf`, {
       responseType: "blob",
+      // PDF generation (fonts, logo, multi-query) can exceed the default 15s.
+      timeout: 60000,
     });
 
     const contentType =
