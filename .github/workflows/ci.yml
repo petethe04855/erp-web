@@ -1,0 +1,51 @@
+# .github/workflows/ci.yml  (ต่างจากเดิมแค่ Node + versions ยกจาก scheduled-go-job.yml)
+name: Web Frontend CI & Build
+
+on:
+  push:
+    branches: [main, dev, 'dev/**']
+  pull_request:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+
+concurrency:                       # กันรันซ้อนเมื่อ push ระหว่าง PR เปิดอยู่
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-and-build:
+    name: Lint, Test & Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4.2.2
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4.2.0
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Security Audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: TypeScript Type Check
+        run: npm run typecheck
+
+      - name: Run Tests (Vitest)
+        run: npm test
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Verify Next.js Build
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
