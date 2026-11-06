@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: "standalone",
   async redirects() {
     return [
       {
@@ -31,7 +32,12 @@ const nextConfig = {
     ];
   },
   async rewrites() {
-    const rawApi = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+    // INTERNAL_API_URL: ใช้ตอนรันใน Docker (อ่านตอน server boot)
+    // NEXT_PUBLIC_API_URL: browser มาตรฐาน (ถูกฝังตอน build)
+    const rawApi =
+      process.env.INTERNAL_API_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      "http://localhost:8080";
     const origin = rawApi.replace(/\/api(?:\/v1)?\/?$/, "").replace(/\/$/, "");
     return [
       {

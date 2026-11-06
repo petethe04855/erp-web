@@ -1,0 +1,20 @@
+# Dependencies / build output
+node_modules
+.next
+out
+coverage
+npm-debug.log*
+
+# Secrets — ห้ามเข้า image เด็ดขาด
+.env
+.env.*
+.env.local
+
+# Git / IDE / local artifacts
+.git/
+.idea/
+.vscode/
+.qa/
+docs/
+tests/
+tsconfig.tsbuildinfo
