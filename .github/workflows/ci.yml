@@ -1,56 +1,50 @@
+# .github/workflows/ci.yml  (ต่างจากเดิมแค่ Node + versions ยกจาก scheduled-go-job.yml)
 name: Web Frontend CI & Build
 
 on:
   push:
-    branches:
-      - main
-      - dev
-      - 'dev/**'        # ครอบคลุมกิ่ง dev ย่อย เช่น dev/feature-xxx
+    branches: [main, dev, 'dev/**']
   pull_request:
-    branches:
-      - main
-      - dev
+    branches: [main, dev]
+
+permissions:
+  contents: read
+
+concurrency:                       # กันรันซ้อนเมื่อ push ระหว่าง PR เปิดอยู่
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate-and-build:
     name: Lint, Test & Build
     runs-on: ubuntu-latest
-
     steps:
-      # 1. Checkout โค้ดลง Runner
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
-      # 2. ตั้งค่า Node.js และเปิด Cache เพื่อความรวดเร็ว
-      - name: Setup Node.js 20
-        uses: actions/setup-node@v4
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4.2.0
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
           cache-dependency-path: 'package-lock.json'
 
-      # 3. ติดตั้ง Dependencies ตาม package-lock.json อย่างแม่นยำ
       - name: Install Dependencies
         run: npm ci
 
-      # 4. สแกนหาช่องโหว่ของ Dependencies (ระดับ High ขึ้นไป)
       - name: Security Audit
         run: npm audit --audit-level=high
-        continue-on-error: true # ตั้งเป็น true เพื่อไม่ให้บล็อกถ้ามี warning ที่ยังรอ upstream อัปเดต
+        continue-on-error: true
 
-      # 5. ตรวจสอบ Type Safety
       - name: TypeScript Type Check
         run: npm run typecheck
 
-      # 6. รัน Unit & Component Tests
       - name: Run Tests (Vitest)
         run: npm test
 
-      # 7. ตรวจสอบ Code Style & React Hook Rules
       - name: ESLint
         run: npm run lint
 
-      # 8. ทดสอบ Build เป็น Production Bundle
       - name: Verify Next.js Build
         run: npm run build
         env:
