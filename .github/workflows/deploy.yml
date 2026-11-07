@@ -30,8 +30,14 @@ jobs:
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
-          ssh-keygen -y -P '' -f ~/.ssh/id_ed25519 >/dev/null
-          ssh-keygen -F "$VPS_HOST" -f ~/.ssh/known_hosts >/dev/null
+          if ! ssh-keygen -y -P '' -f ~/.ssh/id_ed25519 >/dev/null 2>&1; then
+            echo "::error::VPS_SSH_PRIVATE_KEY is invalid or requires a passphrase."
+            exit 1
+          fi
+          if ! ssh-keygen -F "$VPS_HOST" -f ~/.ssh/known_hosts >/dev/null; then
+            echo "::error::VPS_SSH_KNOWN_HOSTS has no entry matching VPS_HOST."
+            exit 1
+          fi
       - name: Build and transfer image
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
