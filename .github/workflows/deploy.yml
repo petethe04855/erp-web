@@ -45,7 +45,7 @@ jobs:
         run: |
           set -euo pipefail
           ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes "$VPS_USER@$VPS_HOST" true
-          docker build --build-arg "NEXT_PUBLIC_API_URL=http://$VPS_HOST" -t "erp-web:$GITHUB_SHA" .
+          docker build --build-arg "NEXT_PUBLIC_API_URL=https://srv1609370.hstgr.cloud" -t "erp-web:$GITHUB_SHA" .
           docker save "erp-web:$GITHUB_SHA" | ssh -o StrictHostKeyChecking=yes "$VPS_USER@$VPS_HOST" docker load
       - name: Deploy and check web
         env:
