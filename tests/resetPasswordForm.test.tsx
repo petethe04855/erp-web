@@ -32,7 +32,7 @@ describe("ResetPasswordForm", () => {
     const user = userEvent.setup();
     render(<ResetPasswordForm />);
 
-    const newPass = screen.getByLabelText(/รหัสผ่านใหม่ \(อย่างน้อย 6 ตัวอักษร\)/i);
+    const newPass = screen.getByLabelText(/^รหัสผ่านใหม่/i);
     const confirmPass = screen.getByLabelText(/ยืนยันรหัสผ่านใหม่/i);
     const submitBtn = screen.getByRole("button", { name: /บันทึกรหัสผ่านใหม่/i });
 
@@ -42,11 +42,21 @@ describe("ResetPasswordForm", () => {
     await user.click(submitBtn);
     expect(screen.getByText(/รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร/i)).toBeInTheDocument();
 
+    // Missing uppercase or lowercase letter
+    await user.clear(newPass);
+    await user.clear(confirmPass);
+    await user.type(newPass, "abc123");
+    await user.type(confirmPass, "abc123");
+    await user.click(submitBtn);
+    expect(
+      screen.getByText(/รหัสผ่านต้องมีตัวพิมพ์ใหญ่และตัวพิมพ์เล็กอย่างน้อยอย่างละ 1 ตัว/i),
+    ).toBeInTheDocument();
+
     // Mismatched
     await user.clear(newPass);
     await user.clear(confirmPass);
-    await user.type(newPass, "password123");
-    await user.type(confirmPass, "mismatch123");
+    await user.type(newPass, "Password123");
+    await user.type(confirmPass, "Password321");
     await user.click(submitBtn);
     expect(screen.getByText(/รหัสผ่านทั้งสองช่องไม่ตรงกัน/i)).toBeInTheDocument();
   });
@@ -58,15 +68,15 @@ describe("ResetPasswordForm", () => {
     const user = userEvent.setup();
     render(<ResetPasswordForm />);
 
-    const newPass = screen.getByLabelText(/รหัสผ่านใหม่ \(อย่างน้อย 6 ตัวอักษร\)/i);
+    const newPass = screen.getByLabelText(/^รหัสผ่านใหม่/i);
     const confirmPass = screen.getByLabelText(/ยืนยันรหัสผ่านใหม่/i);
     const submitBtn = screen.getByRole("button", { name: /บันทึกรหัสผ่านใหม่/i });
 
-    await user.type(newPass, "newpassword123");
-    await user.type(confirmPass, "newpassword123");
+    await user.type(newPass, "NewPassword123");
+    await user.type(confirmPass, "NewPassword123");
     await user.click(submitBtn);
 
-    expect(authApi.changePassword).toHaveBeenCalledWith({ newPassword: "newpassword123" });
+    expect(authApi.changePassword).toHaveBeenCalledWith({ newPassword: "NewPassword123" });
     await vi.waitFor(() => {
       expect(useAuthStore.getState().isAuthenticated).toBe(false);
       expect(mockReplace).toHaveBeenCalledWith("/login?reset=success");

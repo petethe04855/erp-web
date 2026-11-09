@@ -84,9 +84,15 @@ export function UserFormModal({
     }
 
     // Password validation only in edit mode (create mode has no password field)
-    if (isEdit && password && password.length < 6) {
-      setError("รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร");
-      return;
+    if (isEdit && password) {
+      if (password.length < 6) {
+        setError("รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร");
+        return;
+      }
+      if (!/[A-Z]/.test(password) || !/[a-z]/.test(password)) {
+        setError("รหัสผ่านต้องมีตัวพิมพ์ใหญ่และตัวพิมพ์เล็กอย่างน้อยอย่างละ 1 ตัว");
+        return;
+      }
     }
 
     try {
@@ -184,6 +190,9 @@ export function UserFormModal({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
+                <p className="mt-1 text-[11px] text-neutral-400">
+                  อย่างน้อย 6 ตัวอักษร และมีตัวพิมพ์ใหญ่และตัวพิมพ์เล็กอย่างน้อยอย่างละ 1 ตัว
+                </p>
               </div>
             )}
 

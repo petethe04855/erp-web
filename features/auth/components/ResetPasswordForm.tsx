@@ -29,6 +29,11 @@ export function ResetPasswordForm() {
       return;
     }
 
+    if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword)) {
+      setError("รหัสผ่านต้องมีตัวพิมพ์ใหญ่และตัวพิมพ์เล็กอย่างน้อยอย่างละ 1 ตัว");
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       setError("รหัสผ่านทั้งสองช่องไม่ตรงกัน");
       return;
@@ -65,7 +70,7 @@ export function ResetPasswordForm() {
 
       <form className="space-y-5" onSubmit={handleSubmit}>
         <label className="block text-sm font-medium">
-          รหัสผ่านใหม่ (อย่างน้อย 6 ตัวอักษร)
+          รหัสผ่านใหม่ (อย่างน้อย 6 ตัวอักษร มีตัวพิมพ์ใหญ่และตัวพิมพ์เล็กอย่างน้อยอย่างละ 1 ตัว)
           <Input
             className="mt-2"
             type="password"
