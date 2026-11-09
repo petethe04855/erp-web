@@ -21,9 +21,16 @@ export function useAuth() {
               [data.user.firstname, data.user.lastname]
                 .filter(Boolean)
                 .join(" ") || data.user.email,
+            mustResetPassword: data.user.mustResetPassword,
           },
           data.token,
         );
+
+      if (data.user.mustResetPassword) {
+        router.replace("/reset-password");
+        return;
+      }
+
       // Honor the ?next= target middleware preserved when it redirected an
       // unauthenticated request to /login; default to the dashboard.
       // WEB-TS-01: Sanitize path to prevent open redirect attacks via protocol-relative URLs (e.g. //evil.com).
