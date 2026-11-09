@@ -24,6 +24,9 @@ export function SessionGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (user?.mustResetPassword) {
       router.replace("/reset-password");
+      if (typeof window !== "undefined" && process.env.NODE_ENV !== "test") {
+        window.location.href = "/reset-password";
+      }
     }
   }, [user?.mustResetPassword, router]);
   useEffect(() => {
@@ -42,6 +45,9 @@ export function SessionGuard({ children }: { children: React.ReactNode }) {
 
       if (session.data.mustResetPassword) {
         router.replace("/reset-password");
+        if (typeof window !== "undefined" && process.env.NODE_ENV !== "test") {
+          window.location.href = "/reset-password";
+        }
       }
     }
   }, [session.data, setAuth, router]);

@@ -28,6 +28,9 @@ export function useAuth() {
 
       if (data.user.mustResetPassword) {
         router.replace("/reset-password");
+        if (typeof window !== "undefined" && process.env.NODE_ENV !== "test") {
+          window.location.href = "/reset-password";
+        }
         return;
       }
 

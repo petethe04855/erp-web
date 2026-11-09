@@ -54,6 +54,9 @@ export function UserTable({
     setBusyId(user.id);
     try {
       await onToggleStatus(user.id, user.isActive);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "ไม่สามารถเปลี่ยนสถานะผู้ใช้งานได้";
+      alert(msg);
     } finally {
       setBusyId(null);
     }
@@ -65,6 +68,9 @@ export function UserTable({
     setBusyId(user.id);
     try {
       await onDelete(user.id);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "ไม่สามารถลบข้อมูลผู้ใช้งานได้";
+      alert(msg);
     } finally {
       setBusyId(null);
     }
