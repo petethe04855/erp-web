@@ -9,7 +9,7 @@ import { ErrorState } from "@/components/common/ErrorState";
 export function SessionGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const client = useQueryClient();
-  const { checked, isAuthenticated, setAuth, logout } = useAuthStore();
+  const { checked, isAuthenticated, setAuth, logout, user } = useAuthStore();
   const hasToken =
     typeof window !== "undefined" && !!localStorage.getItem("chawy_v2_token");
   const session = useQuery({
@@ -21,6 +21,11 @@ export function SessionGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!localStorage.getItem("chawy_v2_token")) logout();
   }, [logout]);
+  useEffect(() => {
+    if (user?.mustResetPassword) {
+      router.replace("/reset-password");
+    }
+  }, [user?.mustResetPassword, router]);
   useEffect(() => {
     if (session.data) {
       // Session verified against the backend: restore the middleware cookie
@@ -67,6 +72,7 @@ export function SessionGuard({ children }: { children: React.ReactNode }) {
     !checked ||
     !isAuthenticated ||
     session.isPending ||
+    user?.mustResetPassword ||
     session.data?.mustResetPassword
   )
     return (
