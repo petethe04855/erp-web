@@ -51,7 +51,7 @@ describe("ResetPasswordForm", () => {
     expect(screen.getByText(/รหัสผ่านทั้งสองช่องไม่ตรงกัน/i)).toBeInTheDocument();
   });
 
-  it("calls API and redirects to /dashboard on success", async () => {
+  it("calls API, logs out and redirects to /login on success", async () => {
     const { authApi } = await import("@/features/auth/api/authApi");
     vi.mocked(authApi.changePassword).mockResolvedValueOnce({ message: "Success" } as any);
 
@@ -68,8 +68,8 @@ describe("ResetPasswordForm", () => {
 
     expect(authApi.changePassword).toHaveBeenCalledWith({ newPassword: "newpassword123" });
     await vi.waitFor(() => {
-      expect(useAuthStore.getState().user?.mustResetPassword).toBe(false);
-      expect(mockReplace).toHaveBeenCalledWith("/dashboard");
+      expect(useAuthStore.getState().isAuthenticated).toBe(false);
+      expect(mockReplace).toHaveBeenCalledWith("/login?reset=success");
     });
   });
 });

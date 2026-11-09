@@ -37,8 +37,13 @@ export function ResetPasswordForm() {
     try {
       setLoading(true);
       await authApi.changePassword({ newPassword });
-      useAuthStore.getState().completePasswordReset();
-      router.replace("/dashboard");
+      // Force re-login with the new password: drop the current session and
+      // land on /login, which shows a success notice via ?reset=success.
+      useAuthStore.getState().logout();
+      router.replace("/login?reset=success");
+      if (typeof window !== "undefined" && process.env.NODE_ENV !== "test") {
+        window.location.href = "/login?reset=success";
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน";
       setError(msg);
@@ -54,7 +59,8 @@ export function ResetPasswordForm() {
       </p>
       <h1 className="text-2xl font-semibold tracking-tight">ตั้งรหัสผ่านใหม่</h1>
       <p className="text-sm text-neutral-500 mt-2 mb-6">
-        เนื่องจากเป็นการเข้าสู่ระบบครั้งแรก กรุณากำหนดรหัสผ่านใหม่เพื่อความปลอดภัยในการเข้าใช้งาน Workspace
+        เนื่องจากเป็นการเข้าสู่ระบบครั้งแรก กรุณากำหนดรหัสผ่านใหม่เพื่อความปลอดภัย
+        เมื่อบันทึกสำเร็จระบบจะนำคุณกลับไปหน้าเข้าสู่ระบบด้วยรหัสผ่านใหม่
       </p>
 
       <form className="space-y-5" onSubmit={handleSubmit}>
@@ -94,7 +100,7 @@ export function ResetPasswordForm() {
         )}
 
         <Button className="w-full" disabled={loading}>
-          {loading ? "กำลังบันทึก…" : "บันทึกรหัสผ่านใหม่และเข้าสู่ระบบ →"}
+          {loading ? "กำลังบันทึก…" : "บันทึกรหัสผ่านใหม่"}
         </Button>
       </form>
     </section>
