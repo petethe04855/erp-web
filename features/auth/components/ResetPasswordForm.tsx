@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authApi } from "../api/authApi";
 import { useAuthStore } from "@/stores/authStore";
+import { PasswordHints } from "@/components/form/PasswordHints";
 
 export function ResetPasswordForm() {
   const router = useRouter();
@@ -80,6 +81,7 @@ export function ResetPasswordForm() {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
           />
+          <PasswordHints password={newPassword} />
         </label>
 
         <label className="block text-sm font-medium">

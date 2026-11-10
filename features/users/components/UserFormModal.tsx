@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordHints } from "@/components/form/PasswordHints";
 import {
   ROLE_CONFIG,
   type AppUser,
@@ -190,6 +191,7 @@ export function UserFormModal({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
+                <PasswordHints password={password} />
                 <p className="mt-1 text-[11px] text-neutral-400">
                   อย่างน้อย 6 ตัวอักษร และมีตัวพิมพ์ใหญ่และตัวพิมพ์เล็กอย่างน้อยอย่างละ 1 ตัว
                 </p>

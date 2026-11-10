@@ -39,6 +39,10 @@ describe("ResetPasswordForm", () => {
     // Too short
     await user.type(newPass, "123");
     await user.type(confirmPass, "123");
+    // Live hints show in red while typing an invalid password
+    expect(screen.getByText(/รหัสผ่านยังไม่ตรงเงื่อนไข/i)).toBeInTheDocument();
+    expect(screen.getByText(/มีความยาวอย่างน้อย 6 ตัวอักษร/)).toBeInTheDocument();
+    expect(screen.getByText(/มีตัวพิมพ์ใหญ่ \(A-Z\) อย่างน้อย 1 ตัว/)).toBeInTheDocument();
     await user.click(submitBtn);
     expect(screen.getByText(/รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร/i)).toBeInTheDocument();
 
@@ -57,6 +61,8 @@ describe("ResetPasswordForm", () => {
     await user.clear(confirmPass);
     await user.type(newPass, "Password123");
     await user.type(confirmPass, "Password321");
+    // All policy rules pass -> live hints disappear, only the mismatch error remains
+    expect(screen.queryByText(/รหัสผ่านยังไม่ตรงเงื่อนไข/i)).toBeNull();
     await user.click(submitBtn);
     expect(screen.getByText(/รหัสผ่านทั้งสองช่องไม่ตรงกัน/i)).toBeInTheDocument();
   });
