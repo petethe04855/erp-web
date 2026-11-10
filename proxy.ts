@@ -39,8 +39,14 @@ const PROTECTED_PREFIXES = [
   "/tiktok-calculator",
 ];
 
-/** Routes a signed-in user should not sit on. */
-const AUTH_ROUTES = ["/login", "/forgot-password", "/reset-password"];
+/**
+ * Routes a signed-in user should not sit on. NOTE: /reset-password must NOT
+ * be listed here — a user with mustResetPassword already owns a session
+ * cookie, so bouncing them to /dashboard would loop forever with
+ * SessionGuard (which pushes them back to /reset-password). SessionGuard
+ * decides where such users belong, not the edge proxy.
+ */
+const AUTH_ROUTES = ["/login", "/forgot-password"];
 
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
