@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useAuth } from "../hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,6 +75,11 @@ export function LoginForm() {
           {login.isPending ? "กำลังตรวจสอบ…" : "เข้าสู่ Workspace →"}
         </Button>
       </form>
+      <div className="mt-4 text-xs text-neutral-500">
+        <Link href="/forgot-password" className="hover:underline">
+          ลืมรหัสผ่าน?
+        </Link>
+      </div>
     </section>
   );
 }

@@ -1,7 +1,9 @@
 "use client";
-import { Menu } from "lucide-react";
+import Link from "next/link";
+import { Menu, KeyRound } from "lucide-react";
 import { useSidebarStore } from "@/stores/sidebarStore";
 import { useAuthStore } from "@/stores/authStore";
+
 export function Header() {
   const { toggleOpen } = useSidebarStore();
   const { user } = useAuthStore();
@@ -19,9 +21,18 @@ export function Header() {
           OPERATIONS / CHAWY
         </span>
       </div>
-      <span className="text-xs text-neutral-500">
-        {user?.name} · {user?.role}
-      </span>
+      <div className="flex items-center gap-4">
+        <Link
+          href="/change-password"
+          className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-800"
+        >
+          <KeyRound size={14} />
+          รีเซ็ตรหัสผ่าน
+        </Link>
+        <span className="text-xs text-neutral-500">
+          {user?.name} · {user?.role}
+        </span>
+      </div>
     </header>
   );
 }
