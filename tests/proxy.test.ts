@@ -31,6 +31,12 @@ describe("proxy - auth routing", () => {
       kind: "redirect",
       url: "http://localhost:3000/login?next=%2Fdashboard",
     });
+    // /change-password (password reset page) is protected too
+    const res2 = proxy(req("/change-password", undefined));
+    expect(res2).toEqual({
+      kind: "redirect",
+      url: "http://localhost:3000/login?next=%2Fchange-password",
+    });
   });
 
   it("redirects authenticated users away from /login and /forgot-password", () => {

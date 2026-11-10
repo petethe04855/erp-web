@@ -37,6 +37,7 @@ const PROTECTED_PREFIXES = [
   "/tiktok-orders",
   "/tiktok-setup",
   "/tiktok-calculator",
+  "/change-password",
 ];
 
 /**
