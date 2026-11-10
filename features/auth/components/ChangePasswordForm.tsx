@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PasswordHints } from "@/components/form/PasswordHints";
@@ -68,10 +69,15 @@ export function ChangePasswordForm() {
         title="รีเซ็ตรหัสผ่าน"
         description="กำหนดรหัสผ่านใหม่สำหรับบัญชีนี้ เมื่อบันทึกสำเร็จระบบจะนำคุณออกจากระบบเพื่อเข้าสู่ระบบด้วยรหัสผ่านใหม่"
       /> */}
-      <div>
+      <div className="py-2 flex items-center justify-between">
         <h1 className="text-3xl font-semibold tracking-tight">
           รีเซ็ตรหัสผ่าน
         </h1>
+        <Button variant="outline" onClick={() => router.back()}>
+          <span className="flex items-center gap-1.5">
+            <ArrowLeft size={14} /> ย้อนกลับ
+          </span>
+        </Button>
       </div>
       <section className="w-full max-w-md border border-border rounded-2xl bg-white p-8 shadow-sm">
         <form className="space-y-5" onSubmit={handleSubmit}>

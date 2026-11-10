@@ -6,8 +6,9 @@ import { ChangePasswordForm } from "@/features/auth/components/ChangePasswordFor
 import { useAuthStore } from "@/stores/authStore";
 
 const mockReplace = vi.fn();
+const mockBack = vi.fn();
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: mockReplace }),
+  useRouter: () => ({ replace: mockReplace, back: mockBack }),
 }));
 
 vi.mock("@/features/auth/api/authApi", () => ({
@@ -57,5 +58,14 @@ describe("ChangePasswordForm (/change-password)", () => {
       expect(useAuthStore.getState().isAuthenticated).toBe(false);
       expect(mockReplace).toHaveBeenCalledWith("/login?reset=success");
     });
+  });
+
+  it("goes back to the previous page when the back button is clicked", async () => {
+    const user = userEvent.setup();
+    render(<ChangePasswordForm />);
+
+    await user.click(screen.getByRole("button", { name: /ย้อนกลับ/ }));
+    expect(mockBack).toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 });
