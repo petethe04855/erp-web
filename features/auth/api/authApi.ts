@@ -8,4 +8,6 @@ export const authApi = {
   login: (credentials: LoginCredentials) =>
     writeRecord<AuthResponseData>("/auth/login", credentials),
   me: () => read<AuthUser>("/auth/me"),
+  changePassword: (data: { newPassword: string }) =>
+    writeRecord<{ message: string }>("/auth/change-password", data),
 };

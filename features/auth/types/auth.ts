@@ -9,6 +9,7 @@ export interface AuthUser {
   email: string;
   role: string;
   isActive: boolean;
+  mustResetPassword?: boolean;
 }
 export interface AuthResponseData {
   token: string;

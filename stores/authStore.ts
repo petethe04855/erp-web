@@ -34,12 +34,14 @@ export interface User {
   name: string;
   email: string;
   role: string;
+  mustResetPassword?: boolean;
 }
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   checked: boolean;
   setAuth: (user: User, token?: string) => void;
+  completePasswordReset: () => void;
   logout: () => void;
 }
 export const useAuthStore = create<AuthState>((set) => ({
@@ -50,6 +52,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (token) localStorage.setItem("chawy_v2_token", token);
     setAuthCookie();
     set({ user, isAuthenticated: true, checked: true });
+  },
+  completePasswordReset: () => {
+    set((state) => ({
+      user: state.user ? { ...state.user, mustResetPassword: false } : null,
+    }));
   },
   logout: () => {
     if (typeof window !== "undefined")

@@ -9,15 +9,26 @@ import { ErrorState } from "@/components/common/ErrorState";
 export function SessionGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const client = useQueryClient();
-  const { checked, isAuthenticated, setAuth, logout } = useAuthStore();
+  const { checked, isAuthenticated, setAuth, logout, user } = useAuthStore();
+  const hasToken =
+    typeof window !== "undefined" && !!localStorage.getItem("chawy_v2_token");
   const session = useQuery({
     queryKey: ["session"],
     queryFn: authApi.me,
     retry: false,
+    enabled: hasToken,
   });
   useEffect(() => {
     if (!localStorage.getItem("chawy_v2_token")) logout();
   }, [logout]);
+  useEffect(() => {
+    if (user?.mustResetPassword) {
+      router.replace("/reset-password");
+      if (typeof window !== "undefined" && process.env.NODE_ENV !== "test") {
+        window.location.href = "/reset-password";
+      }
+    }
+  }, [user?.mustResetPassword, router]);
   useEffect(() => {
     if (session.data) {
       // Session verified against the backend: restore the middleware cookie
@@ -29,15 +40,33 @@ export function SessionGuard({ children }: { children: React.ReactNode }) {
           [session.data.firstname, session.data.lastname]
             .filter(Boolean)
             .join(" ") || session.data.email,
+        mustResetPassword: session.data.mustResetPassword,
       });
+
+      if (session.data.mustResetPassword) {
+        router.replace("/reset-password");
+        if (typeof window !== "undefined" && process.env.NODE_ENV !== "test") {
+          window.location.href = "/reset-password";
+        }
+      }
     }
-  }, [session.data, setAuth]);
+  }, [session.data, setAuth, router]);
   useEffect(() => {
-    if (checked && !isAuthenticated) {
+    const tokenExists =
+      typeof window !== "undefined" && !!localStorage.getItem("chawy_v2_token");
+    if (!tokenExists && checked && !isAuthenticated) {
+      client.clear();
+      router.replace("/login");
+    } else if (
+      tokenExists &&
+      !session.isPending &&
+      checked &&
+      !isAuthenticated
+    ) {
       client.clear();
       router.replace("/login");
     }
-  }, [checked, isAuthenticated, client, router]);
+  }, [session.isPending, checked, isAuthenticated, client, router]);
   if (session.isError)
     return (
       <ErrorState
@@ -45,7 +74,13 @@ export function SessionGuard({ children }: { children: React.ReactNode }) {
         onRetry={() => session.refetch()}
       />
     );
-  if (!checked || !isAuthenticated || session.isPending)
+  if (
+    !checked ||
+    !isAuthenticated ||
+    session.isPending ||
+    user?.mustResetPassword ||
+    session.data?.mustResetPassword
+  )
     return (
       <div className="p-12 text-sm text-neutral-500">กำลังตรวจสอบบัญชี…</div>
     );
