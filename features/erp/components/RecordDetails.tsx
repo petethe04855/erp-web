@@ -339,9 +339,12 @@ export function RecordDetails({
                   const currentStatus = String(
                     query.data?.status || "PENDING",
                   ).toUpperCase();
-                  if (currentStatus === "PENDING") {
-                    availableStatuses = ["Confirmed", "Cancelled"];
-                  } else if (currentStatus === "CONFIRMED") {
+                  // ลดขั้นตอน: PENDING ปิดออเดอร์ (Completed) ได้ทันที ไม่ต้องกด Confirmed ก่อน
+                  // (backend อนุญาต PENDING -> SHIPPED และ map COMPLETED -> SHIPPED ให้)
+                  if (
+                    currentStatus === "PENDING" ||
+                    currentStatus === "CONFIRMED"
+                  ) {
                     availableStatuses = ["Completed", "Cancelled"];
                   } else {
                     availableStatuses = [];
@@ -360,7 +363,7 @@ export function RecordDetails({
                     <Button
                       key={status}
                       className="mr-2"
-                      variant="outline"
+                      variant={status === "Completed" ? "default" : "outline"}
                       disabled={mutation.isPending}
                       onClick={() => {
                         if (
