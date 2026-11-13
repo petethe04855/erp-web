@@ -1,5 +1,5 @@
 import api from "@/lib/axios";
-import { read, writeRecord, deleteRecord, cleanParams } from "@/lib/api";
+import { read, writeRecord, cleanParams } from "@/lib/api";
 import type { ApiListResponse } from "@/types/api";
 import type {
   JournalEntry,
@@ -36,6 +36,11 @@ export const financeApi = {
     return res.data;
   },
 
+  /** Source expense of a journal entry, looked up by its code (journal source_ref). */
+  getExpenseByCode: async (code: string): Promise<Expense> => {
+    return read<Expense>(`/finance/expenses/by-code/${encodeURIComponent(code)}`);
+  },
+
   createExpense: async (data: CreateExpenseDTO): Promise<Expense> => {
     const res = await writeRecord<Expense>("/finance/expenses", data, "post");
     return res.data;
@@ -46,8 +51,21 @@ export const financeApi = {
     return res.data;
   },
 
-  deleteExpense: async (id: number): Promise<void> => {
-    await deleteRecord(`/finance/expenses/${id}`);
+  /**
+   * Void (cancel) an expense. The backend reverses its journal entry and keeps
+   * the record with status "Voided" — expenses are never hard-deleted.
+   */
+  voidExpense: async (id: number, reason?: string): Promise<void> => {
+    await api.delete(`/finance/expenses/${id}`, { data: { reason: reason || "" } });
+  },
+
+  /**
+   * Fetch a protected payment slip with the user's auth token and return a
+   * blob: URL for <img>. Slips are not served from the public /uploads route.
+   */
+  getSlipObjectUrl: async (slipApiPath: string): Promise<string> => {
+    const res = await api.get<Blob>(slipApiPath, { responseType: "blob" });
+    return URL.createObjectURL(res.data);
   },
 
   uploadSlip: async (file: File): Promise<string> => {

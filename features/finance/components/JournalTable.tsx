@@ -2,7 +2,8 @@
 
 import React from "react";
 import type { JournalEntry } from "../types/finance";
-import { Eye, ArrowUpDown } from "lucide-react";
+import { Eye, User as UserIcon } from "lucide-react";
+import { sourceTypeLabel } from "../utils/journalSource";
 
 interface JournalTableProps {
   entries: JournalEntry[];
@@ -43,6 +44,7 @@ export function JournalTable({ entries, isLoading, onSelectEntry }: JournalTable
               <th className="px-4 py-3">รหัสสมุดรายวัน</th>
               <th className="px-4 py-3">แหล่งที่มา (Source)</th>
               <th className="px-4 py-3">รายละเอียด</th>
+              <th className="px-4 py-3">ผู้บันทึก</th>
               <th className="px-4 py-3 text-right">ยอดเดบิตรวม</th>
               <th className="px-4 py-3 text-right">ยอดเครดิตรวม</th>
               <th className="px-4 py-3 text-center">สถานะ</th>
@@ -67,8 +69,11 @@ export function JournalTable({ entries, isLoading, onSelectEntry }: JournalTable
                     {entry.code}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    <span className="inline-flex items-center rounded-md bg-neutral-100 px-2 py-1 text-xs font-medium text-neutral-700">
-                      {entry.source_type}
+                    <span
+                      className="inline-flex items-center rounded-md bg-neutral-100 px-2 py-1 text-xs font-medium text-neutral-700"
+                      title={entry.source_type}
+                    >
+                      {sourceTypeLabel(entry.source_type)}
                     </span>
                     {entry.source_ref && (
                       <span className="ml-1.5 font-mono text-xs text-neutral-500">
@@ -78,6 +83,14 @@ export function JournalTable({ entries, isLoading, onSelectEntry }: JournalTable
                   </td>
                   <td className="px-4 py-3 text-xs text-neutral-700 max-w-xs truncate" title={entry.description}>
                     {entry.description || "-"}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <div className="flex items-center gap-1.5 text-xs text-neutral-700">
+                      <UserIcon size={13} className="text-neutral-400 flex-shrink-0" />
+                      <span className="truncate max-w-[140px]" title={entry.created_by || "System"}>
+                        {entry.created_by || "System"}
+                      </span>
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-right font-mono text-xs font-semibold text-blue-700 whitespace-nowrap">
                     ฿{debitTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })}

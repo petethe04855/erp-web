@@ -1,19 +1,20 @@
 "use client";
 
 import React, { useState } from "react";
-import type { Expense } from "../types/finance";
-import { Edit2, Trash2, Tag, Store, ExternalLink, Image as ImageIcon, Package, User as UserIcon } from "lucide-react";
+import { isExpenseVoided, type Expense } from "../types/finance";
+import { Edit2, Ban, Tag, Store, ExternalLink, Package, User as UserIcon } from "lucide-react";
 import { SlipPreviewModal } from "./SlipPreviewModal";
-import { getImageUrl } from "@/lib/utils";
+import { SlipThumb } from "./SlipThumb";
 
 interface ExpenseTableProps {
   expenses: Expense[];
   isLoading: boolean;
   onEdit: (expense: Expense) => void;
-  onDelete: (id: number) => void;
+  /** Void (cancel) the expense; the backend reverses its journal entry. */
+  onVoid: (id: number, reason: string) => void;
 }
 
-export function ExpenseTable({ expenses, isLoading, onEdit, onDelete }: ExpenseTableProps) {
+export function ExpenseTable({ expenses, isLoading, onEdit, onVoid }: ExpenseTableProps) {
   const [selectedSlip, setSelectedSlip] = useState<{ url: string; title: string } | null>(null);
 
   if (isLoading) {
@@ -59,13 +60,34 @@ export function ExpenseTable({ expenses, isLoading, onEdit, onDelete }: ExpenseT
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
-              {expenses.map((exp) => (
-                <tr key={exp.id} className="hover:bg-neutral-50/70 transition-colors">
+              {expenses.map((exp) => {
+                const voided = isExpenseVoided(exp);
+                return (
+                <tr
+                  key={exp.id}
+                  className={`transition-colors ${voided ? "bg-neutral-50 text-neutral-400" : "hover:bg-neutral-50/70"}`}
+                >
                   <td className="px-4 py-3 font-mono text-xs text-neutral-600 whitespace-nowrap">
                     {exp.date}
                   </td>
                   <td className="px-4 py-3 font-mono font-medium text-xs text-neutral-900 whitespace-nowrap">
-                    {exp.code}
+                    <div className="flex flex-col gap-1">
+                      <span className={voided ? "line-through text-neutral-400" : ""}>{exp.code}</span>
+                      {voided && (
+                        <span
+                          className="inline-flex w-fit items-center rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-700 border border-red-200 font-sans"
+                          title={[
+                            exp.voided_by ? `ยกเลิกโดย ${exp.voided_by}` : "",
+                            exp.voided_at ? new Date(exp.voided_at).toLocaleString("th-TH") : "",
+                            exp.void_reason ? `เหตุผล: ${exp.void_reason}` : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" • ")}
+                        >
+                          ยกเลิกแล้ว
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-xs text-neutral-900 font-medium whitespace-nowrap">
                     {exp.product_name ? (
@@ -110,15 +132,7 @@ export function ExpenseTable({ expenses, isLoading, onEdit, onDelete }: ExpenseT
                         className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white p-1 hover:border-emerald-500 hover:bg-emerald-50/40 hover:shadow-sm transition-all"
                         title="คลิกเพื่อดูรูปภาพสลิปขนาดเต็ม"
                       >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={getImageUrl(exp.slip_url)}
-                          alt="Slip"
-                          className="h-7 w-7 rounded object-cover border border-neutral-100 flex-shrink-0"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLElement).style.display = "none";
-                          }}
-                        />
+                        <SlipThumb url={exp.slip_url} />
                         <span className="text-xs text-emerald-700 font-medium pr-1">ดูสลิป</span>
                       </button>
                     ) : (
@@ -145,33 +159,44 @@ export function ExpenseTable({ expenses, isLoading, onEdit, onDelete }: ExpenseT
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right font-mono text-xs font-bold text-neutral-900 whitespace-nowrap">
+                  <td
+                    className={`px-4 py-3 text-right font-mono text-xs font-bold whitespace-nowrap ${
+                      voided ? "line-through text-neutral-400" : "text-neutral-900"
+                    }`}
+                  >
                     ฿{exp.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
                   </td>
                   <td className="px-4 py-3 text-center whitespace-nowrap">
-                    <div className="flex items-center justify-center gap-1">
-                      <button
-                        onClick={() => onEdit(exp)}
-                        className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
-                        title="แก้ไข"
-                      >
-                        <Edit2 size={15} />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm(`คุณต้องการลบรายการค่าใช้จ่าย ${exp.code} หรือไม่?`)) {
-                            onDelete(exp.id);
-                          }
-                        }}
-                        className="rounded-lg p-1.5 text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
-                        title="ลบ"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
+                    {voided ? (
+                      <span className="text-xs text-neutral-300">-</span>
+                    ) : (
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => onEdit(exp)}
+                          className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
+                          title="แก้ไข (ถ้าเปลี่ยนยอด/วันที่/ช่องทาง ระบบจะกลับรายการบัญชีเดิมและลงใหม่ให้)"
+                        >
+                          <Edit2 size={15} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            const reason = window.prompt(
+                              `ยกเลิกรายการค่าใช้จ่าย ${exp.code}?\nระบบจะลงรายการกลับในสมุดรายวัน และเก็บรายการนี้ไว้เป็นประวัติ\n\nเหตุผลการยกเลิก (ไม่บังคับ):`,
+                              "",
+                            );
+                            if (reason !== null) onVoid(exp.id, reason.trim());
+                          }}
+                          className="rounded-lg p-1.5 text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
+                          title="ยกเลิกรายการ"
+                        >
+                          <Ban size={15} />
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

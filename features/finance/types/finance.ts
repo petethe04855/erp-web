@@ -64,8 +64,17 @@ export interface Expense {
   invoice_ref: string;
   description: string;
   created_by: string;
+  /** "Voided" = cancelled; its journal entry was reversed. Empty/"Active" = live. */
+  status?: ExpenseStatus | "";
+  voided_at?: string;
+  voided_by?: string;
+  void_reason?: string;
   created_at?: string;
 }
+
+export type ExpenseStatus = "Active" | "Voided";
+
+export const isExpenseVoided = (e: Pick<Expense, "status">) => e.status === "Voided";
 
 export interface CreateExpenseDTO {
   date: string;
@@ -109,6 +118,7 @@ export interface ExpenseQueryParams {
   to?: string;
   category?: string;
   channel?: string;
+  status?: ExpenseStatus;
   search?: string;
   page?: number;
   limit?: number;
