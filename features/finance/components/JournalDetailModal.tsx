@@ -3,8 +3,8 @@
 import React from "react";
 import type { JournalEntry, JournalLine } from "../types/finance";
 import { X, ArrowDownRight, ArrowUpRight } from "lucide-react";
-import { isExpenseSource, sourceTypeLabel } from "../utils/journalSource";
-import { JournalExpenseSource } from "./JournalExpenseSource";
+import { sourceTypeLabel } from "../utils/journalSource";
+import { JournalSourceDocument } from "./JournalSourceDocument";
 
 interface JournalDetailModalProps {
   entry: JournalEntry | null;
@@ -51,9 +51,7 @@ export function JournalDetailModal({ entry, isOpen, onClose }: JournalDetailModa
 
         {/* Content */}
         <div className="p-6 overflow-y-auto space-y-4">
-          {isExpenseSource(entry.source_type) && entry.source_ref && (
-            <JournalExpenseSource code={entry.source_ref} />
-          )}
+          <JournalSourceDocument entry={entry} />
 
           {entry.description && (
             <div className="bg-neutral-50 rounded-lg p-3 text-sm text-neutral-700 border border-neutral-100">

@@ -16,6 +16,8 @@ const SOURCE_LABELS: Record<string, string> = {
   customer_payment: "รับชำระ",
   sales_return: "รับคืน",
   sales_return_stock: "รับคืนเข้าสต็อก",
+  quotation: "ใบเสนอราคา",
+  purchase_order: "ใบสั่งซื้อ",
 };
 
 export function sourceTypeLabel(sourceType: string): string {
