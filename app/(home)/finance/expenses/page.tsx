@@ -1,21 +1,33 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useExpenses, useExpenseMutations } from "@/features/finance/queries/useFinanceQueries";
 import { financeApi } from "@/features/finance/api/financeApi";
 import { ExpenseTable } from "@/features/finance/components/ExpenseTable";
 import { ExpenseModal } from "@/features/finance/components/ExpenseModal";
-import type { Expense, CreateExpenseDTO } from "@/features/finance/types/finance";
+import { isExpenseVoided, type Expense, type CreateExpenseDTO } from "@/features/finance/types/finance";
 import { Plus, Download, Search, RefreshCw, DollarSign, Tag } from "lucide-react";
 import { PageContainer } from "@/components/layout/PageContainer";
 
 export default function ExpensesPage() {
+  // useSearchParams must sit under a Suspense boundary (Next.js prerendering).
+  return (
+    <Suspense fallback={null}>
+      <ExpensesPageContent />
+    </Suspense>
+  );
+}
+
+function ExpensesPageContent() {
+  const searchParams = useSearchParams();
   const [page, setPage] = useState(1);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [category, setCategory] = useState("all");
   const [channel, setChannel] = useState("all");
-  const [search, setSearch] = useState("");
+  // ?search=EXP-... lets the General Journal deep-link to one expense.
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -31,7 +43,7 @@ export default function ExpensesPage() {
     search: search || undefined,
   });
 
-  const { createExpense, updateExpense, deleteExpense, isCreating, isUpdating } = useExpenseMutations();
+  const { createExpense, updateExpense, voidExpense, isCreating, isUpdating } = useExpenseMutations();
 
   const handleCreateOrUpdate = async (dto: CreateExpenseDTO) => {
     if (editingExpense) {
@@ -61,7 +73,9 @@ export default function ExpensesPage() {
     }
   };
 
-  const totalAmount = data?.data?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0;
+  // Voided expenses are kept for the audit trail but no longer count.
+  const totalAmount =
+    data?.data?.reduce((sum, e) => (isExpenseVoided(e) ? sum : sum + (e.amount || 0)), 0) || 0;
 
   return (
     <PageContainer>
@@ -207,8 +221,12 @@ export default function ExpensesPage() {
           setEditingExpense(exp);
           setIsModalOpen(true);
         }}
-        onDelete={async (id) => {
-          await deleteExpense(id);
+        onVoid={async (id, reason) => {
+          try {
+            await voidExpense({ id, reason });
+          } catch (err) {
+            alert(err instanceof Error ? err.message : "ยกเลิกรายการไม่สำเร็จ");
+          }
         }}
       />
       </div>
