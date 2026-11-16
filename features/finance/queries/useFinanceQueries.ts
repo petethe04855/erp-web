@@ -33,6 +33,15 @@ export function useJournalDetail(id: number) {
   });
 }
 
+export function useExpenseByCode(code?: string | null) {
+  return useQuery({
+    queryKey: ["finance", "expenses", "by-code", code] as const,
+    queryFn: () => financeApi.getExpenseByCode(code as string),
+    enabled: !!code,
+    retry: false,
+  });
+}
+
 export function useExpenses(params?: ExpenseQueryParams) {
   return useQuery({
     queryKey: financeKeys.expenses(params),
@@ -58,8 +67,8 @@ export function useExpenseMutations() {
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => financeApi.deleteExpense(id),
+  const voidMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason?: string }) => financeApi.voidExpense(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["finance"] });
     },
@@ -68,10 +77,10 @@ export function useExpenseMutations() {
   return {
     createExpense: createMutation.mutateAsync,
     updateExpense: updateMutation.mutateAsync,
-    deleteExpense: deleteMutation.mutateAsync,
+    voidExpense: voidMutation.mutateAsync,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
-    isDeleting: deleteMutation.isPending,
+    isVoiding: voidMutation.isPending,
   };
 }
 

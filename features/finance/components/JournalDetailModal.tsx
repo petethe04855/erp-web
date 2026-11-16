@@ -3,6 +3,8 @@
 import React from "react";
 import type { JournalEntry, JournalLine } from "../types/finance";
 import { X, ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { sourceTypeLabel } from "../utils/journalSource";
+import { JournalSourceDocument } from "./JournalSourceDocument";
 
 interface JournalDetailModalProps {
   entry: JournalEntry | null;
@@ -31,7 +33,12 @@ export function JournalDetailModal({ entry, isOpen, onClose }: JournalDetailModa
               </span>
             </div>
             <p className="text-xs text-neutral-500 mt-1">
-              วันที่: {entry.date} • แหล่งที่มา: <span className="font-medium text-neutral-700">{entry.source_type}</span> ({entry.source_ref})
+              วันที่: {entry.date} • แหล่งที่มา:{" "}
+              <span className="font-medium text-neutral-700" title={entry.source_type}>
+                {sourceTypeLabel(entry.source_type)}
+              </span>{" "}
+              ({entry.source_ref}) • สร้างโดย:{" "}
+              <span className="font-medium text-neutral-700">{entry.created_by || "System"}</span>
             </p>
           </div>
           <button
@@ -44,6 +51,8 @@ export function JournalDetailModal({ entry, isOpen, onClose }: JournalDetailModa
 
         {/* Content */}
         <div className="p-6 overflow-y-auto space-y-4">
+          <JournalSourceDocument entry={entry} />
+
           {entry.description && (
             <div className="bg-neutral-50 rounded-lg p-3 text-sm text-neutral-700 border border-neutral-100">
               <span className="font-semibold text-neutral-800">คำอธิบาย: </span>

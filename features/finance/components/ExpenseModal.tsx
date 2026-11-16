@@ -8,8 +8,8 @@ import type {
   CreateExpenseDTO,
 } from "../types/finance";
 import { financeApi } from "../api/financeApi";
-import { getImageUrl } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
+import { useSlipImage } from "../hooks/useSlipImage";
 import {
   X,
   Loader2,
@@ -84,6 +84,9 @@ export function ExpenseModal({
   const [localPreview, setLocalPreview] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { src: savedSlipSrc } = useSlipImage(
+    isOpen && !localPreview ? formData.slip_url : null,
+  );
 
   useEffect(() => {
     if (initialData) {
@@ -101,9 +104,8 @@ export function ExpenseModal({
         created_by: initialData.created_by || "",
       });
       setSelectedFile(null);
-      setLocalPreview(
-        initialData.slip_url ? getImageUrl(initialData.slip_url) : "",
-      );
+      // Saved slips are protected; they are loaded via useSlipImage below.
+      setLocalPreview("");
       // Show advanced if vendor or invoice_ref exists
       if (initialData.vendor || initialData.invoice_ref) {
         setShowAdvanced(true);
@@ -253,8 +255,7 @@ export function ExpenseModal({
     }
   };
 
-  const activePreview =
-    localPreview || (formData.slip_url ? getImageUrl(formData.slip_url) : "");
+  const activePreview = localPreview || savedSlipSrc;
 
   return (
     <div className="fixed inset-0 z-50 !m-0 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">

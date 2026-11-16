@@ -8,6 +8,7 @@ import { ExpenseTable } from "@/features/finance/components/ExpenseTable";
 import { ExpenseModal } from "@/features/finance/components/ExpenseModal";
 import { useAuthStore } from "@/stores/authStore";
 import type { Expense } from "@/features/finance/types/finance";
+import { toSlipApiPath } from "@/features/finance/hooks/useSlipImage";
 
 describe("Expense Recorder (Created By) Feature", () => {
   beforeEach(() => {
@@ -45,7 +46,7 @@ describe("Expense Recorder (Created By) Feature", () => {
         expenses={mockExpenses}
         isLoading={false}
         onEdit={vi.fn()}
-        onDelete={vi.fn()}
+        onVoid={vi.fn()}
       />
     );
 
@@ -54,6 +55,36 @@ describe("Expense Recorder (Created By) Feature", () => {
 
     // Verify row data
     expect(screen.getByText("สมชาย ใจดี")).toBeInTheDocument();
+  });
+
+  it("marks voided expenses and hides their edit/void actions", () => {
+    const voided: Expense = {
+      id: 2,
+      code: "EXP-2026-00002",
+      date: "2026-10-27",
+      category: "ค่าขนส่ง",
+      channel: "ทั่วไป",
+      amount: 120,
+      vendor: "",
+      invoice_ref: "",
+      description: "",
+      created_by: "สมชาย ใจดี",
+      status: "Voided",
+      voided_by: "owner@example.com",
+      void_reason: "บันทึกซ้ำ",
+    };
+
+    render(<ExpenseTable expenses={[voided]} isLoading={false} onEdit={vi.fn()} onVoid={vi.fn()} />);
+
+    expect(screen.getByText("ยกเลิกแล้ว")).toBeInTheDocument();
+    expect(screen.queryByTitle("ยกเลิกรายการ")).not.toBeInTheDocument();
+  });
+
+  it("maps stored slip URLs to the authenticated slip API", () => {
+    expect(toSlipApiPath("/uploads/expenses/expense-1-abc.jpg")).toBe("/finance/slips/expenses/expense-1-abc.jpg");
+    expect(toSlipApiPath("http://localhost:8084/uploads/incomes/i.png")).toBe("/finance/slips/incomes/i.png");
+    expect(toSlipApiPath("/uploads/images/product.jpg")).toBeNull();
+    expect(toSlipApiPath("blob:http://localhost/123")).toBeNull();
   });
 
   it("auto-fills current user name in ExpenseModal and allows editing", async () => {

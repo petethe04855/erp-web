@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,18 @@ import { ReturnCompleteModal } from "@/features/returns/components/ReturnComplet
 import type { SalesReturn, CreateReturnDTO, CompleteReturnDTO } from "@/features/returns/types/return";
 
 export default function ReturnsPage() {
-  const [search, setSearch] = useState("");
+  // useSearchParams must sit under a Suspense boundary (Next.js prerendering).
+  return (
+    <Suspense fallback={null}>
+      <ReturnsPageContent />
+    </Suspense>
+  );
+}
+
+function ReturnsPageContent() {
+  const searchParams = useSearchParams();
+  // ?search=RT-... lets the General Journal deep-link to one return document.
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [status, setStatus] = useState("all");
   const [returnType, setReturnType] = useState("all");
   const [page, setPage] = useState(1);
