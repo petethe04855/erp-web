@@ -43,6 +43,8 @@ interface Props<P extends PreviewBase, R extends ImportBase> {
   renderSummary: (p: P) => React.ReactNode;
   /** Expanded sample table for a previewed file. */
   renderSample: (p: P) => React.ReactNode;
+  /** Import files with duplicates, skipping only the duplicate rows. */
+  skipDuplicates?: boolean;
 }
 
 const STATUS: Record<FileImportItem<unknown, unknown>["status"], { label: string; cls: string }> = {
@@ -86,8 +88,8 @@ function DuplicateList({ details }: { details?: DuplicateDetail[] }) {
  * checked for duplicates, and files with duplicate data are blocked.
  */
 export function ShopeeMultiFileUpload<P extends PreviewBase, R extends ImportBase>(props: Props<P, R>) {
-  const { isOpen, onClose, onSuccess, title, subtitle, dropHint, accent, renderSummary, renderSample } = props;
-  const imp = useMultiFileImport<P, R>({ preview: props.preview, importFile: props.importFile });
+  const { isOpen, onClose, onSuccess, title, subtitle, dropHint, accent, renderSummary, renderSample, skipDuplicates } = props;
+  const imp = useMultiFileImport<P, R>({ preview: props.preview, importFile: props.importFile, skipDuplicates });
   const [expanded, setExpanded] = useState<string | null>(null);
   const [summary, setSummary] = useState<ImportSummary | null>(null);
 
@@ -154,6 +156,16 @@ export function ShopeeMultiFileUpload<P extends PreviewBase, R extends ImportBas
             </div>
           )}
 
+          {imp.skipDuplicateCount > 0 && (
+            <div role="status" className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0" />
+              <div>
+                <div className="font-semibold">พบข้อมูลซ้ำใน {imp.skipDuplicateCount} ไฟล์ — จะข้ามเฉพาะรายการที่ซ้ำ</div>
+                <div className="text-xs">รายการที่ไม่ซ้ำจะถูกนำเข้าตามปกติ กดที่ชื่อไฟล์เพื่อดูรายการที่จะถูกข้าม</div>
+              </div>
+            </div>
+          )}
+
           {summary && (
             <div
               className={`flex items-start gap-3 rounded-lg border p-3 text-sm ${
@@ -166,6 +178,7 @@ export function ShopeeMultiFileUpload<P extends PreviewBase, R extends ImportBas
               <div>
                 <div>
                   นำเข้าสำเร็จ {summary.imported} ไฟล์ ({summary.inserted.toLocaleString()} รายการ)
+                  {summary.skipped > 0 && ` · ข้ามข้อมูลซ้ำ ${summary.skipped.toLocaleString()} รายการ`}
                 </div>
                 {summary.blocked.length > 0 && (
                   <div className="text-xs">ไม่นำเข้าเพราะพบข้อมูลซ้ำกับไฟล์ก่อนหน้า: {summary.blocked.join(", ")}</div>
@@ -216,9 +229,14 @@ export function ShopeeMultiFileUpload<P extends PreviewBase, R extends ImportBas
                             <span>{(it.file.size / 1024).toFixed(1)} KB</span>
                             {it.preview && renderSummary(it.preview)}
                             {it.preview && (it.preview.duplicate_count ?? 0) > 0 && (
-                              <span className="font-semibold text-rose-600">ซ้ำ {it.preview.duplicate_count} รายการ</span>
+                              <span className={`font-semibold ${skipDuplicates ? "text-amber-600" : "text-rose-600"}`}>
+                                ซ้ำ {it.preview.duplicate_count} รายการ{skipDuplicates && " (จะข้าม)"}
+                              </span>
                             )}
                             {it.result && <span className="text-emerald-700">เข้า {it.result.inserted_count} รายการ</span>}
+                            {it.result && it.result.skipped_count > 0 && (
+                              <span className="text-amber-600">ข้าม {it.result.skipped_count} รายการ</span>
+                            )}
                             {it.error && <span className="text-red-600">{it.error}</span>}
                           </div>
                         </div>
@@ -246,7 +264,7 @@ export function ShopeeMultiFileUpload<P extends PreviewBase, R extends ImportBas
                     </div>
                     {open && it.preview && (
                       <div className="space-y-2 px-3 pb-3">
-                        {it.status === "duplicate" && <DuplicateList details={it.preview.duplicate_details} />}
+                        {(it.status === "duplicate" || skipDuplicates) && <DuplicateList details={it.preview.duplicate_details} />}
                         {renderSample(it.preview)}
                       </div>
                     )}
