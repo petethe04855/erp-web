@@ -1,34 +1,41 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { RefreshCw, MapPin, X } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { CalendarRange, X } from "lucide-react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Button } from "@/components/ui/button";
 import { ProvinceSearch } from "@/features/crm/components/ProvinceSearch";
 import { ProvinceSummaryCards } from "@/features/crm/components/ProvinceSummaryCards";
 import { ProvinceBarChart } from "@/features/crm/components/ProvinceBarChart";
 import { ProvinceTable } from "@/features/crm/components/ProvinceTable";
+import {
+  MonthlyTrendChart,
+  WeeklySalesChart,
+} from "@/features/crm/components/SalesTrendCharts";
 import { useTiktokProvinceSearch } from "@/features/crm/hooks/useTiktokProvinces";
-import type { ProvinceQueryParams } from "@/features/crm/types/crm";
+import { datePresetRange } from "@/features/crm/utils/dateRange";
+import type {
+  ProvinceQueryParams,
+  SalesTrendPoint,
+} from "@/features/crm/types/crm";
+
+function defaultFilters(): ProvinceQueryParams {
+  return {
+    ...datePresetRange("30d"),
+    status: "fulfilled",
+    channel: "all",
+  };
+}
+
+interface WeekDrilldown {
+  week: SalesTrendPoint;
+  previous: ProvinceQueryParams;
+}
 
 export default function TiktokProvincesPage() {
-  const [filters, setFilters] = useState<ProvinceQueryParams>(() => {
-    const end = new Date();
-    const start = new Date();
-    start.setDate(end.getDate() - 30);
-    return {
-      dateFrom: start.toISOString().split("T")[0],
-      dateTo: end.toISOString().split("T")[0],
-      status: "fulfilled",
-      province: "",
-      channel: "all",
-    };
-  });
+  const [filters, setFilters] = useState<ProvinceQueryParams>(defaultFilters);
+  const [drilldown, setDrilldown] = useState<WeekDrilldown | null>(null);
 
-  // Always query by channel, status, and dates so that the Top 10 bar chart,
-  // ranking list, and search dropdown accurately reflect the selected platform.
-  //
   const searchParams = useMemo(
     () => ({
       channel: filters.channel || "all",
@@ -39,91 +46,91 @@ export default function TiktokProvincesPage() {
     [filters.channel, filters.status, filters.dateFrom, filters.dateTo],
   );
 
-  const { summary, provinces, isLoading, isFetching, refetch } =
+  const { summary, provinces, regions, trend, isLoading, isFetching, refetch } =
     useTiktokProvinceSearch(searchParams);
 
-  // Table filters to selected province if one is chosen in the search or chart
-  const displayedTableProvinces = useMemo(() => {
-    if (!filters.province) return provinces;
-    return provinces.filter((p) => p.province === filters.province);
-  }, [provinces, filters.province]);
+  const drillIntoWeek = (week: SalesTrendPoint) => {
+    setDrilldown((current) => ({
+      week,
+      previous: current?.previous ?? filters,
+    }));
+    setFilters((prev) => ({
+      ...prev,
+      dateFrom: week.startDate,
+      dateTo: week.endDate,
+    }));
+  };
+
+  const exitDrilldown = () => {
+    if (drilldown) setFilters(drilldown.previous);
+    setDrilldown(null);
+  };
+
+  const handleFiltersChange = (next: ProvinceQueryParams) => {
+    // Manually changing filters ends the week drill-down.
+    setDrilldown(null);
+    setFilters(next);
+  };
 
   return (
     <PageContainer>
       <PageHeader
-        title="ลูกค้าตามจังหวัด"
-        description="รายงานสรุปภูมิศาสตร์ยอดขายและคำสั่งซื้อ รวม TikTok และ Shopee แยกตามรายจังหวัด — เลือกช่องทางเพื่อดูแยกเฉพาะ"
-        actions={
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="h-9 text-xs"
-            title="รีเฟรชข้อมูล"
-          >
-            <RefreshCw
-              className={`mr-1.5 h-3.5 w-3.5 ${
-                isFetching ? "animate-spin text-primary" : ""
-              }`}
-            />
-            รีเฟรชข้อมูล
-          </Button>
-        }
+        title="🗺️ สัดส่วนและการกระจายตัวของลูกค้าตามจังหวัด"
+        description="วิเคราะห์สัดส่วนที่ตั้งลูกค้าจากคำสั่งซื้อทั้งหมด (TikTok + Shopee) เพื่อวางแผนโลจิสติกส์ การตลาดเจาะกลุ่มพื้นที่ และการตั้งศูนย์กระจายสินค้า"
       />
 
       <div className="space-y-6">
         <ProvinceSearch
           filters={filters}
-          onChange={setFilters}
-          provinces={provinces}
-          availableProvinces={provinces}
+          onChange={handleFiltersChange}
           isFetching={isFetching}
           onRefresh={() => refetch()}
         />
 
-        {/* Selected Province Filter Banner */}
-        {filters.province && (
-          <div className="flex items-center justify-between px-4 py-2.5 rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 text-xs text-neutral-800 dark:text-neutral-200">
+        {drilldown && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-cyan-500/30 bg-cyan-50 px-4 py-2.5 text-xs text-cyan-900 dark:bg-cyan-950/40 dark:text-cyan-200">
             <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-primary" />
+              <CalendarRange className="h-4 w-4" />
               <span>
-                กำลังกรองรายงานเฉพาะ:{" "}
-                <strong className="font-semibold text-primary">
-                  {filters.province}
-                </strong>
+                กำลังเจาะลึกสัปดาห์ <strong>{drilldown.week.period}</strong> (
+                {drilldown.week.startDate} – {drilldown.week.endDate})
               </span>
             </div>
             <button
               type="button"
-              onClick={() => setFilters((prev) => ({ ...prev, province: "" }))}
-              className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-300 font-medium transition-colors"
+              onClick={exitDrilldown}
+              className="inline-flex items-center gap-1 rounded-md border border-cyan-500/30 bg-white px-2 py-1 font-medium hover:bg-cyan-100 dark:bg-transparent dark:hover:bg-cyan-900/40"
             >
-              <X className="w-3 h-3" />
-              ดูทุกจังหวัด
+              <X className="h-3 w-3" />
+              ยกเลิกเจาะลึก (กลับสู่สัปดาห์ทั้งหมด)
             </button>
           </div>
         )}
 
-        <ProvinceSummaryCards summary={summary} isLoading={isLoading} />
+        <WeeklySalesChart
+          weeks={trend?.weekly ?? []}
+          isLoading={isLoading}
+          onSelectWeek={drillIntoWeek}
+        />
+
+        <MonthlyTrendChart
+          months={trend?.monthly ?? []}
+          isLoading={isLoading}
+        />
+
+        {/* <ProvinceSummaryCards
+          summary={summary}
+          provinces={provinces}
+          isLoading={isLoading}
+        />
 
         <ProvinceBarChart
           provinces={provinces}
+          regions={regions}
           isLoading={isLoading}
-          selectedProvince={filters.province}
-          onSelectProvince={(prov) =>
-            setFilters((prev) => ({ ...prev, province: prov }))
-          }
-        />
+        /> */}
 
-        <ProvinceTable
-          provinces={displayedTableProvinces}
-          isLoading={isLoading}
-          selectedProvince={filters.province}
-          onSelectProvince={(prov) =>
-            setFilters((prev) => ({ ...prev, province: prov }))
-          }
-        />
+        <ProvinceTable provinces={provinces} isLoading={isLoading} />
       </div>
     </PageContainer>
   );
