@@ -205,6 +205,14 @@ export const skuApi = {
         : `/products/${encodeURIComponent(sku)}`,
     );
   },
+  /** Deletes several SKUs by record ID; the API reports the outcome per SKU. */
+  bulkDeleteSKU: async (ids: number[]) => {
+    const res = await writeRecord<import("../types/sku").BulkDeleteSKUResult>(
+      "/products/bulk-delete",
+      { ids },
+    );
+    return res.data;
+  },
   adjustStock: async (dto: import("../types/sku").StockAdjustmentDTO) => {
     await writeRecord("/stock-adjustments", {
       note: dto.reason,

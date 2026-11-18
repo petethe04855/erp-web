@@ -48,6 +48,7 @@ export default function SKUPage() {
     updateSKU,
     toggleSKUStatus,
     deleteSKU,
+    bulkDeleteSKUs,
     adjustStock,
     importSKU,
     downloadTemplate,
@@ -145,6 +146,7 @@ export default function SKUPage() {
           onLimitChange={handleLimitChange}
           onRetry={refetch}
           onDelete={deleteSKU}
+          onBulkDelete={bulkDeleteSKUs}
           onEdit={handleEdit}
           onChangeStatus={toggleSKUStatus}
           onAdjustStock={handleAdjustStock}

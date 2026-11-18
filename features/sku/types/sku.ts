@@ -156,3 +156,19 @@ export interface ImportXLSXResult {
   failed: number;
   errors: RowError[];
 }
+
+export interface BulkDeleteSKUItem {
+  id: number;
+  sku: string;
+  name: string;
+  deleted: boolean;
+  code?: string;
+  error?: string;
+}
+
+export interface BulkDeleteSKUResult {
+  requested: number;
+  deleted: number;
+  failed: number;
+  results: BulkDeleteSKUItem[];
+}

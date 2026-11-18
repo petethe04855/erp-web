@@ -28,7 +28,8 @@ import {
 import { formatThaiDateTime } from "@/lib/utils";
 import { SKUReceiptHistoryRow } from "./SKUReceiptHistoryRow";
 import { SKUCostHistoryModal } from "./SKUCostHistoryModal";
-import type { SKU } from "../types/sku";
+import { SKUBulkDeleteDialog } from "./SKUBulkDeleteDialog";
+import type { SKU, BulkDeleteSKUResult } from "../types/sku";
 import type { ApiPaginationMeta } from "@/types/api";
 import { Switch } from "@/components/ui/switch";
 
@@ -41,6 +42,8 @@ interface SKUTableProps {
   onLimitChange?: (limit: number) => void;
   onRetry: () => void;
   onDelete?: (sku: string | number) => Promise<unknown>;
+  /** Enables row checkboxes and the "delete selected" action. */
+  onBulkDelete?: (ids: number[]) => Promise<BulkDeleteSKUResult>;
   onEdit?: (sku: SKU) => void;
   onChangeStatus: (sku: string | number, status: string) => Promise<unknown>;
   onAdjustStock?: (sku: SKU) => void;
@@ -56,6 +59,7 @@ export function SKUTable({
   onLimitChange,
   onRetry,
   onDelete,
+  onBulkDelete,
   onEdit,
   onChangeStatus,
   onAdjustStock,
@@ -64,6 +68,38 @@ export function SKUTable({
   const [isDeleting, setIsDeleting] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [costHistorySku, setCostHistorySku] = useState<SKU | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+  const [selectionPage, setSelectionPage] = useState(meta.page);
+
+  // Selection is scoped to the visible page: clear it when the page changes.
+  if (selectionPage !== meta.page) {
+    setSelectionPage(meta.page);
+    setSelectedIds(new Set());
+  }
+
+  // Only rows still on screen count (rows removed by a refetch drop out).
+  const selectedSkus = skus.filter((s) => selectedIds.has(s.id));
+  const allSelected = skus.length > 0 && selectedSkus.length === skus.length;
+  const someSelected = selectedSkus.length > 0 && !allSelected;
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(skus.map((s) => s.id)));
+  };
+
+  const handleBulkDone = (res: BulkDeleteSKUResult) => {
+    const deleted = new Set(res.results.filter((r) => r.deleted).map((r) => r.id));
+    setSelectedIds((prev) => new Set([...prev].filter((id) => !deleted.has(id))));
+  };
 
   const toggleRow = (skuId: number) => {
     setExpandedRows((prev) => {
@@ -124,15 +160,56 @@ export function SKUTable({
           <span className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
             รายการ SKU ทั้งหมด
           </span>
-          <span className="text-xs text-neutral-500">
-            {meta.total.toLocaleString("th-TH")} รายการ
-          </span>
+          <div className="flex items-center gap-3">
+            {onBulkDelete && selectedSkus.length > 0 && (
+              <>
+                <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                  เลือก {selectedSkus.length} รายการ
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setSelectedIds(new Set())}
+                >
+                  ล้างที่เลือก
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="h-7 gap-1 px-2.5 text-xs"
+                  onClick={() => setIsBulkDeleteOpen(true)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                  ลบที่เลือก ({selectedSkus.length})
+                </Button>
+              </>
+            )}
+            <span className="text-xs text-neutral-500">
+              {meta.total.toLocaleString("th-TH")} รายการ
+            </span>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
           <Table>
             <TableHeader className="bg-neutral-50/80 dark:bg-neutral-900/50">
               <TableRow className="hover:bg-transparent">
+                {onBulkDelete && (
+                  <TableHead className="w-10 px-3 text-center">
+                    <input
+                      type="checkbox"
+                      aria-label="เลือกทั้งหมดในหน้านี้"
+                      className="h-4 w-4 cursor-pointer accent-rose-600"
+                      checked={allSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = someSelected;
+                      }}
+                      disabled={skus.length === 0}
+                      onChange={toggleSelectAll}
+                    />
+                  </TableHead>
+                )}
                 <TableHead className="w-10 px-3 text-center"></TableHead>
                 <TableHead className="px-4 py-3 whitespace-nowrap">
                   SKU
@@ -163,6 +240,7 @@ export function SKUTable({
             <TableBody>
               {skus.map((item) => {
                 const isExpanded = expandedRows.has(item.id);
+                const isSelected = selectedIds.has(item.id);
                 const onHandQty = item.onHand ?? item.stockQuantity ?? 0;
                 const reservedQty = item.reserved ?? item.reservedStock ?? 0;
                 const usedQty = item.usedQty ?? item.used ?? 0;
@@ -178,12 +256,27 @@ export function SKUTable({
                 return (
                   <React.Fragment key={item.id}>
                     <TableRow
+                      data-state={isSelected ? "selected" : undefined}
                       className={`transition-colors ${
-                        isExpanded
+                        isSelected
+                          ? "bg-rose-50/60 dark:bg-rose-950/20"
+                          : isExpanded
                           ? "bg-neutral-50/50 dark:bg-neutral-800/40"
                           : "hover:bg-neutral-50/70 dark:hover:bg-neutral-800/50"
                       }`}
                     >
+                      {onBulkDelete && (
+                        <TableCell className="w-10 px-3 py-3 text-center">
+                          <input
+                            type="checkbox"
+                            aria-label={`เลือก SKU ${item.sku}`}
+                            className="h-4 w-4 cursor-pointer accent-rose-600"
+                            checked={isSelected}
+                            onChange={() => toggleSelect(item.id)}
+                          />
+                        </TableCell>
+                      )}
+
                       {/* Expand Toggle */}
                       <TableCell className="w-10 px-2 py-3 text-center">
                         <button
@@ -397,7 +490,7 @@ export function SKUTable({
                       skuId={item.id}
                       skuCode={item.sku}
                       isExpanded={isExpanded}
-                      colSpan={8}
+                      colSpan={onBulkDelete ? 10 : 9}
                     />
                   </React.Fragment>
                 );
@@ -494,6 +587,17 @@ export function SKUTable({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Bulk Delete Confirmation */}
+      {onBulkDelete && (
+        <SKUBulkDeleteDialog
+          open={isBulkDeleteOpen}
+          skus={selectedSkus}
+          onOpenChange={setIsBulkDeleteOpen}
+          onConfirm={onBulkDelete}
+          onDone={handleBulkDone}
+        />
       )}
 
       {/* SKU Cost History Modal */}
