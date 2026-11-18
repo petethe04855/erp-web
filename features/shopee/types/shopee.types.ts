@@ -129,6 +129,15 @@ export interface DashboardAnalyticsResult {
   ytd_summary: MonthlySummary;
   monthly_trends: MonthlySummary[];
   top_skus: TopSKUStat[];
+  /** Shopee sales per transfer date across the range. */
+  daily_sales?: ShopeeDailySale[];
+}
+
+export interface ShopeeDailySale {
+  date: string;
+  gross_sale: number;
+  net_receive: number;
+  net_profit: number;
 }
 
 export interface SKUCostHistory {
