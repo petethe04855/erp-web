@@ -4,5 +4,5 @@ import React from "react";
 import { Dashboard } from "@/features/dashboard/components/Dashboard";
 
 export default function ShopeeDashboardPage() {
-  return <Dashboard defaultTab="shopee" />;
+  return <Dashboard defaultPlatforms={["shopee"]} />;
 }
