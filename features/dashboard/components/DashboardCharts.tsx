@@ -11,7 +11,7 @@ import {
   Legend,
   Filler,
 } from "chart.js";
-import { Line, Doughnut, Bar } from "react-chartjs-2";
+import { Line, Pie, Bar } from "react-chartjs-2";
 import type { DashboardData, Platform } from "../types/dashboard";
 import { buildDailySeries, PLATFORM_META, type ShopeeDailyPoint } from "../lib/platforms";
 ChartJS.register(
@@ -164,15 +164,26 @@ export function PlatformSalesCharts({ month, platforms, data, shopeeDaily, shope
         <p className="text-xs text-neutral-500 mt-1">ยอดขายของเดือนที่เลือก</p>
         <div className="h-56 mt-6">
           {shares.length ? (
-            <Doughnut
+            <Pie
               role="img"
               aria-label="สัดส่วนยอดขายตามแพลตฟอร์ม"
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
                 animation: false,
-                cutout: "76%",
-                plugins: { legend: { display: false } },
+                plugins: {
+                  legend: { display: false },
+                  tooltip: {
+                    callbacks: {
+                      label: (item) => {
+                        const sum = item.dataset.data.reduce((a, b) => a + Number(b), 0);
+                        const v = Number(item.raw);
+                        const pct = sum > 0 ? Math.round((v / sum) * 100) : 0;
+                        return `${item.label}: ฿${baht(v)} (${pct}%)`;
+                      },
+                    },
+                  },
+                },
               }}
               data={{
                 labels: shares.map((p) => PLATFORM_META[p].label),
@@ -181,7 +192,7 @@ export function PlatformSalesCharts({ month, platforms, data, shopeeDaily, shope
                     data: shares.map((p) => totals[p] ?? 0),
                     backgroundColor: shares.map((p) => PLATFORM_META[p].color),
                     borderColor: "#ffffff",
-                    borderWidth: 5,
+                    borderWidth: 2,
                   },
                 ],
               }}
