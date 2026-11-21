@@ -18,9 +18,10 @@ export function ShopeeOrderUploadModal({ isOpen, onClose, onSuccess }: Props) {
       onClose={onClose}
       onSuccess={onSuccess}
       title="นำเข้าไฟล์คำสั่งซื้อ Shopee (Orders Export)"
-      subtitle="ลากวางหรือเลือกได้หลายไฟล์ (.xlsx, .xls, .csv) ไฟล์ที่มีข้อมูลซ้ำจะไม่ถูกนำเข้า"
+      subtitle="ลากวางหรือเลือกได้หลายไฟล์ (.xlsx, .xls, .csv) รายการที่ซ้ำจะถูกข้าม ส่วนที่เหลือนำเข้าตามปกติ"
       dropHint="ไฟล์ Shopee Orders (.xlsx, .xls, .csv) — เลือกได้หลายไฟล์"
       accent="orange"
+      skipDuplicates
       preview={shopeeApi.previewOrders}
       importFile={shopeeApi.importOrders}
       renderSummary={(p) => (

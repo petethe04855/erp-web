@@ -50,6 +50,11 @@ const dupCount = (p?: PreviewLike) => p?.duplicate_count ?? 0;
 export function useMultiFileImport<P extends PreviewLike, R extends ImportLike>(opts: {
   preview: (file: File) => Promise<P>;
   importFile: (file: File) => Promise<R>;
+  /**
+   * When true, files with duplicate rows stay importable: the backend skips
+   * only the duplicate rows and imports the rest.
+   */
+  skipDuplicates?: boolean;
 }) {
   const [items, setItems] = useState<FileImportItem<P, R>[]>([]);
   const [isImporting, setIsImporting] = useState(false);
@@ -73,7 +78,8 @@ export function useMultiFileImport<P extends PreviewLike, R extends ImportLike>(
       patch(id, { status: "previewing", error: undefined });
       try {
         const preview = await optsRef.current.preview(file);
-        patch(id, { preview, status: dupCount(preview) > 0 ? "duplicate" : "ready" });
+        const blocked = !optsRef.current.skipDuplicates && dupCount(preview) > 0;
+        patch(id, { preview, status: blocked ? "duplicate" : "ready" });
       } catch (err) {
         patch(id, { status: "error", error: err instanceof Error ? err.message : "อ่านไฟล์ไม่สำเร็จ" });
       }
@@ -128,12 +134,14 @@ export function useMultiFileImport<P extends PreviewLike, R extends ImportLike>(
       for (const it of queue) {
         patch(it.id, { status: "importing", error: undefined });
         try {
-          // Re-check: an earlier file in this batch may have imported the same rows.
-          const fresh = await optsRef.current.preview(it.file);
-          if (dupCount(fresh) > 0) {
-            patch(it.id, { preview: fresh, status: "duplicate" });
-            summary.blocked.push(it.file.name);
-            continue;
+          if (!optsRef.current.skipDuplicates) {
+            // Re-check: an earlier file in this batch may have imported the same rows.
+            const fresh = await optsRef.current.preview(it.file);
+            if (dupCount(fresh) > 0) {
+              patch(it.id, { preview: fresh, status: "duplicate" });
+              summary.blocked.push(it.file.name);
+              continue;
+            }
           }
           const result = await optsRef.current.importFile(it.file);
           patch(it.id, { result, status: "done" });
@@ -163,6 +171,8 @@ export function useMultiFileImport<P extends PreviewLike, R extends ImportLike>(
     isPreviewing: items.some((it) => it.status === "previewing"),
     readyCount: items.filter((it) => it.status === "ready").length,
     duplicateCount: items.filter((it) => it.status === "duplicate").length,
+    /** Ready files whose preview found duplicate rows that will be skipped. */
+    skipDuplicateCount: items.filter((it) => it.status === "ready" && dupCount(it.preview) > 0).length,
     rejected,
     setRejected,
     addFiles,

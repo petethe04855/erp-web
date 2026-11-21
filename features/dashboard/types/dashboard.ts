@@ -38,3 +38,8 @@ export interface DashboardData {
   financial: FinancialSummary;
   inventory: InventoryValuation;
 }
+
+/** Sales platforms shown on the unified dashboard. */
+export type Platform = "tiktok" | "shopee" | "manual";
+
+export const ALL_PLATFORMS: Platform[] = ["tiktok", "shopee", "manual"];

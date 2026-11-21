@@ -7,6 +7,7 @@ import {
   useUpdateSKUMutation,
   useUpdateSKUStatusMutation,
   useDeleteSKUMutation,
+  useBulkDeleteSKUMutation,
   useAdjustSKUStockMutation,
   useImportSKUXLSMutation,
 } from "../queries/skuQueries";
@@ -27,6 +28,7 @@ export function useSKU() {
   const updateMutation = useUpdateSKUMutation();
   const updateStatusMutation = useUpdateSKUStatusMutation();
   const deleteMutation = useDeleteSKUMutation();
+  const bulkDeleteMutation = useBulkDeleteSKUMutation();
   const adjustMutation = useAdjustSKUStockMutation();
   const importMutation = useImportSKUXLSMutation();
 
@@ -76,6 +78,10 @@ export function useSKU() {
     return deleteMutation.mutateAsync(sku);
   };
 
+  const bulkDeleteSKUs = async (ids: number[]) => {
+    return bulkDeleteMutation.mutateAsync(ids);
+  };
+
   const adjustStock = async (dto: StockAdjustmentDTO) => {
     return adjustMutation.mutateAsync(dto);
   };
@@ -113,6 +119,7 @@ export function useSKU() {
     updateSKU,
     toggleSKUStatus,
     deleteSKU,
+    bulkDeleteSKUs,
     adjustStock,
     importSKU,
     downloadTemplate,
@@ -120,6 +127,7 @@ export function useSKU() {
     isUpdating: updateMutation.isPending,
     isUpdatingStatus: updateStatusMutation.isPending,
     isDeleting: deleteMutation.isPending,
+    isBulkDeleting: bulkDeleteMutation.isPending,
     isAdjusting: adjustMutation.isPending,
     isImporting: importMutation.isPending,
   };

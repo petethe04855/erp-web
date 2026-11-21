@@ -108,7 +108,7 @@ export function ShopeeMatchingSummaryCard({ summary, loading }: Props) {
         <div className="mt-2 font-mono text-lg xl:text-xl font-bold text-purple-600 dark:text-purple-400 truncate">
           {summary.profit_margin_pct.toFixed(2)}%
         </div>
-        <div className="mt-1 text-[11px] text-neutral-400">เทียบยอดโอนสุทธิ</div>
+        <div className="mt-1 text-[11px] text-neutral-400">กำไรสุทธิ ÷ ยอดขายรวม × 100</div>
       </div>
     </div>
   );

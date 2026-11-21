@@ -107,6 +107,17 @@ export function useDeleteSKUMutation() {
   });
 }
 
+export function useBulkDeleteSKUMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (ids: number[]) => skuApi.bulkDeleteSKU(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+    },
+  });
+}
+
 export function useAdjustSKUStockMutation() {
   const queryClient = useQueryClient();
 
