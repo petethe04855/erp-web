@@ -26,7 +26,7 @@ export function Reports() {
       {q.isPending ? (
         <Loading />
       ) : q.isError ? (
-        <ErrorState message={q.error.message} onRetry={() => q.refetch()} />
+        <ErrorState message={q.error?.message ?? ""} onRetry={() => q.refetch()} />
       ) : (
         q.data && (() => {
           const hasFinancialActivity =

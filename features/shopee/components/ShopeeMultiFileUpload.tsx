@@ -45,17 +45,19 @@ interface Props<P extends PreviewBase, R extends ImportBase> {
   renderSample: (p: P) => React.ReactNode;
   /** Import files with duplicates, skipping only the duplicate rows. */
   skipDuplicates?: boolean;
+  /** Word for the action in labels and buttons ("นำเข้า" by default, e.g. "แก้ไข"). */
+  verb?: string;
 }
 
-const STATUS: Record<FileImportItem<unknown, unknown>["status"], { label: string; cls: string }> = {
+const statusStyles = (verb: string): Record<FileImportItem<unknown, unknown>["status"], { label: string; cls: string }> => ({
   previewing: { label: "กำลังตรวจสอบ", cls: "border-zinc-300 text-zinc-600" },
-  ready: { label: "พร้อมนำเข้า", cls: "border-emerald-500 text-emerald-700 bg-emerald-50" },
-  duplicate: { label: "ข้อมูลซ้ำ - นำเข้าไม่ได้", cls: "border-rose-500 text-rose-700 bg-rose-50" },
+  ready: { label: `พร้อม${verb}`, cls: "border-emerald-500 text-emerald-700 bg-emerald-50" },
+  duplicate: { label: `ข้อมูลซ้ำ - ${verb}ไม่ได้`, cls: "border-rose-500 text-rose-700 bg-rose-50" },
   error: { label: "อ่านไฟล์ไม่สำเร็จ", cls: "border-red-500 text-red-700 bg-red-50" },
-  importing: { label: "กำลังนำเข้า", cls: "border-blue-500 text-blue-700 bg-blue-50" },
-  done: { label: "นำเข้าแล้ว", cls: "border-emerald-600 text-emerald-800 bg-emerald-100" },
-  failed: { label: "นำเข้าไม่สำเร็จ", cls: "border-red-500 text-red-700 bg-red-50" },
-};
+  importing: { label: `กำลัง${verb}`, cls: "border-blue-500 text-blue-700 bg-blue-50" },
+  done: { label: `${verb}แล้ว`, cls: "border-emerald-600 text-emerald-800 bg-emerald-100" },
+  failed: { label: `${verb}ไม่สำเร็จ`, cls: "border-red-500 text-red-700 bg-red-50" },
+});
 
 function DuplicateList({ details }: { details?: DuplicateDetail[] }) {
   if (!details || details.length === 0) return null;
@@ -89,6 +91,8 @@ function DuplicateList({ details }: { details?: DuplicateDetail[] }) {
  */
 export function ShopeeMultiFileUpload<P extends PreviewBase, R extends ImportBase>(props: Props<P, R>) {
   const { isOpen, onClose, onSuccess, title, subtitle, dropHint, accent, renderSummary, renderSample, skipDuplicates } = props;
+  const verb = props.verb ?? "นำเข้า";
+  const STATUS = statusStyles(verb);
   const imp = useMultiFileImport<P, R>({ preview: props.preview, importFile: props.importFile, skipDuplicates });
   const [expanded, setExpanded] = useState<string | null>(null);
   const [summary, setSummary] = useState<ImportSummary | null>(null);
@@ -148,7 +152,7 @@ export function ShopeeMultiFileUpload<P extends PreviewBase, R extends ImportBas
             <div role="alert" className="flex items-start gap-3 rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800">
               <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0" />
               <div>
-                <div className="font-semibold">พบข้อมูลซ้ำ {imp.duplicateCount} ไฟล์ — ไฟล์เหล่านี้จะไม่ถูกนำเข้า</div>
+                <div className="font-semibold">พบข้อมูลซ้ำ {imp.duplicateCount} ไฟล์ — ไฟล์เหล่านี้จะไม่ถูก{verb}</div>
                 <div className="text-xs">
                   ข้อมูลในไฟล์มีอยู่ในระบบแล้ว หรือซ้ำกันในไฟล์ กดที่ชื่อไฟล์เพื่อดูรายการที่ซ้ำ แล้วแก้ไขไฟล์ก่อนอัปโหลดใหม่
                 </div>
@@ -161,7 +165,7 @@ export function ShopeeMultiFileUpload<P extends PreviewBase, R extends ImportBas
               <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0" />
               <div>
                 <div className="font-semibold">พบข้อมูลซ้ำใน {imp.skipDuplicateCount} ไฟล์ — จะข้ามเฉพาะรายการที่ซ้ำ</div>
-                <div className="text-xs">รายการที่ไม่ซ้ำจะถูกนำเข้าตามปกติ กดที่ชื่อไฟล์เพื่อดูรายการที่จะถูกข้าม</div>
+                <div className="text-xs">รายการที่ไม่ซ้ำจะถูก{verb}ตามปกติ กดที่ชื่อไฟล์เพื่อดูรายการที่จะถูกข้าม</div>
               </div>
             </div>
           )}
@@ -177,14 +181,14 @@ export function ShopeeMultiFileUpload<P extends PreviewBase, R extends ImportBas
               <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0" />
               <div>
                 <div>
-                  นำเข้าสำเร็จ {summary.imported} ไฟล์ ({summary.inserted.toLocaleString()} รายการ)
+                  {verb}สำเร็จ {summary.imported} ไฟล์ ({summary.inserted.toLocaleString()} รายการ)
                   {summary.skipped > 0 && ` · ข้ามข้อมูลซ้ำ ${summary.skipped.toLocaleString()} รายการ`}
                 </div>
                 {summary.blocked.length > 0 && (
-                  <div className="text-xs">ไม่นำเข้าเพราะพบข้อมูลซ้ำกับไฟล์ก่อนหน้า: {summary.blocked.join(", ")}</div>
+                  <div className="text-xs">ไม่{verb}เพราะพบข้อมูลซ้ำกับไฟล์ก่อนหน้า: {summary.blocked.join(", ")}</div>
                 )}
                 {summary.failed.length > 0 && (
-                  <div className="text-xs">นำเข้าไม่สำเร็จ: {summary.failed.join(", ")}</div>
+                  <div className="text-xs">{verb}ไม่สำเร็จ: {summary.failed.join(", ")}</div>
                 )}
               </div>
             </div>
@@ -233,7 +237,11 @@ export function ShopeeMultiFileUpload<P extends PreviewBase, R extends ImportBas
                                 ซ้ำ {it.preview.duplicate_count} รายการ{skipDuplicates && " (จะข้าม)"}
                               </span>
                             )}
-                            {it.result && <span className="text-emerald-700">เข้า {it.result.inserted_count} รายการ</span>}
+                            {it.result && (
+                              <span className="text-emerald-700">
+                                {verb === "นำเข้า" ? "เข้า" : verb} {it.result.inserted_count} รายการ
+                              </span>
+                            )}
                             {it.result && it.result.skipped_count > 0 && (
                               <span className="text-amber-600">ข้าม {it.result.skipped_count} รายการ</span>
                             )}
@@ -279,7 +287,7 @@ export function ShopeeMultiFileUpload<P extends PreviewBase, R extends ImportBas
           <div className="text-xs text-zinc-500">
             {imp.items.length > 0 && (
               <>
-                {imp.items.length} ไฟล์ · พร้อมนำเข้า {imp.readyCount}
+                {imp.items.length} ไฟล์ · พร้อม{verb} {imp.readyCount}
                 {imp.duplicateCount > 0 && <span className="text-rose-600"> · ข้อมูลซ้ำ {imp.duplicateCount}</span>}
               </>
             )}
@@ -294,7 +302,7 @@ export function ShopeeMultiFileUpload<P extends PreviewBase, R extends ImportBas
               className={`cursor-pointer text-white ${btnColor}`}
             >
               {imp.isImporting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              นำเข้า {imp.readyCount} ไฟล์
+              {verb} {imp.readyCount} ไฟล์
             </Button>
           </div>
         </div>

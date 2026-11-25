@@ -3,15 +3,17 @@ import type {
   RevenueReport,
   FinancialSummary,
   InventoryValuation,
-  DashboardData,
+  MonthReport,
 } from "../types/dashboard";
 export const dashboardApi = {
-  get: async (month: string): Promise<DashboardData> => {
-    const [revenue, financial, inventory] = await Promise.all([
+  /** Revenue rows and accounting summary of one month (YYYY-MM). */
+  getMonth: async (month: string): Promise<MonthReport> => {
+    const [revenue, financial] = await Promise.all([
       read<RevenueReport>("/reports/revenue", { month }),
       read<FinancialSummary>("/reports/financial-summary", { month }),
-      read<InventoryValuation>("/reports/inventory-valuation"),
     ]);
-    return { revenue, financial, inventory };
+    return { revenue, financial };
   },
+  /** Current stock valuation (not tied to a period). */
+  getInventory: () => read<InventoryValuation>("/reports/inventory-valuation"),
 };

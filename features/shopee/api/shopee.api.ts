@@ -5,6 +5,8 @@ import type {
   ShopeeIncome,
   OrderPreviewResult,
   OrderImportResult,
+  OrderRepairPreview,
+  OrderRepairResult,
   IncomePreviewResult,
   IncomeImportResult,
   MatchingItemRow,
@@ -29,6 +31,26 @@ export const shopeeApi = {
     const formData = new FormData();
     formData.append("file", file);
     const res = await api.post("/shopee/orders/import", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data.data;
+  },
+
+  /** What re-reading an Order export would correct on orders already imported. */
+  previewOrderRepair: async (file: File): Promise<OrderRepairPreview> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await api.post("/shopee/orders/repair/preview", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data.data;
+  },
+
+  /** Corrects those orders in place (date, quantity, variation); every change is logged. */
+  applyOrderRepair: async (file: File): Promise<OrderRepairResult> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await api.post("/shopee/orders/repair/apply", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
     return res.data.data;

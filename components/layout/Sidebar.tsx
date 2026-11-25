@@ -161,6 +161,12 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       // { label: "Shopee Dashboard", href: "/shopee/dashboard", icon: BarChart3, roles: ["owner", "sales", "accountant"] },
       {
+        label: "Shopee เชิงลึก",
+        href: "/shopee/insights",
+        icon: BarChart3,
+        roles: ["owner", "accountant", "sales"],
+      },
+      {
         label: "Shopee Orders",
         href: "/shopee/orders",
         icon: ShoppingBag,

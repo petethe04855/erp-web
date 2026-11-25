@@ -33,6 +33,11 @@ export interface InventoryValuation {
     Value: number;
   }[];
 }
+/** The period-bound part of the dashboard, fetched per month. */
+export interface MonthReport {
+  revenue: RevenueReport;
+  financial: FinancialSummary;
+}
 export interface DashboardData {
   revenue: RevenueReport;
   financial: FinancialSummary;
