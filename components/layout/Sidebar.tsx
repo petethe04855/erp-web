@@ -96,12 +96,12 @@ const NAV_SECTIONS: NavSection[] = [
         icon: ShoppingCart,
         roles: ["owner", "sales", "accountant"],
       },
-      {
-        label: "ขายหน้าบูธ (Booth)",
-        href: "/booth",
-        icon: ShoppingBag,
-        roles: ["owner", "sales"],
-      },
+      // {
+      //   label: "ขายหน้าบูธ (Booth)",
+      //   href: "/booth",
+      //   icon: ShoppingBag,
+      //   roles: ["owner", "sales"],
+      // },
       {
         label: "ใบแจ้งหนี้ (Invoices)",
         href: "/invoices",
