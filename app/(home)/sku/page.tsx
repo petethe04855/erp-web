@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
 import React, { useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { Button } from "@/components/ui/button";
-import { Plus, UploadCloud, Download } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Plus, UploadCloud, Download, ArrowUpFromLine } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useSKU } from "@/features/sku/hooks/useSKU";
 import { SKUSearch } from "@/features/sku/components/SKUSearch";
 import { SKUTable } from "@/features/sku/components/SKUTable";
@@ -103,6 +105,17 @@ export default function SKUPage() {
           onReset={resetFilters}
         >
           <div className="flex items-center gap-2">
+            <Link
+              href="/stock-out"
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "h-9 whitespace-nowrap text-xs gap-1.5"
+              )}
+              title="เปิดหน้านับของออกรายวัน"
+            >
+              <ArrowUpFromLine className="h-3.5 w-3.5 text-neutral-500" />
+              นับของออกรายวัน
+            </Link>
             <Button
               type="button"
               variant="outline"

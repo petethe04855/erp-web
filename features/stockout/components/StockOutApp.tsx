@@ -140,8 +140,7 @@ export function StockOutApp() {
   return (
     <div className={b.pos}>
       <header className={b.topbar}>
-        <h1 className={b.brand}>CHAWY <span>นับของออก · {dayLabel()}</span></h1>
-        <span className={`${b.status} ${syncBadge.cls}`} role="status">{syncBadge.text}</span>
+        <h1 className={b.brand}>นับของออก · {dayLabel()}</h1>
         <nav className={b.tabs} aria-label="เมนูนับของออก">
           {tabs.map((t) => (
             <button key={t.id} type="button" className={b.tab} aria-current={tab === t.id} onClick={() => { fb.hide(); setTab(t.id); }}>
@@ -150,6 +149,7 @@ export function StockOutApp() {
           ))}
         </nav>
         <div className={b.barUser}>
+          <span className={`${b.status} ${syncBadge.cls}`} role="status">{syncBadge.text}</span>
           <span>{user?.name || user?.email}</span>
           {isOwner && <Link href="/dashboard" className={b.barBtn}>ไป ERP</Link>}
           <button type="button" className={b.barBtn} onClick={signOut}>ออกจากระบบ</button>
