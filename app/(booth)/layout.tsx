@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { SessionGuard } from "@/features/auth/components/SessionGuard";
+import { BoothSessionGuard } from "@/features/booth/components/BoothSessionGuard";
 
 export const metadata: Metadata = {
   title: "CHAWY บูธ",
@@ -8,9 +8,9 @@ export const metadata: Metadata = {
 
 /**
  * The booth screen runs on its own, like erp-expense-upload: no ERP sidebar
- * or header, full screen for a tablet at the booth. It stays in this app and
- * on this port, and still needs an ERP login (owner or sales).
+ * or header, full screen for a tablet at the booth. Uses an isolated booth
+ * session so logging in/out here never affects the main ERP session.
  */
 export default function BoothLayout({ children }: { children: React.ReactNode }) {
-  return <SessionGuard>{children}</SessionGuard>;
+  return <BoothSessionGuard>{children}</BoothSessionGuard>;
 }

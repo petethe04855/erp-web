@@ -2,9 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "@/stores/authStore";
+import { useBoothAuthStore } from "@/stores/boothAuthStore";
 import { useBoothFeedback } from "@/features/booth/components/BoothFeedback";
 import { useStockOutSync } from "../hooks/useStockOutSync";
 import { bangkokDay, pendingBySku } from "../lib/queue";
@@ -32,9 +31,8 @@ const dayLabel = () =>
 
 /** CHAWY daily stock-out count: count, today, history and (owner) settings. */
 export function StockOutApp() {
-  const user = useAuthStore((st) => st.user);
-  const logout = useAuthStore((st) => st.logout);
-  const router = useRouter();
+  const user = useBoothAuthStore((st) => st.user);
+  const logout = useBoothAuthStore((st) => st.logout);
   const client = useQueryClient();
   const role = (user?.role || "").toLowerCase();
   const isOwner = role === "owner";
@@ -58,7 +56,6 @@ export function StockOutApp() {
   const signOut = () => {
     client.clear();
     logout();
-    router.replace("/login?next=/stock-out");
   };
 
   const onSave = (lines: { skuId: number; qty: number }[], label: string) => {

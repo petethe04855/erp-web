@@ -1,5 +1,12 @@
 import axios from "axios";
 import { useAuthStore } from "@/stores/authStore";
+import { BOOTH_TOKEN_KEY, useBoothAuthStore } from "@/stores/boothAuthStore";
+
+function isBoothRoute() {
+  if (typeof window === "undefined") return false;
+  const p = window.location.pathname;
+  return p === "/booth" || p.startsWith("/booth/") || p === "/stock-out" || p.startsWith("/stock-out/");
+}
 
 // The original ERP API exposes the same commands under /api/v1 for this client.
 const configured = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -13,7 +20,7 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use((config) => {
   const token =
     typeof window !== "undefined"
-      ? localStorage.getItem("chawy_v2_token")
+      ? localStorage.getItem(isBoothRoute() ? BOOTH_TOKEN_KEY : "chawy_v2_token")
       : null;
   if (token) config.headers.Authorization = "Bearer " + token;
   return config;
@@ -24,8 +31,10 @@ apiClient.interceptors.response.use(
     if (
       error.response?.status === 401 &&
       !error.config?.url?.includes("/auth/login")
-    )
-      useAuthStore.getState().logout();
+    ) {
+      if (isBoothRoute()) useBoothAuthStore.getState().logout();
+      else useAuthStore.getState().logout();
+    }
     const detail = error.response?.data?.error;
     // Timeout (request aborted, no response) is not the same as "API down".
     if (!error.response && error.code === "ECONNABORTED") {

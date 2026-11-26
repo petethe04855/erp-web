@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { API_BASE_URL } from "@/lib/axios";
+import { BOOTH_TOKEN_KEY } from "@/stores/boothAuthStore";
 import { STOCKOUT_KEYS } from "../queries/stockoutQueries";
 
 const RECONNECT_MS = 5000;
@@ -46,7 +47,7 @@ export function useStockOutStream(enabled = true) {
       if (stopped) return;
       ctrl = new AbortController();
       try {
-        const token = localStorage.getItem("chawy_v2_token");
+        const token = localStorage.getItem(BOOTH_TOKEN_KEY);
         const res = await fetch(`${API_BASE_URL}/stock/stream`, {
           headers: { Accept: "text/event-stream", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           signal: ctrl.signal,

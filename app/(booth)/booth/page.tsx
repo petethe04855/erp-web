@@ -1,7 +1,7 @@
 "use client";
 
-import { BoothPos } from "@/features/booth/components/BoothPos";
+import { StockOutApp } from "@/features/stockout/components/StockOutApp";
 
-export default function BoothPage() {
-  return <BoothPos />;
+export default function StockOutPage() {
+  return <StockOutApp />;
 }
