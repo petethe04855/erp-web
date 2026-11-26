@@ -6,10 +6,15 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { ShopeeOrderSearch } from "@/features/shopee/components/ShopeeOrderSearch";
 import { ShopeeOrdersTable } from "@/features/shopee/components/ShopeeOrdersTable";
 import { ShopeeOrderUploadModal } from "@/features/shopee/components/ShopeeOrderUploadModal";
+import { ShopeeOrderRepairModal } from "@/features/shopee/components/ShopeeOrderRepairModal";
+import { useAuthStore } from "@/stores/authStore";
 import { useShopeeOrders } from "@/features/shopee/hooks/useShopeeOrders";
 
 export default function ShopeeOrdersPage() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isRepairOpen, setIsRepairOpen] = useState(false);
+  const role = useAuthStore((s) => s.user?.role);
+  const canRepair = role === "owner" || role === "accountant";
   const {
     orders,
     meta,
@@ -79,6 +84,7 @@ export default function ShopeeOrdersPage() {
           onReset={handleReset}
           onRefresh={refetch}
           onOpenUpload={() => setIsUploadOpen(true)}
+          onOpenRepair={canRepair ? () => setIsRepairOpen(true) : undefined}
           loading={loading}
           totalItems={meta?.total}
         />
@@ -100,6 +106,13 @@ export default function ShopeeOrdersPage() {
       <ShopeeOrderUploadModal
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
+        onSuccess={refetch}
+      />
+
+      {/* Correct orders imported before the parser fix */}
+      <ShopeeOrderRepairModal
+        isOpen={isRepairOpen}
+        onClose={() => setIsRepairOpen(false)}
         onSuccess={refetch}
       />
     </PageContainer>

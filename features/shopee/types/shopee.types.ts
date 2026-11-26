@@ -10,6 +10,8 @@ export interface ShopeeOrderItem {
   order_id: string;
   sku: string;
   product_name: string;
+  /** Shopee "ชื่อตัวเลือก" (empty for orders imported before it was stored). */
+  variation_name?: string;
   qty: number;
   sale_price: number;
   original_sku?: string;
@@ -60,6 +62,56 @@ export interface OrderImportResult {
   duplicate_count?: number;
   duplicate_orders?: string[];
   duplicate_details?: DuplicateDetail[];
+}
+
+/** One line whose stored quantity or variation differs from the Order export. */
+export interface OrderItemRepair {
+  item_id: number;
+  sku: string;
+  product_name: string;
+  old_qty: number;
+  new_qty: number;
+  old_variation: string;
+  new_variation: string;
+}
+
+/** What re-reading an Order export would change on one stored order. */
+export interface OrderRepair {
+  order_id: string;
+  old_order_date: string;
+  new_order_date: string;
+  date_changed: boolean;
+  items: OrderItemRepair[] | null;
+}
+
+export interface RepairSkip {
+  order_id: string;
+  reason: string;
+}
+
+/** Preview of correcting already-imported orders from an Order export (nothing saved). */
+export interface OrderRepairPreview {
+  total_rows: number;
+  orders_in_file: number;
+  orders_in_db: number;
+  orders_not_in_db: number;
+  orders_to_repair: number;
+  orders_unchanged: number;
+  date_changes: number;
+  month_changes: number;
+  qty_changes: number;
+  variation_changes: number;
+  repairs: OrderRepair[] | null;
+  skipped: RepairSkip[] | null;
+}
+
+export interface OrderRepairResult {
+  batch_id: string;
+  orders_repaired: number;
+  items_repaired: number;
+  skipped: RepairSkip[] | null;
+  inserted_count: number;
+  skipped_count: number;
 }
 
 export interface IncomePreviewResult {
