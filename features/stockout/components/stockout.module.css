@@ -1,0 +1,89 @@
+/* Stock-out count additions on top of the booth POS look (booth.module.css).
+ * Count screen follows the spec mock-up: tiles in a grid on the left, the
+ * "รอบนี้" panel on the right (a bottom bar on phones). */
+.countWrap {
+  --soft: #332a22;
+  --soft-ink: #FAF3E8;
+  --tap-line: rgba(250, 243, 232, .32);
+  display: grid; gap: 14px;
+}
+.countGrid { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 18px; align-items: start; }
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: minmax(196px, auto); gap: 14px; min-width: 0; }
+
+.tile { display: flex; flex-direction: column; justify-content: space-between; min-width: 0; border-radius: 18px; overflow: hidden; }
+.tileFlavor { color: #fff; }
+.tileItem { background: #171410; color: #FAF3E8; border: 1.5px solid rgba(250, 243, 232, .85); }
+.tileTap { flex: 1; display: block; width: 100%; padding: 16px 16px 8px; text-align: left; background: transparent; color: inherit; }
+.tileTap:disabled { cursor: not-allowed; }
+.tileHead { display: flex; align-items: flex-start; gap: 10px; min-width: 0; margin-bottom: 10px; }
+.tileName { font: 800 22px/1.25 var(--font-head); overflow-wrap: anywhere; }
+.thumb { flex: none; width: 48px; height: 48px; border-radius: 10px; object-fit: cover; background: #fff; }
+.fig { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 15px; font-weight: 500; line-height: 1.6; font-variant-numeric: tabular-nums; opacity: .94; }
+.lowPill { display: inline-flex; align-items: center; gap: 4px; padding: 1px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; background: rgba(255, 255, 255, .28); color: #fff; }
+.tileItem .lowPill { background: var(--accent); color: #111; }
+.missingPill { padding: 1px 8px; border-radius: 999px; font-size: 13px; background: var(--danger); color: #fff; }
+
+.tileFoot { display: flex; align-items: center; gap: 10px; padding: 0 16px 16px; }
+.minus { flex: none; width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font: 700 22px/1 var(--font-head); background: rgba(255, 255, 255, .22); color: #fff; }
+.tileItem .minus { background: var(--soft); color: var(--soft-ink); }
+.minus[aria-disabled="true"] { opacity: .5; }
+.tapPlus { flex: 1; max-width: 96px; height: 40px; border-radius: 10px; border: 1.5px dashed rgba(255, 255, 255, .45) !important; background: transparent; font-size: 13px; opacity: .88; }
+.tileItem .tapPlus { border-color: var(--tap-line) !important; }
+.qty { margin-left: auto; min-width: 44px; height: 44px; padding: 0 2px; text-align: right; background: transparent; color: inherit; font: 700 38px/1 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.minus:active, .tapPlus:active, .qty:active, .tileTap:active { opacity: .7; }
+
+.round { position: sticky; top: 14px; display: grid; gap: 14px; background: #181410; border: 1px solid rgba(250, 243, 232, .14); border-radius: 18px; padding: 20px; min-width: 0; }
+.roundTitle { margin: 0; font: 800 18px var(--font-head); }
+.roundRows { display: grid; gap: 12px; max-height: 50vh; overflow-y: auto; }
+.roundLine { display: flex; justify-content: space-between; gap: 8px; font-size: 16px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.roundEmpty { color: var(--muted); font-size: 15px; padding: 6px 0; }
+.saveBtn { margin-top: 4px; min-height: 54px; border-radius: 14px; background: #2d2620; color: #FAF3E8 !important; font: 700 16px var(--font-head) !important; }
+.saveBtn:not(:disabled):hover { background: #3a3129; }
+.saveBtn:disabled { opacity: .45; cursor: not-allowed; }
+
+.syncOffline { color: #ffb36b; border-color: rgba(255, 179, 107, .55); }
+.syncOk { color: #6fd392; border-color: rgba(111, 211, 146, .55); }
+
+.warnBox { border-color: var(--danger) !important; }
+.failedRow { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+
+/* status chips in logs */
+.chip { font: 600 13px var(--font-head); padding: 2px 10px; border-radius: 999px; border: 2px solid currentColor; white-space: nowrap; }
+.chipOk { color: var(--ok-text); }
+.chipVoid { color: var(--muted); }
+.chipReview { color: var(--danger); }
+.chipQueued { color: var(--accent); }
+
+/* hourly and daily bar charts (stacked by product) */
+.chart { display: grid; gap: 6px; }
+.chartRow { display: grid; grid-template-columns: 64px minmax(0, 1fr) 48px; gap: 10px; align-items: center; font-variant-numeric: tabular-nums; }
+.bar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; background: var(--bg); }
+.seg { height: 100%; min-width: 2px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: 14px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+.reviewRow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 220px) auto; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.noteInput { min-height: 44px; padding: 0 12px; border: 2px solid var(--line); border-radius: 12px; background: var(--surface); width: 100%; }
+
+.boxRow { display: grid; grid-template-columns: 40px minmax(0, 1.4fr) minmax(0, 1fr) 110px 110px 90px 90px auto; gap: 8px; align-items: end; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.orderBtns { display: grid; gap: 4px; }
+.imgCell { display: grid; gap: 6px; justify-items: start; }
+.roles { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+
+@media (max-width: 999px) {
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .boxRow { grid-template-columns: 40px minmax(0, 1fr) minmax(0, 1fr); }
+}
+@media (max-width: 860px) {
+  .countGrid { grid-template-columns: minmax(0, 1fr); }
+  .round { position: sticky; bottom: 8px; top: auto; box-shadow: 0 8px 28px rgba(0,0,0,.28); }
+  .roundRows { max-height: 22vh; }
+}
+@media (max-width: 699px) {
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(150px, auto); }
+  .tileName { font-size: 19px; }
+  .tapPlus { width: 56px; }
+  .reviewRow { grid-template-columns: minmax(0, 1fr); }
+  .boxRow { grid-template-columns: minmax(0, 1fr); }
+}
