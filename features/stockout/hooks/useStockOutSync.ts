@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "@/stores/authStore";
+import { useBoothAuthStore } from "@/stores/boothAuthStore";
 import { RejectedError, stockoutApi } from "../api/stockoutApi";
 import {
   addVoid,
@@ -30,7 +30,7 @@ const RETRY_MS = 5000;
  */
 export function useStockOutSync() {
   const client = useQueryClient();
-  const userId = useAuthStore((s) => s.user?.id ?? null);
+  const userId = useBoothAuthStore((s) => s.user?.id ?? null);
   const [queue, setQueue] = useState<QueueState>(EMPTY_QUEUE);
   const [status, setStatus] = useState<SyncStatus>("synced");
   const [storageOk, setStorageOk] = useState(true);

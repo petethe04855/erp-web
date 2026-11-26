@@ -105,17 +105,6 @@ export default function SKUPage() {
           onReset={resetFilters}
         >
           <div className="flex items-center gap-2">
-            <Link
-              href="/stock-out"
-              className={cn(
-                buttonVariants({ variant: "outline", size: "sm" }),
-                "h-9 whitespace-nowrap text-xs gap-1.5"
-              )}
-              title="เปิดหน้านับของออกรายวัน"
-            >
-              <ArrowUpFromLine className="h-3.5 w-3.5 text-neutral-500" />
-              นับของออกรายวัน
-            </Link>
             <Button
               type="button"
               variant="outline"
@@ -197,4 +186,3 @@ export default function SKUPage() {
     </PageContainer>
   );
 }
-
