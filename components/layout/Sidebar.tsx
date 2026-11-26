@@ -67,6 +67,12 @@ const NAV_SECTIONS: NavSection[] = [
       // { label: "สินค้า (Products)", href: "/products", icon: Package }, // ซ่อน Product Catalog ชั่วคราว
       { label: "SKU Master", href: "/sku", icon: Layers },
       { label: "สต็อกคงคลัง (Inventory)", href: "/inventory", icon: Boxes },
+      // {
+      //   label: "นับของออกรายวัน",
+      //   href: "/stock-out",
+      //   icon: ArrowUpFromLine,
+      //   roles: ["owner", "warehouse", "sales", "accountant"],
+      // },
       {
         label: "รับสินค้า (Goods Receive)",
         href: "/goods-receive",
@@ -89,6 +95,12 @@ const NAV_SECTIONS: NavSection[] = [
         href: "/orders",
         icon: ShoppingCart,
         roles: ["owner", "sales", "accountant"],
+      },
+      {
+        label: "ขายหน้าบูธ (Booth)",
+        href: "/booth",
+        icon: ShoppingBag,
+        roles: ["owner", "sales"],
       },
       {
         label: "ใบแจ้งหนี้ (Invoices)",
