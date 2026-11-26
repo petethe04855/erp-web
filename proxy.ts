@@ -25,6 +25,8 @@ const PROTECTED_PREFIXES = [
   "/products",
   "/inventory",
   "/orders",
+  "/booth",
+  "/stock-out",
   "/invoices",
   "/customers",
   "/purchase-order",
