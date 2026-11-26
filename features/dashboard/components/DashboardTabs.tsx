@@ -43,7 +43,7 @@ export function DashboardTabs({ value, onChange }: DashboardTabsProps) {
     <div
       role="tablist"
       aria-label="ส่วนของแดชบอร์ด"
-      className="-mx-1 mb-4 flex gap-1 overflow-x-auto border-b border-neutral-200 px-1 dark:border-neutral-800"
+      className="mb-4 inline-flex max-w-full items-center gap-1 overflow-x-auto overflow-y-hidden rounded-xl border border-neutral-200/80 bg-neutral-100/80 p-1 dark:border-neutral-800 dark:bg-neutral-900/80"
     >
       {DASHBOARD_VIEWS.map((v, i) => {
         const on = v.id === value;
@@ -63,14 +63,22 @@ export function DashboardTabs({ value, onChange }: DashboardTabsProps) {
             onClick={() => onChange(v.id)}
             onKeyDown={(e) => onKeyDown(e, i)}
             className={cn(
-              "-mb-px inline-flex shrink-0 cursor-pointer items-center gap-2 border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
+              "group inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-150 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-1 dark:focus-visible:ring-neutral-100",
               on
-                ? "border-neutral-900 text-neutral-900 dark:border-neutral-100 dark:text-neutral-100"
-                : "border-transparent text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-200",
+                ? "bg-white text-neutral-900 shadow-sm ring-1 ring-neutral-950/5 dark:bg-neutral-800 dark:text-neutral-50 dark:ring-white/10"
+                : "text-neutral-500 hover:bg-white/60 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800/60 dark:hover:text-neutral-100",
             )}
           >
-            <Icon className="h-4 w-4" aria-hidden />
-            {v.label}
+            <Icon
+              className={cn(
+                "h-4 w-4 transition-colors",
+                on
+                  ? "text-neutral-900 dark:text-neutral-100"
+                  : "text-neutral-400 group-hover:text-neutral-600 dark:text-neutral-500 dark:group-hover:text-neutral-300",
+              )}
+              aria-hidden
+            />
+            <span>{v.label}</span>
           </button>
         );
       })}
