@@ -5,11 +5,13 @@ import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { useBoothAuthStore } from "@/stores/boothAuthStore";
 import { useBoothFeedback } from "@/features/booth/components/BoothFeedback";
+import { warehouseApi } from "@/features/warehouse/api/warehouseApi";
 import { useStockOutSync } from "../hooks/useStockOutSync";
 import { bangkokDay, pendingBySku } from "../lib/queue";
 import { useStockOutStream } from "../hooks/useStockOutStream";
 import {
   pollMs,
+  STOCKOUT_KEYS,
   useReviewBatchMutation,
   useStockOutBatchesQuery,
   useStockOutConfigQuery,
@@ -29,14 +31,22 @@ type Tab = "count" | "today" | "history" | "settings";
 const dayLabel = () =>
   new Date().toLocaleDateString("th-TH", { timeZone: "Asia/Bangkok", weekday: "short", day: "numeric", month: "short" });
 
+interface StockOutAppProps {
+  /** "stockout" uses /stock-outs (FEFO + offline queue); "goods-issue" creates /goods-issues directly. */
+  mode?: "stockout" | "goods-issue";
+  title?: string;
+}
+
 /** CHAWY daily stock-out count: count, today, history and (owner) settings. */
-export function StockOutApp() {
+export function StockOutApp({ mode = "stockout", title = "นับของออก" }: StockOutAppProps) {
+  const isGoodsIssue = mode === "goods-issue";
   const user = useBoothAuthStore((st) => st.user);
   const logout = useBoothAuthStore((st) => st.logout);
   const client = useQueryClient();
   const role = (user?.role || "").toLowerCase();
   const isOwner = role === "owner";
   const [tab, setTab] = useState<Tab>("count");
+  const [isSavingIssue, setIsSavingIssue] = useState(false);
   const today = bangkokDay(new Date());
 
   const streamLive = useStockOutStream(tab !== "settings");
@@ -49,7 +59,7 @@ export function StockOutApp() {
   const reviewM = useReviewBatchMutation();
   const fb = useBoothFeedback();
 
-  const pending = useMemo(() => pendingBySku(sync.queue, today), [sync.queue, today]);
+  const pending = useMemo(() => (isGoodsIssue ? {} : pendingBySku(sync.queue, today)), [isGoodsIssue, sync.queue, today]);
   const boxes = useMemo(() => displayBoxes(summaryQ.data, pending), [summaryQ.data, pending]);
   const canVoidOlder = isOwner || !!configQ.data?.config.voidRoles.includes(role);
 
@@ -58,7 +68,36 @@ export function StockOutApp() {
     logout();
   };
 
-  const onSave = (lines: { skuId: number; qty: number }[], label: string) => {
+  const onSave = async (lines: { skuId: number; qty: number }[], label: string) => {
+    if (isGoodsIssue) {
+      const boxById = new Map(boxes.map((x) => [x.skuId, x]));
+      setIsSavingIssue(true);
+      try {
+        for (const l of lines) {
+          const box = boxById.get(l.skuId);
+          if (!box?.skuCode) {
+            throw new Error(`ไม่พบรหัส SKU สำหรับ ${box?.name ?? l.skuId}`);
+          }
+          await warehouseApi.createGoodsIssue({
+            sku: box.skuCode,
+            quantity: l.qty,
+            reason: "ออกบูธ",
+            warehouse: "Booth",
+          });
+        }
+        client.invalidateQueries({ queryKey: STOCKOUT_KEYS.all });
+        client.invalidateQueries({ queryKey: ["warehouse", "goods-issues"] });
+        client.invalidateQueries({ queryKey: ["inventory"] });
+        fb.show({ tone: "ok", message: `เบิกออกบูธผ่าน Goods Issue แล้ว ${label}` });
+      } catch (e) {
+        fb.show({ tone: "error", message: e instanceof Error ? e.message : "บันทึก Goods Issue ไม่สำเร็จ" });
+        throw e;
+      } finally {
+        setIsSavingIssue(false);
+      }
+      return;
+    }
+
     const clientId = sync.save(lines);
     fb.show({
       tone: "ok",
@@ -93,8 +132,13 @@ export function StockOutApp() {
     }
   };
 
-  const syncBadge =
-    sync.status === "offline" || (summaryQ.isError && !summaryQ.data)
+  const syncBadge = isGoodsIssue
+    ? summaryQ.isError && !summaryQ.data
+      ? { text: "เชื่อมต่อ ERP ไม่ได้", cls: s.syncOffline }
+      : isSavingIssue
+        ? { text: "กำลังบันทึก Goods Issue…", cls: "" }
+        : { text: "ตัดผ่าน Goods Issue", cls: s.syncOk }
+    : sync.status === "offline" || (summaryQ.isError && !summaryQ.data)
       ? { text: `ออฟไลน์ · เก็บในเครื่องก่อน${sync.unsent ? ` (${sync.unsent} รอบยังไม่ส่ง)` : ""}`, cls: s.syncOffline }
       : sync.unsent
         ? { text: `กำลังส่ง ${sync.unsent} รอบ…`, cls: "" }
@@ -131,13 +175,21 @@ export function StockOutApp() {
       />
     );
   } else {
-    body = <CountView boxes={boxes} onSave={onSave} failed={sync.failed} onDiscard={sync.discard} />;
+    body = (
+      <CountView
+        boxes={boxes}
+        onSave={onSave}
+        failed={isGoodsIssue ? [] : sync.failed}
+        onDiscard={sync.discard}
+        isSaving={isSavingIssue}
+      />
+    );
   }
 
   return (
     <div className={b.pos}>
       <header className={b.topbar}>
-        <h1 className={b.brand}>นับของออก · {dayLabel()}</h1>
+        <h1 className={b.brand}>{title} · {dayLabel()}</h1>
         <nav className={b.tabs} aria-label="เมนูนับของออก">
           {tabs.map((t) => (
             <button key={t.id} type="button" className={b.tab} aria-current={tab === t.id} onClick={() => { fb.hide(); setTab(t.id); }}>
