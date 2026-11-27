@@ -25,9 +25,10 @@ export function displayBoxes(summary: StockOutSummary | undefined, pending: Reco
 
 interface Props {
   boxes: DisplayBox[];
-  onSave: (lines: { skuId: number; qty: number }[], label: string) => void;
+  onSave: (lines: { skuId: number; qty: number }[], label: string) => void | Promise<void>;
   failed: QueuedBatch[];
   onDiscard: (clientId: string) => void;
+  isSaving?: boolean;
 }
 
 function Tile({ box, qty, onAdd, onSub }: { box: DisplayBox; qty: number; onAdd: () => void; onSub: () => void }) {
@@ -57,7 +58,7 @@ function Tile({ box, qty, onAdd, onSub }: { box: DisplayBox; qty: number; onAdd:
 }
 
 /** The "นับออก" screen: tap what you pick, then save the round. */
-export function CountView({ boxes, onSave, failed, onDiscard }: Props) {
+export function CountView({ boxes, onSave, failed, onDiscard, isSaving }: Props) {
   const [round, setRound] = useState<Round>({});
   const adjust = (id: number, delta: number) =>
     setRound((r) => {
@@ -77,9 +78,9 @@ export function CountView({ boxes, onSave, failed, onDiscard }: Props) {
     return <div className={`${b.panel} ${b.empty}`}>ยังไม่มีกล่องสินค้า ให้ owner ไปที่แท็บ &quot;ตั้งค่า&quot; แล้วเลือก SKU ที่จะนับ</div>;
   }
 
-  const save = () => {
-    if (!total) return;
-    onSave(lines.map((l) => ({ skuId: l.box.skuId, qty: l.qty })), label);
+  const save = async () => {
+    if (!total || isSaving) return;
+    await onSave(lines.map((l) => ({ skuId: l.box.skuId, qty: l.qty })), label);
     setRound({});
   };
 
@@ -113,8 +114,8 @@ export function CountView({ boxes, onSave, failed, onDiscard }: Props) {
               ))}
             </div>
           )}
-          <button type="button" className={s.saveBtn} disabled={total === 0} onClick={save}>
-            บันทึกออก{total ? ` · ${total} รายการ` : ""}
+          <button type="button" className={s.saveBtn} disabled={total === 0 || isSaving} onClick={save}>
+            {isSaving ? "กำลังบันทึก…" : `บันทึกออก${total ? ` · ${total} รายการ` : ""}`}
           </button>
         </aside>
       </section>
