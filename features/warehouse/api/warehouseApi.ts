@@ -13,6 +13,7 @@ const receipt = (r: ReceiptRecord): GoodsReceiveRecord => ({
   grnNumber: r.code,
   poNumber: r.poRef,
   receivedDate: r.receiveDate,
+  totalItems: r.totalItems ?? 0,
 });
 export function normalizeChannel(channel?: string, orderRef?: string): string {
   if (!channel) return "Manual";

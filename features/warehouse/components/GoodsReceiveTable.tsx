@@ -21,6 +21,7 @@ export function GoodsReceiveTable(props: GoodsReceiveTableProps) {
         { key: "grnNumber", label: "ใบรับสินค้า" },
         { key: "poNumber", label: "ใบสั่งซื้อ" },
         { key: "receivedDate", label: "วันที่รับสินค้า" },
+        { key: "totalItems", label: "จำนวนที่รับ" },
       ]}
       actions={(row) => <RecordDetails resource="goods-receives" id={row.id} />}
     />
