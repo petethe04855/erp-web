@@ -3,6 +3,7 @@ export interface GoodsReceiveRecord {
   grnNumber: string;
   poNumber: string;
   receivedDate: string;
+  totalItems: number;
 }
 
 export interface GoodsIssueRecord {
