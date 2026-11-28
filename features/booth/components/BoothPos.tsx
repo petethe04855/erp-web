@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/authStore";
 import { useBoothCatalogQuery, useBoothSalesQuery, useVoidBoothSaleMutation } from "../queries/boothQueries";
@@ -24,14 +23,12 @@ const bangkokToday = () =>
 export function BoothPos() {
   const user = useAuthStore((st) => st.user);
   const logout = useAuthStore((st) => st.logout);
-  const router = useRouter();
   const client = useQueryClient();
   const role = (user?.role || "").toLowerCase();
   const isOwner = role === "owner";
   const signOut = () => {
     client.clear();
     logout();
-    router.replace("/login?next=/booth");
   };
   const [tab, setTab] = useState<Tab>("sell");
   const [date, setDate] = useState(bangkokToday);

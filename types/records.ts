@@ -98,6 +98,7 @@ export interface ReceiptRecord {
   code: string;
   poRef: string;
   receiveDate: string;
+  totalItems?: number;
   note: string;
 }
 

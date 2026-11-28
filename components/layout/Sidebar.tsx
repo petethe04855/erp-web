@@ -96,12 +96,12 @@ const NAV_SECTIONS: NavSection[] = [
         icon: ShoppingCart,
         roles: ["owner", "sales", "accountant"],
       },
-      {
-        label: "ขายหน้าบูธ (Booth)",
-        href: "/booth",
-        icon: ShoppingBag,
-        roles: ["owner", "sales"],
-      },
+      // {
+      //   label: "ขายหน้าบูธ (Booth)",
+      //   href: "/booth",
+      //   icon: ShoppingBag,
+      //   roles: ["owner", "sales"],
+      // },
       {
         label: "ใบแจ้งหนี้ (Invoices)",
         href: "/invoices",
@@ -172,6 +172,12 @@ const NAV_SECTIONS: NavSection[] = [
     title: "Shopee",
     items: [
       // { label: "Shopee Dashboard", href: "/shopee/dashboard", icon: BarChart3, roles: ["owner", "sales", "accountant"] },
+      {
+        label: "Shopee เชิงลึก",
+        href: "/shopee/insights",
+        icon: BarChart3,
+        roles: ["owner", "accountant", "sales"],
+      },
       {
         label: "Shopee Orders",
         href: "/shopee/orders",

@@ -24,19 +24,26 @@ export function PlatformFilter({ value, onChange }: PlatformFilterProps) {
     }
   };
 
-  const chip =
-    "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer";
+  const pill =
+    "inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors";
   const idle =
-    "border-neutral-200 bg-white text-neutral-600 hover:text-neutral-900 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-200";
+    "border-transparent text-neutral-500 hover:bg-white hover:text-neutral-900 dark:hover:bg-neutral-900 dark:hover:text-neutral-200";
 
   return (
-    <div role="group" aria-label="เลือกแพลตฟอร์มที่จะแสดง" className="flex flex-wrap items-center gap-1.5">
-      <span className="mr-1 text-[11px] font-medium text-neutral-400">แพลตฟอร์ม:</span>
+    <div
+      role="group"
+      aria-label="เลือกแพลตฟอร์มที่จะแสดง"
+      className="inline-flex flex-wrap items-center gap-0.5 rounded-lg border border-neutral-200 bg-neutral-50 p-0.5 dark:border-neutral-800 dark:bg-neutral-800/50"
+    >
       <button
         type="button"
         aria-pressed={isAll}
         onClick={() => onChange([...ALL_PLATFORMS])}
-        className={`${chip} ${isAll ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900" : idle}`}
+        className={`${pill} ${
+          isAll
+            ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900"
+            : idle
+        }`}
       >
         ทั้งหมด
       </button>
@@ -49,7 +56,7 @@ export function PlatformFilter({ value, onChange }: PlatformFilterProps) {
             type="button"
             aria-pressed={on}
             onClick={() => toggle(p)}
-            className={`${chip} ${on ? meta.active : idle}`}
+            className={`${pill} ${on ? meta.active : idle}`}
           >
             {on ? <Check className="h-3 w-3" /> : <span className={`h-2 w-2 rounded-full ${meta.dot}`} />}
             {meta.label}

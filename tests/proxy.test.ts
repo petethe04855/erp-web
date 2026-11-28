@@ -53,4 +53,16 @@ describe("proxy - auth routing", () => {
   it("lets protected routes through when the session cookie exists", () => {
     expect(proxy(req("/dashboard", "1"))).toEqual({ kind: "next" });
   });
+
+  it("redirects unauthenticated /booth and /stock-out requests to /login with next param", () => {
+    expect(proxy(req("/booth", undefined))).toEqual({
+      kind: "redirect",
+      url: "http://localhost:3000/login?next=%2Fbooth",
+    });
+    expect(proxy(req("/stock-out", undefined))).toEqual({
+      kind: "redirect",
+      url: "http://localhost:3000/login?next=%2Fstock-out",
+    });
+    expect(proxy(req("/booth", "1"))).toEqual({ kind: "next" });
+  });
 });

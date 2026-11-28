@@ -64,8 +64,8 @@ export default function UsersPage() {
             ไม่มีสิทธิ์เข้าถึงหน้านี้ (Access Restricted)
           </h2>
           <p className="mt-1.5 max-w-md text-xs text-neutral-500 dark:text-neutral-400">
-            หน้านี้สงวนสิทธิ์การเข้าถึงเฉพาะเจ้าของกิจการ (Owner)
-            เท่านั้น กรุณาติดต่อผู้ดูแลระบบหากต้องการเปลี่ยนแปลงสิทธิ์การใช้งาน
+            หน้านี้สงวนสิทธิ์การเข้าถึงเฉพาะเจ้าของกิจการ (Owner) เท่านั้น
+            กรุณาติดต่อผู้ดูแลระบบหากต้องการเปลี่ยนแปลงสิทธิ์การใช้งาน
           </p>
         </div>
       </PageContainer>
@@ -88,7 +88,11 @@ export default function UsersPage() {
           onStatusChange={handleStatusChange}
           onReset={resetFilters}
           actions={
-            <Button size="sm" onClick={handleOpenCreate} className="h-9 whitespace-nowrap">
+            <Button
+              size="sm"
+              onClick={handleOpenCreate}
+              className="h-9 whitespace-nowrap"
+            >
               <UserPlus className="mr-1.5 h-3.5 w-3.5" />
               เพิ่มผู้ใช้งานใหม่ (New User)
             </Button>

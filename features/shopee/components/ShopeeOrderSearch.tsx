@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, Calendar, RefreshCw, Upload, MapPin } from "lucide-react";
+import { Search, Calendar, RefreshCw, Upload, MapPin, Wrench } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FilterToolbar } from "@/components/common/FilterToolbar";
@@ -23,6 +23,8 @@ interface ShopeeOrderSearchProps {
   onReset: () => void;
   onRefresh: () => void;
   onOpenUpload: () => void;
+  /** Shown only to roles allowed to correct imported orders. */
+  onOpenRepair?: () => void;
   loading: boolean;
   totalItems?: number;
 }
@@ -42,6 +44,7 @@ export function ShopeeOrderSearch({
   onReset,
   onRefresh,
   onOpenUpload,
+  onOpenRepair,
   loading,
   totalItems,
 }: ShopeeOrderSearchProps) {
@@ -89,6 +92,18 @@ export function ShopeeOrderSearch({
             />
             รีเฟรช
           </Button>
+          {onOpenRepair && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onOpenRepair}
+              className="h-9 text-xs whitespace-nowrap"
+              title="แก้วันที่สั่งซื้อ จำนวน และตัวเลือก ของออเดอร์ที่นำเข้าไปแล้ว จากไฟล์ Order เดิม"
+            >
+              <Wrench className="mr-1.5 h-3.5 w-3.5" />
+              แก้ข้อมูลออเดอร์เดิม
+            </Button>
+          )}
           <Button
             size="sm"
             onClick={onOpenUpload}
