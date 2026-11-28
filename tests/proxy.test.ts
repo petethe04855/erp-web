@@ -53,4 +53,10 @@ describe("proxy - auth routing", () => {
   it("lets protected routes through when the session cookie exists", () => {
     expect(proxy(req("/dashboard", "1"))).toEqual({ kind: "next" });
   });
+
+  it("lets /booth and /stock-out through without ERP session cookie (uses isolated BoothSessionGuard)", () => {
+    expect(proxy(req("/booth", undefined))).toEqual({ kind: "next" });
+    expect(proxy(req("/booth/pos", undefined))).toEqual({ kind: "next" });
+    expect(proxy(req("/stock-out", undefined))).toEqual({ kind: "next" });
+  });
 });
