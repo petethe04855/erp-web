@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
-import { useBoothAuthStore } from "@/stores/boothAuthStore";
+import { useAuthStore } from "@/stores/authStore";
 import { useBoothFeedback } from "@/features/booth/components/BoothFeedback";
 import { warehouseApi } from "@/features/warehouse/api/warehouseApi";
 import { useStockOutSync } from "../hooks/useStockOutSync";
@@ -40,8 +40,8 @@ interface StockOutAppProps {
 /** CHAWY daily stock-out count: count, today, history and (owner) settings. */
 export function StockOutApp({ mode = "stockout", title = "นับของออก" }: StockOutAppProps) {
   const isGoodsIssue = mode === "goods-issue";
-  const user = useBoothAuthStore((st) => st.user);
-  const logout = useBoothAuthStore((st) => st.logout);
+  const user = useAuthStore((st) => st.user);
+  const logout = useAuthStore((st) => st.logout);
   const client = useQueryClient();
   const role = (user?.role || "").toLowerCase();
   const isOwner = role === "owner";

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
-import { useBoothAuthStore } from "@/stores/boothAuthStore";
+import { useAuthStore } from "@/stores/authStore";
 import { useBoothCatalogQuery, useBoothSalesQuery, useVoidBoothSaleMutation } from "../queries/boothQueries";
 import { useBoothSell } from "../hooks/useBoothSell";
 import { baht } from "../lib/pricing";
@@ -21,8 +21,8 @@ const bangkokToday = () =>
 
 /** The booth sell screen: sell, today's summary and (owner) settings. */
 export function BoothPos() {
-  const user = useBoothAuthStore((st) => st.user);
-  const logout = useBoothAuthStore((st) => st.logout);
+  const user = useAuthStore((st) => st.user);
+  const logout = useAuthStore((st) => st.logout);
   const client = useQueryClient();
   const role = (user?.role || "").toLowerCase();
   const isOwner = role === "owner";

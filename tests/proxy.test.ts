@@ -54,9 +54,15 @@ describe("proxy - auth routing", () => {
     expect(proxy(req("/dashboard", "1"))).toEqual({ kind: "next" });
   });
 
-  it("lets /booth and /stock-out through without ERP session cookie (uses isolated BoothSessionGuard)", () => {
-    expect(proxy(req("/booth", undefined))).toEqual({ kind: "next" });
-    expect(proxy(req("/booth/pos", undefined))).toEqual({ kind: "next" });
-    expect(proxy(req("/stock-out", undefined))).toEqual({ kind: "next" });
+  it("redirects unauthenticated /booth and /stock-out requests to /login with next param", () => {
+    expect(proxy(req("/booth", undefined))).toEqual({
+      kind: "redirect",
+      url: "http://localhost:3000/login?next=%2Fbooth",
+    });
+    expect(proxy(req("/stock-out", undefined))).toEqual({
+      kind: "redirect",
+      url: "http://localhost:3000/login?next=%2Fstock-out",
+    });
+    expect(proxy(req("/booth", "1"))).toEqual({ kind: "next" });
   });
 });
