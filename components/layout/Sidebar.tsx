@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSidebarStore } from "@/stores/sidebarStore";
 import { useAuthStore } from "@/stores/authStore";
+import { useMyPermissions } from "@/features/permissions/hooks/useMyPermissions";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -34,13 +35,20 @@ import {
   Video,
   DollarSign,
   MapPin,
+  ShieldCheck,
 } from "lucide-react";
 
 interface NavItem {
   label: string;
   href: string;
   icon: React.ElementType;
+  /**
+   * Fixed roles for pages outside the permission matrix (owner-only pages).
+   * Items without it follow the owner's role permission settings.
+   */
   roles?: string[];
+  /** Hide from the owner (a page that only makes sense for its own role). */
+  hideForOwner?: boolean;
 }
 
 interface NavSection {
@@ -57,7 +65,6 @@ const NAV_SECTIONS: NavSection[] = [
         label: "ลูกค้าตามจังหวัด (CRM)",
         href: "/crm/tiktok-provinces",
         icon: MapPin,
-        roles: ["owner", "sales"],
       },
     ],
   },
@@ -77,13 +84,11 @@ const NAV_SECTIONS: NavSection[] = [
         label: "รับสินค้า (Goods Receive)",
         href: "/goods-receive",
         icon: ArrowDownToLine,
-        roles: ["owner", "warehouse"],
       },
       {
         label: "เบิกสินค้า (Goods Issue)",
         href: "/goods-issue",
         icon: ArrowUpFromLine,
-        roles: ["owner", "warehouse"],
       },
     ],
   },
@@ -94,7 +99,6 @@ const NAV_SECTIONS: NavSection[] = [
         label: "คำสั่งซื้อ (Orders)",
         href: "/orders",
         icon: ShoppingCart,
-        roles: ["owner", "sales", "accountant"],
       },
       // {
       //   label: "ขายหน้าบูธ (Booth)",
@@ -106,19 +110,16 @@ const NAV_SECTIONS: NavSection[] = [
         label: "ใบแจ้งหนี้ (Invoices)",
         href: "/invoices",
         icon: Receipt,
-        roles: ["owner", "accountant", "sales"],
       },
       {
         label: "รับคืนสินค้า (Returns)",
         href: "/returns",
         icon: RotateCcw,
-        roles: ["owner", "sales", "accountant", "warehouse"],
       },
       {
         label: "ลูกค้า (Customers)",
         href: "/customers",
         icon: Users,
-        roles: ["owner", "sales"],
       },
     ],
   },
@@ -129,7 +130,6 @@ const NAV_SECTIONS: NavSection[] = [
         label: "สั่งซื้อ (Purchase Order)",
         href: "/purchase-order",
         icon: Truck,
-        roles: ["owner", "warehouse", "accountant"],
       },
     ],
   },
@@ -140,25 +140,22 @@ const NAV_SECTIONS: NavSection[] = [
         label: "บันทึกและรายได้ของฉัน",
         href: "/my-live",
         icon: Video,
-        roles: ["live"],
+        hideForOwner: true,
       },
       {
         label: "TikTok Orders",
         href: "/tiktok-orders",
         icon: Store,
-        roles: ["owner", "sales", "warehouse"],
       },
       {
         label: "Live & Content",
         href: "/tiktok-live",
         icon: Video,
-        roles: ["owner", "sales", "warehouse"],
       },
       {
         label: "Fee Calculator",
         href: "/tiktok-calculator",
         icon: Calculator,
-        roles: ["owner", "sales", "accountant"],
       },
       {
         label: "TikTok Setup",
@@ -176,25 +173,21 @@ const NAV_SECTIONS: NavSection[] = [
         label: "Shopee เชิงลึก",
         href: "/shopee/insights",
         icon: BarChart3,
-        roles: ["owner", "accountant", "sales"],
       },
       {
         label: "Shopee Orders",
         href: "/shopee/orders",
         icon: ShoppingBag,
-        roles: ["owner", "sales", "warehouse", "accountant"],
       },
       {
         label: "Shopee Income",
         href: "/shopee/income",
         icon: DollarSign,
-        roles: ["owner", "accountant"],
       },
       {
         label: "Payout Matching",
         href: "/shopee/matching",
         icon: Calculator,
-        roles: ["owner", "accountant", "sales"],
       },
     ],
   },
@@ -205,19 +198,16 @@ const NAV_SECTIONS: NavSection[] = [
         label: "สมุดรายวัน (Journal)",
         href: "/finance/journal",
         icon: BookOpen,
-        roles: ["owner", "accountant"],
       },
       {
         label: "ค่าใช้จ่าย (Expenses)",
         href: "/finance/expenses",
         icon: Receipt,
-        roles: ["owner", "accountant"],
       },
       {
         label: "รายงานการเงิน (Reports)",
         href: "/finance/reports",
         icon: PieChart,
-        roles: ["owner", "accountant"],
       },
     ],
   },
@@ -228,12 +218,17 @@ const NAV_SECTIONS: NavSection[] = [
         label: "รายงานเดิม (Legacy Reports)",
         href: "/reports",
         icon: BarChart3,
-        roles: ["owner", "accountant"],
       },
       {
         label: "จัดการผู้ใช้งาน (Users)",
         href: "/users",
         icon: UserCog,
+        roles: ["owner"],
+      },
+      {
+        label: "สิทธิ์การเข้าถึง (Permissions)",
+        href: "/role-permissions",
+        icon: ShieldCheck,
         roles: ["owner"],
       },
       {
@@ -250,6 +245,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const { isOpen, setOpen, isCollapsed, toggleCollapse } = useSidebarStore();
   const { user, logout } = useAuthStore();
+  const perms = useMyPermissions();
 
   const isCurrent = (href: string) => {
     if (href === "/dashboard")
@@ -322,8 +318,11 @@ export function Sidebar() {
           {NAV_SECTIONS.map((section) => {
             const userRole = (user?.role || "sales").toLowerCase();
             const visibleItems = section.items.filter((item) => {
-              if (!item.roles || item.roles.length === 0) return true;
-              return item.roles.includes(userRole);
+              if (item.roles && item.roles.length > 0)
+                return item.roles.includes(userRole);
+              if (perms.isOwner) return !item.hideForOwner;
+              // Wait for the role's permissions before showing matrix pages.
+              return perms.isReady && perms.canOpenPath(item.href);
             });
 
             if (visibleItems.length === 0) return null;

@@ -3,6 +3,7 @@
 import React from "react";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
+import { PageAccessGuard } from "@/features/permissions/components/PageAccessGuard";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -19,7 +20,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       {/* Main Content Area */}
       <div className="flex flex-1 flex-col min-w-0">
         <Header />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="flex-1 overflow-y-auto">
+          <PageAccessGuard>{children}</PageAccessGuard>
+        </main>
       </div>
     </div>
   );
