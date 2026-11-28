@@ -169,7 +169,9 @@ export function BoothSessionGuard({ children }: { children: React.ReactNode }) {
     }
   }, [session.data, setAuth]);
 
-  if (session.isError) {
+  // Only show the error screen when a token is still present (e.g. network/5xx).
+  // If a 401 already cleared BOOTH_TOKEN_KEY, fall through to BoothLoginScreen.
+  if (hasToken && session.isError && !isAuthenticated) {
     return (
       <div className={s.pos} style={{ justifyContent: "center", alignItems: "center", padding: 20 }}>
         <div className={`${s.panel} ${s.errorBox}`} style={{ maxWidth: 420, width: "100%", display: "grid", gap: 12 }}>
